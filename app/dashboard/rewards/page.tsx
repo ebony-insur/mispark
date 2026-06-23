@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Coins, Share2, Facebook, Bookmark, ArrowLeft } from "lucide-react";
+import { Coins, Share2, ThumbsUp, Bookmark, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 export default function RewardsPage() {
@@ -93,7 +93,7 @@ export default function RewardsPage() {
                 variant="outline" 
                 className="w-full justify-start gap-3 text-slate-700 hover:bg-blue-50 border-slate-200"
               >
-                <Facebook className="w-5 h-5 text-blue-600 fill-blue-600" />
+                <ThumbsUp className="w-5 h-5 text-blue-600 fill-blue-600" />
                 <span>Share Plan on Facebook</span>
                 <span className="ml-auto text-xs font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">+1 Spark</span>
               </Button>
