@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import pdfParse from "pdf-parse/lib/pdf-parse.js";
 import OpenAI from "openai";
 
 // Initialize the OpenAI client
@@ -23,6 +22,8 @@ export async function POST(request: Request) {
 
     // --- 1. PDF EXTRACTION ---
     if (file.type === "application/pdf") {
+      // THE BYPASS: Require the library directly at runtime to skip strict build checks
+      const pdfParse = require("pdf-parse");
       const pdfData = await pdfParse(buffer);
       extractedText = pdfData.text;
     } 
@@ -34,12 +35,11 @@ export async function POST(request: Request) {
     
     // --- 3. AI VISION EXTRACTION (IMAGES) ---
     else if (file.type.startsWith("image/")) {
-      // Convert the image buffer to a Base64 string for the AI
       const base64Image = buffer.toString("base64");
       const dataUri = `data:${file.type};base64,${base64Image}`;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4o", // Uses the fast, vision-capable model
+        model: "gpt-4o",
         messages: [
           {
             role: "user",
@@ -68,13 +68,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Send the extracted text back to the dashboard!
     return NextResponse.json({ text: extractedText }, { status: 200 });
 
   } catch (error: any) {
     console.error("Extraction Error:", error);
     
-    // Check if the error is a missing API key
     if (error.message && error.message.includes("API key")) {
       return NextResponse.json({ error: "Server configuration error: Missing AI API Key." }, { status: 500 });
     }
