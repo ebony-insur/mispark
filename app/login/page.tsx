@@ -38,7 +38,7 @@ export default function LoginPage() {
         });
         if (error) throw error;
         toast.success("Welcome back to MiSpark!");
-        router.push("/"); // Send them back to the homepage dashboard
+        router.push("/dashboard"); // Route updated to point to your new dashboard
       }
     } catch (error: any) {
       toast.error(error.message || "An authentication error occurred.");
@@ -58,9 +58,15 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAuth} className="space-y-4">
+            
+            {/* UPDATED EMAIL FIELD */}
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Email Address</label>
+              <label htmlFor="email" className="text-sm font-semibold text-slate-700">
+                Email Address
+              </label>
               <Input 
+                id="email"
+                name="email"
                 type="email" 
                 placeholder="you@example.com" 
                 value={email}
@@ -69,9 +75,15 @@ export default function LoginPage() {
                 disabled={isLoading}
               />
             </div>
+
+            {/* UPDATED PASSWORD FIELD */}
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Password</label>
+              <label htmlFor="password" className="text-sm font-semibold text-slate-700">
+                Password
+              </label>
               <Input 
+                id="password"
+                name="password"
                 type="password" 
                 placeholder="••••••••"
                 value={password}
@@ -80,6 +92,7 @@ export default function LoginPage() {
                 disabled={isLoading}
               />
             </div>
+
             <Button 
               type="submit" 
               className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-5 mt-2 transition-all" 

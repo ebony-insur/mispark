@@ -119,33 +119,33 @@ export default function ManageStudents() {
             <form onSubmit={handleAddStudent} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">Nickname *</label>
-                  <Input placeholder="e.g., J.M. or Buddy" value={nickname} onChange={(e) => setNickname(e.target.value)} disabled={isSubmitting} />
+                  <label htmlFor="nickname" className="text-sm font-bold text-slate-700">Nickname *</label>
+                  <Input id="nickname" name="nickname" placeholder="e.g., J.M. or Buddy" value={nickname} onChange={(e) => setNickname(e.target.value)} disabled={isSubmitting} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">Grade Level *</label>
-                  <Input placeholder="e.g., 4th Grade" value={grade} onChange={(e) => setGrade(e.target.value)} disabled={isSubmitting} />
+                  <label htmlFor="grade" className="text-sm font-bold text-slate-700">Grade Level *</label>
+                  <Input id="grade" name="grade" placeholder="e.g., 4th Grade" value={grade} onChange={(e) => setGrade(e.target.value)} disabled={isSubmitting} />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">Learning Style</label>
-                <Input placeholder="e.g., Visual, Kinesthetic" value={learningStyle} onChange={(e) => setLearningStyle(e.target.value)} disabled={isSubmitting} />
+                <label htmlFor="learningStyle" className="text-sm font-bold text-slate-700">Learning Style</label>
+                <Input id="learningStyle" name="learningStyle" placeholder="e.g., Visual, Kinesthetic" value={learningStyle} onChange={(e) => setLearningStyle(e.target.value)} disabled={isSubmitting} />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">Current Fixations / Interests</label>
-                <Input placeholder="e.g., Dinosaurs, Space, Minecraft" value={interests} onChange={(e) => setInterests(e.target.value)} disabled={isSubmitting} />
+                <label htmlFor="interests" className="text-sm font-bold text-slate-700">Current Fixations / Interests</label>
+                <Input id="interests" name="interests" placeholder="e.g., Dinosaurs, Space, Minecraft" value={interests} onChange={(e) => setInterests(e.target.value)} disabled={isSubmitting} />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">Sensory Needs</label>
-                <Textarea placeholder="e.g., Avoid messy textures, needs movement breaks" className="resize-none" value={sensoryNeeds} onChange={(e) => setSensoryNeeds(e.target.value)} disabled={isSubmitting} />
+                <label htmlFor="sensoryNeeds" className="text-sm font-bold text-slate-700">Sensory Needs</label>
+                <Textarea id="sensoryNeeds" name="sensoryNeeds" placeholder="e.g., Avoid messy textures, needs movement breaks" className="resize-none" value={sensoryNeeds} onChange={(e) => setSensoryNeeds(e.target.value)} disabled={isSubmitting} />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">Focus Duration</label>
-                <Input placeholder="e.g., Short 15-min bursts" value={focusDuration} onChange={(e) => setFocusDuration(e.target.value)} disabled={isSubmitting} />
+                <label htmlFor="focusDuration" className="text-sm font-bold text-slate-700">Focus Duration</label>
+                <Input id="focusDuration" name="focusDuration" placeholder="e.g., Short 15-min bursts" value={focusDuration} onChange={(e) => setFocusDuration(e.target.value)} disabled={isSubmitting} />
               </div>
 
               <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold mt-2" disabled={isSubmitting}>

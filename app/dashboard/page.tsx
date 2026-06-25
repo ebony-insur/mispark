@@ -181,7 +181,8 @@ export default function Dashboard() {
 
           <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
             <div className="flex justify-between items-center">
-              <label className="text-sm font-bold text-slate-700">Target Student Profile</label>
+              {/* ACCESSIBILITY FIX: Added htmlFor to match the select id */}
+              <label htmlFor="studentProfile" className="text-sm font-bold text-slate-700">Target Student Profile</label>
               <Button variant="link" className="text-teal-600 p-0 h-auto text-sm font-bold" onClick={() => router.push('/dashboard/students')}>
                 + Manage
               </Button>
@@ -192,7 +193,10 @@ export default function Dashboard() {
                 No profiles found. <span className="text-teal-600 font-bold cursor-pointer" onClick={() => router.push('/dashboard/students')}>Create one here</span> to deeply personalize your plan.
               </p>
             ) : (
+              // ACCESSIBILITY FIX: Added id and name
               <select
+                id="studentProfile"
+                name="studentProfile"
                 value={selectedStudentId}
                 onChange={(e) => setSelectedStudentId(e.target.value)}
                 className="w-full p-3 rounded-lg border border-slate-300 bg-white text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer shadow-sm"
@@ -207,7 +211,11 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-3">
+            {/* ACCESSIBILITY FIX: Added visually hidden label for Textarea */}
+            <label htmlFor="lessonText" className="sr-only">Paste Lesson Topics</label>
             <Textarea 
+              id="lessonText"
+              name="lessonText"
               placeholder="e.g., Monday: Fractions. Tuesday: The Water Cycle. Wednesday: American Revolution..." 
               className={`min-h-[150px] resize-none text-base p-4 ${isOverLimit ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
               value={lessonText}
