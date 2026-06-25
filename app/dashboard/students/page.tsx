@@ -42,7 +42,7 @@ export default function ManageStudents() {
     const { data, error } = await supabase
       .from("children_profiles")
       .select("*")
-      .eq("parent_id", userId) // Updated to map to parent_id
+      .eq("parent_id", userId)
       .order("created_at", { ascending: false });
 
     if (!error && data) {
@@ -52,8 +52,10 @@ export default function ManageStudents() {
 
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nickname || !grade) {
-      toast.error("Nickname and Grade are required.");
+    
+    // NEW STRICT VALIDATION: Require every single field
+    if (!nickname || !grade || !learningStyle || !interests || !sensoryNeeds || !focusDuration) {
+      toast.error("Please fill out all fields. The AI needs this data to personalize your schedule!");
       return;
     }
 
@@ -61,7 +63,7 @@ export default function ManageStudents() {
     toast.loading("Saving profile...", { id: "save-student" });
 
     const { error } = await supabase.from("children_profiles").insert({
-      parent_id: user.id, // Updated to map to parent_id
+      parent_id: user.id,
       nickname,
       grade,
       learning_style: learningStyle,
@@ -113,39 +115,65 @@ export default function ManageStudents() {
             <CardTitle className="text-2xl flex items-center gap-2 text-slate-800">
               <UserPlus className="w-6 h-6 text-teal-500" /> Add a Profile
             </CardTitle>
-            <CardDescription>Use initials or a nickname for privacy.</CardDescription>
+            <CardDescription>Use initials or a nickname for privacy. All fields are required.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleAddStudent} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label htmlFor="nickname" className="text-sm font-bold text-slate-700">Nickname *</label>
-                  <Input id="nickname" name="nickname" placeholder="e.g., J.M. or Buddy" value={nickname} onChange={(e) => setNickname(e.target.value)} disabled={isSubmitting} />
+                  <Input id="nickname" name="nickname" placeholder="e.g., J.M. or Buddy" value={nickname} onChange={(e) => setNickname(e.target.value)} disabled={isSubmitting} required />
                 </div>
+                
+                {/* NEW DROPDOWN: Grade Level */}
                 <div className="space-y-2">
                   <label htmlFor="grade" className="text-sm font-bold text-slate-700">Grade Level *</label>
-                  <Input id="grade" name="grade" placeholder="e.g., 4th Grade" value={grade} onChange={(e) => setGrade(e.target.value)} disabled={isSubmitting} />
+                  <select
+                    id="grade"
+                    name="grade"
+                    value={grade}
+                    onChange={(e) => setGrade(e.target.value)}
+                    disabled={isSubmitting}
+                    required
+                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="" disabled>Select Grade</option>
+                    <option value="Pre-K">Pre-K (Pre-Kindergarten)</option>
+                    <option value="K">K (Kindergarten)</option>
+                    <option value="1">1st Grade</option>
+                    <option value="2">2nd Grade</option>
+                    <option value="3">3rd Grade</option>
+                    <option value="4">4th Grade</option>
+                    <option value="5">5th Grade</option>
+                    <option value="6">6th Grade</option>
+                    <option value="7">7th Grade</option>
+                    <option value="8">8th Grade</option>
+                    <option value="9">9th Grade</option>
+                    <option value="10">10th Grade</option>
+                    <option value="11">11th Grade</option>
+                    <option value="12">12th Grade</option>
+                  </select>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="learningStyle" className="text-sm font-bold text-slate-700">Learning Style</label>
-                <Input id="learningStyle" name="learningStyle" placeholder="e.g., Visual, Kinesthetic" value={learningStyle} onChange={(e) => setLearningStyle(e.target.value)} disabled={isSubmitting} />
+                <label htmlFor="learningStyle" className="text-sm font-bold text-slate-700">Learning Style *</label>
+                <Input id="learningStyle" name="learningStyle" placeholder="e.g., Visual, Kinesthetic" value={learningStyle} onChange={(e) => setLearningStyle(e.target.value)} disabled={isSubmitting} required />
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="interests" className="text-sm font-bold text-slate-700">Current Fixations / Interests</label>
-                <Input id="interests" name="interests" placeholder="e.g., Dinosaurs, Space, Minecraft" value={interests} onChange={(e) => setInterests(e.target.value)} disabled={isSubmitting} />
+                <label htmlFor="interests" className="text-sm font-bold text-slate-700">Current Fixations / Interests *</label>
+                <Input id="interests" name="interests" placeholder="e.g., Dinosaurs, Space, Minecraft" value={interests} onChange={(e) => setInterests(e.target.value)} disabled={isSubmitting} required />
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="sensoryNeeds" className="text-sm font-bold text-slate-700">Sensory Needs</label>
-                <Textarea id="sensoryNeeds" name="sensoryNeeds" placeholder="e.g., Avoid messy textures, needs movement breaks" className="resize-none" value={sensoryNeeds} onChange={(e) => setSensoryNeeds(e.target.value)} disabled={isSubmitting} />
+                <label htmlFor="sensoryNeeds" className="text-sm font-bold text-slate-700">Sensory Needs *</label>
+                <Textarea id="sensoryNeeds" name="sensoryNeeds" placeholder="e.g., Avoid messy textures, needs movement breaks" className="resize-none" value={sensoryNeeds} onChange={(e) => setSensoryNeeds(e.target.value)} disabled={isSubmitting} required />
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="focusDuration" className="text-sm font-bold text-slate-700">Focus Duration</label>
-                <Input id="focusDuration" name="focusDuration" placeholder="e.g., Short 15-min bursts" value={focusDuration} onChange={(e) => setFocusDuration(e.target.value)} disabled={isSubmitting} />
+                <label htmlFor="focusDuration" className="text-sm font-bold text-slate-700">Focus Duration *</label>
+                <Input id="focusDuration" name="focusDuration" placeholder="e.g., Short 15-min bursts" value={focusDuration} onChange={(e) => setFocusDuration(e.target.value)} disabled={isSubmitting} required />
               </div>
 
               <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold mt-2" disabled={isSubmitting}>

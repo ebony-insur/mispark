@@ -1,23 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Coins, Printer, Upload, AlertCircle, Users } from "lucide-react";
+import { Coins, Printer, Upload, AlertCircle, Users, Loader2 } from "lucide-react";
 
 export default function Dashboard() {
   const [lessonText, setLessonText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [generatedData, setGeneratedData] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
   
+  // Student State
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
 
+  // Date Selection State
+  const [dateMode, setDateMode] = useState<"this_week" | "next_week" | "custom">("this_week");
+  const [customDate, setCustomDate] = useState("");
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -63,6 +72,66 @@ export default function Dashboard() {
     window.print();
   };
 
+  // --- DRAG AND DROP LOGIC --- //
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) await processPdf(file);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) await processPdf(file);
+  };
+
+ const processPdf = async (file: File) => {
+    // Check if the file is a PDF, Image, Word doc, or Text file
+    const validTypes = ["application/pdf", "image/jpeg", "image/png", "image/jpg", "text/plain", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+    
+    if (!validTypes.includes(file.type)) {
+      toast.error("Please upload a PDF, Image, Word, or Text file.");
+      return;
+    }
+
+    setIsUploadingPdf(true);
+    toast.loading("Extracting text from PDF...", { id: "pdf-upload" });
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/parse-pdf", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setLessonText(data.text);
+        toast.success("PDF extracted successfully! You can edit the text below.", { id: "pdf-upload" });
+      } else {
+        toast.error(data.error || "Failed to parse PDF.", { id: "pdf-upload" });
+      }
+    } catch (error) {
+      toast.error("Error connecting to PDF extraction service.", { id: "pdf-upload" });
+    } finally {
+      setIsUploadingPdf(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+  // ------------------------------ //
+
   const handleIgnite = async () => {
     if (!lessonText) {
       toast.error("Please paste your lesson topics or upload a PDF first!");
@@ -79,6 +148,9 @@ export default function Dashboard() {
     toast.loading("Igniting your schedule...", { id: "ignite-toast" });
 
     const selectedStudent = students.find(s => s.id === selectedStudentId) || null;
+    
+    // Resolve the final date string for the printout
+    const finalDate = dateMode === "custom" && customDate.trim() !== "" ? customDate : dateMode === "next_week" ? "Next Week" : "This Week";
 
     try {
       const response = await fetch("/api/generate", {
@@ -93,13 +165,15 @@ export default function Dashboard() {
       const data = await response.json();
 
       if (response.ok) {
-        setGeneratedData(data.data);
+        // Append the resolved date directly into the generated payload
+        const dataToSave = { ...data.data, displayDate: finalDate };
+        setGeneratedData(dataToSave);
         
         if (user) {
           const { error: dbError } = await supabase.from("schedules").insert({
             user_id: user.id,
             lesson_text: lessonText,
-            generated_data: data.data
+            generated_data: dataToSave
           });
 
           if (dbError) {
@@ -124,7 +198,7 @@ export default function Dashboard() {
   return (
     <main className="flex min-h-screen flex-col items-center py-12 px-6 bg-slate-50 space-y-8 relative print:bg-white print:py-0 print:px-0 print:space-y-4">
       
-      {/* AUTHENTICATION NAV BAR - HIDDEN ON PRINT */}
+      {/* AUTHENTICATION NAV BAR */}
       <div className="w-full max-w-4xl flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200 print:hidden">
         <div className="text-2xl font-extrabold tracking-tight cursor-pointer" onClick={() => router.push("/")}>
           <span className="text-teal-500">mi</span>
@@ -155,33 +229,19 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* INPUT CARD - HIDDEN ON PRINT */}
+      {/* INPUT CARD */}
       <Card className="w-full max-w-4xl shadow-lg border-0 mt-4 print:hidden">
         <CardHeader className="text-center space-y-2">
           <CardTitle className="text-3xl font-extrabold text-slate-800">Plan Your Week</CardTitle>
           <CardDescription className="text-base text-slate-600">
-            Upload your curriculum PDF or paste your weekly topics below.
+            Select your student, date, and upload your weekly topics below.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 mt-2">
           
-          <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer group flex flex-col items-center justify-center">
-            <div className="bg-white p-3 rounded-full shadow-sm mb-3 group-hover:scale-110 transition-transform">
-              <Upload className="w-6 h-6 text-teal-500" />
-            </div>
-            <p className="text-slate-700 font-bold">Drag & Drop your weekly PDF schedule here</p>
-            <p className="text-sm text-slate-500 mt-1">Or click to browse files (File extraction engine coming soon)</p>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="h-px bg-slate-200 flex-1"></div>
-            <span className="text-sm font-semibold text-slate-400 uppercase tracking-wider">OR PASTE TEXT</span>
-            <div className="h-px bg-slate-200 flex-1"></div>
-          </div>
-
+          {/* REORDERED: Target Student Profile (Now First) */}
           <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
             <div className="flex justify-between items-center">
-              {/* ACCESSIBILITY FIX: Added htmlFor to match the select id */}
               <label htmlFor="studentProfile" className="text-sm font-bold text-slate-700">Target Student Profile</label>
               <Button variant="link" className="text-teal-600 p-0 h-auto text-sm font-bold" onClick={() => router.push('/dashboard/students')}>
                 + Manage
@@ -193,7 +253,6 @@ export default function Dashboard() {
                 No profiles found. <span className="text-teal-600 font-bold cursor-pointer" onClick={() => router.push('/dashboard/students')}>Create one here</span> to deeply personalize your plan.
               </p>
             ) : (
-              // ACCESSIBILITY FIX: Added id and name
               <select
                 id="studentProfile"
                 name="studentProfile"
@@ -210,8 +269,83 @@ export default function Dashboard() {
             )}
           </div>
 
+          {/* NEW: Date Selection */}
+          <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <label className="text-sm font-bold text-slate-700">Schedule Date Range</label>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="radio" 
+                  name="dateMode" 
+                  value="this_week" 
+                  checked={dateMode === "this_week"} 
+                  onChange={() => setDateMode("this_week")} 
+                  className="text-teal-600 focus:ring-teal-500 w-4 h-4 cursor-pointer" 
+                />
+                <span className="text-sm font-medium text-slate-700">This Week</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="radio" 
+                  name="dateMode" 
+                  value="next_week" 
+                  checked={dateMode === "next_week"} 
+                  onChange={() => setDateMode("next_week")} 
+                  className="text-teal-600 focus:ring-teal-500 w-4 h-4 cursor-pointer" 
+                />
+                <span className="text-sm font-medium text-slate-700">Next Week</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="radio" 
+                  name="dateMode" 
+                  value="custom" 
+                  checked={dateMode === "custom"} 
+                  onChange={() => setDateMode("custom")} 
+                  className="text-teal-600 focus:ring-teal-500 w-4 h-4 cursor-pointer" 
+                />
+                <span className="text-sm font-medium text-slate-700">Custom Date</span>
+              </label>
+            </div>
+            {dateMode === "custom" && (
+              <Input 
+                placeholder="e.g., Oct 12 - Oct 16" 
+                value={customDate} 
+                onChange={(e) => setCustomDate(e.target.value)} 
+                className="bg-white max-w-sm mt-2" 
+              />
+            )}
+          </div>
+
+{/* PDF AND IMAGE DRAG AND DROP ZONE */}
+          <div 
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer group flex flex-col items-center justify-center
+              ${isDragging ? "border-teal-500 bg-teal-50" : "border-slate-300 bg-slate-50 hover:bg-slate-100"}
+              ${isUploadingPdf ? "opacity-50 pointer-events-none" : ""}
+            `}
+          >
+            <input 
+              type="file" 
+              accept="application/pdf, image/png, image/jpeg, image/jpg, .docx, .txt" 
+              className="hidden" 
+              ref={fileInputRef} 
+              onChange={handleFileSelect}
+            />
+            <div className={`bg-white p-3 rounded-full shadow-sm mb-3 transition-transform ${isDragging ? "scale-110" : "group-hover:scale-110"}`}>
+              {isUploadingPdf ? <Loader2 className="w-6 h-6 text-teal-500 animate-spin" /> : <Upload className="w-6 h-6 text-teal-500" />}
+            </div>
+            <p className="text-slate-700 font-bold">
+              {isUploadingPdf ? "Extracting text..." : isDragging ? "Drop your file here!" : "Drag & Drop your PDF or Image schedule here"}
+            </p>
+            <p className="text-sm text-slate-500 mt-1">Accepts PDF, JPG, PNG, DOCX, TXT</p>
+          </div>
+
+          {/* LESSON TEXT AREA */}
           <div className="space-y-3">
-            {/* ACCESSIBILITY FIX: Added visually hidden label for Textarea */}
             <label htmlFor="lessonText" className="sr-only">Paste Lesson Topics</label>
             <Textarea 
               id="lessonText"
@@ -220,7 +354,7 @@ export default function Dashboard() {
               className={`min-h-[150px] resize-none text-base p-4 ${isOverLimit ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
               value={lessonText}
               onChange={(e) => setLessonText(e.target.value)}
-              disabled={isLoading}
+              disabled={isLoading || isUploadingPdf}
             />
             
             <div className="flex justify-between items-center text-sm">
@@ -235,7 +369,7 @@ export default function Dashboard() {
 
           <Button 
             onClick={handleIgnite}
-            disabled={isLoading || isOverLimit || currentWordCount === 0 || students.length === 0}
+            disabled={isLoading || isOverLimit || currentWordCount === 0 || students.length === 0 || isUploadingPdf}
             className="w-full bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-bold text-xl py-8 mt-4 transition-all shadow-md"
           >
             {isLoading ? "Igniting..." : "Ignite ✨"}
@@ -243,19 +377,28 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* RESULTS DASHBOARD - OPTIMIZED FOR PRINT */}
+      {/* RESULTS DASHBOARD */}
       {generatedData && (
         <div className="w-full max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 print:pb-0 print:space-y-4 print:max-w-none">
           
-          <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-slate-200 gap-4 print:border-b-4 print:border-slate-800 print:rounded-none print:shadow-none print:p-0 print:pb-4">
+          {/* UPDATED RESULTS HEADER: Now shows the Name and Date */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-xl shadow-sm border border-slate-200 gap-4 print:border-b-4 print:border-slate-800 print:rounded-none print:shadow-none print:p-0 print:pb-4">
             <div>
               <div className="hidden print:flex text-2xl font-extrabold tracking-tight mb-2">
                 <span className="text-teal-500">mi</span><span className="text-orange-500">Spark</span>
               </div>
               <h2 className="text-3xl font-extrabold text-slate-900 print:text-2xl">{generatedData.weekTheme}</h2>
-              <p className="text-teal-700 font-bold bg-teal-50 inline-block px-3 py-1 rounded-md mt-2 text-sm border border-teal-100 print:bg-transparent print:border-none print:px-0 print:text-slate-600">
-                {generatedData.studentProfile}
-              </p>
+              
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                <p className="text-teal-700 font-bold bg-teal-50 inline-block px-3 py-1 rounded-md text-sm border border-teal-100 print:bg-transparent print:border-none print:px-0 print:text-slate-600">
+                  👤 {generatedData.studentProfile}
+                </p>
+                {generatedData.displayDate && (
+                  <p className="text-orange-700 font-bold bg-orange-50 inline-block px-3 py-1 rounded-md text-sm border border-orange-100 print:bg-transparent print:border-none print:px-0 print:text-slate-600">
+                    🗓️ {generatedData.displayDate}
+                  </p>
+                )}
+              </div>
             </div>
             <Button onClick={handlePrint} className="bg-slate-800 hover:bg-slate-900 text-white gap-2 shrink-0 print:hidden">
               <Printer className="w-4 h-4" /> Print to Fridge
