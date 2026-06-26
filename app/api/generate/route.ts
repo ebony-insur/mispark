@@ -108,4 +108,31 @@ export async function POST(req: Request) {
         illuminations: { type: "array", items: { type: "string" } },
         kindling: { type: "array", items: { type: "string" } }
       },
-      required:
+      required: ["weekTheme", "studentProfile", "dailyFramework", "mediaLinks", "familyGameNight", "carPodcasts", "catalysts", "illuminations", "kindling"]
+    };
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { 
+          role: "system", 
+          content: `${systemPrompt}\n\nYou MUST use exactly this JSON schema to format your response:\n${JSON.stringify(jsonSchema)}` 
+        },
+        { 
+          role: "user", 
+          content: `Here is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}` 
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+    });
+
+    const generatedText = completion.choices[0].message.content;
+    if (!generatedText) throw new Error("No content generated from OpenAI.");
+
+    return NextResponse.json({ data: JSON.parse(generatedText) }, { status: 200 });
+  } catch (error: any) {
+    console.error("Error in generate API:", error);
+    return NextResponse.json({ error: error.message || "Failed to generate schedule." }, { status: 500 });
+  }
+}
