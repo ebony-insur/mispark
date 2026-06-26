@@ -416,7 +416,7 @@ export default function Dashboard() {
               <CardTitle className="text-xl text-slate-800">Daily Framework</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 print:p-4 print:pt-0">
-              {generatedData.dailyFramework.map((day: any, idx: number) => (
+              {generatedData.dailyFramework?.map((day: any, idx: number) => (
                 <div key={idx} className="bg-slate-50 p-4 rounded-lg border border-slate-200 print:border-slate-300 print:bg-white">
                   <h4 className="font-extrabold text-blue-600 uppercase tracking-wide text-sm">{day.day}</h4>
                   <p className="text-base font-bold text-slate-800 mt-1">{day.subject}</p>
@@ -432,7 +432,7 @@ export default function Dashboard() {
               <CardDescription className="print:hidden">Curated resources to supplement the week</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 print:p-4 print:pt-0">
-              {generatedData.mediaLinks.map((media: any, idx: number) => (
+              {generatedData.mediaLinks?.map((media: any, idx: number) => (
                 <div key={idx} className="bg-slate-50 p-4 rounded-lg border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:border-slate-300 print:bg-white">
                   <div>
                     <p className="font-bold text-slate-800">{media.topicReference}</p>
@@ -546,7 +546,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="print:p-4 print:pt-0">
                 <ul className="list-disc pl-5 space-y-3 text-slate-700 text-sm font-medium">
-                  {generatedData.illuminations.map((item: string, i: number) => <li key={i}>{item}</li>)}
+                  {generatedData.illuminations?.map((item: string, i: number) => <li key={i}>{item}</li>)}
                 </ul>
               </CardContent>
             </Card>
@@ -558,7 +558,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="print:p-4 print:pt-0">
                 <ul className="list-disc pl-5 space-y-3 text-slate-700 text-sm font-medium">
-                  {generatedData.kindling.map((item: string, i: number) => <li key={i}>{item}</li>)}
+                  {generatedData.kindling?.map((item: string, i: number) => <li key={i}>{item}</li>)}
                 </ul>
               </CardContent>
             </Card>
