@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Coins, Printer, Upload, AlertCircle, Users, Loader2 } from "lucide-react";
+import ReviewModal from "@/components/ReviewModal";
 
 export default function Dashboard() {
   const [lessonText, setLessonText] = useState("");
@@ -26,6 +27,9 @@ export default function Dashboard() {
   const [dateMode, setDateMode] = useState<"this_week" | "next_week" | "custom">("this_week");
   const [customDate, setCustomDate] = useState("");
 
+  // Modal State
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const supabase = createClient();
@@ -94,8 +98,7 @@ export default function Dashboard() {
     if (file) await processPdf(file);
   };
 
- const processPdf = async (file: File) => {
-    // Check if the file is a PDF, Image, Word doc, or Text file
+  const processPdf = async (file: File) => {
     const validTypes = ["application/pdf", "image/jpeg", "image/png", "image/jpg", "text/plain", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
     
     if (!validTypes.includes(file.type)) {
@@ -130,7 +133,6 @@ export default function Dashboard() {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
-  // ------------------------------ //
 
   const handleIgnite = async () => {
     if (!lessonText) {
@@ -149,7 +151,6 @@ export default function Dashboard() {
 
     const selectedStudent = students.find(s => s.id === selectedStudentId) || null;
     
-    // Resolve the final date string for the printout
     const finalDate = dateMode === "custom" && customDate.trim() !== "" ? customDate : dateMode === "next_week" ? "Next Week" : "This Week";
 
     try {
@@ -165,7 +166,6 @@ export default function Dashboard() {
       const data = await response.json();
 
       if (response.ok) {
-        // Append the resolved date directly into the generated payload
         const dataToSave = { ...data.data, displayDate: finalDate };
         setGeneratedData(dataToSave);
         
@@ -239,7 +239,6 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent className="space-y-6 mt-2">
           
-          {/* REORDERED: Target Student Profile (Now First) */}
           <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
             <div className="flex justify-between items-center">
               <label htmlFor="studentProfile" className="text-sm font-bold text-slate-700">Target Student Profile</label>
@@ -269,7 +268,6 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* NEW: Date Selection */}
           <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
             <label className="text-sm font-bold text-slate-700">Schedule Date Range</label>
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -317,7 +315,6 @@ export default function Dashboard() {
             )}
           </div>
 
-{/* PDF AND IMAGE DRAG AND DROP ZONE */}
           <div 
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -344,7 +341,6 @@ export default function Dashboard() {
             <p className="text-sm text-slate-500 mt-1">Accepts PDF, JPG, PNG, DOCX, TXT</p>
           </div>
 
-          {/* LESSON TEXT AREA */}
           <div className="space-y-3">
             <label htmlFor="lessonText" className="sr-only">Paste Lesson Topics</label>
             <Textarea 
@@ -381,7 +377,6 @@ export default function Dashboard() {
       {generatedData && (
         <div className="w-full max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 print:pb-0 print:space-y-4 print:max-w-none">
           
-          {/* UPDATED RESULTS HEADER: Now shows the Name and Date */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-xl shadow-sm border border-slate-200 gap-4 print:border-b-4 print:border-slate-800 print:rounded-none print:shadow-none print:p-0 print:pb-4">
             <div>
               <div className="hidden print:flex text-2xl font-extrabold tracking-tight mb-2">
@@ -400,9 +395,19 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
-            <Button onClick={handlePrint} className="bg-slate-800 hover:bg-slate-900 text-white gap-2 shrink-0 print:hidden">
-              <Printer className="w-4 h-4" /> Print to Fridge
-            </Button>
+            
+            {/* HERE IS THE NEW BUTTON SECTION */}
+            <div className="flex gap-3 print:hidden">
+              <Button 
+                onClick={() => setIsReviewModalOpen(true)} 
+                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-sm shadow-emerald-200"
+              >
+                <Coins className="w-4 h-4" /> Review & Earn Sparks
+              </Button>
+              <Button onClick={handlePrint} className="bg-slate-800 hover:bg-slate-900 text-white gap-2 shrink-0">
+                <Printer className="w-4 h-4" /> Print to Fridge
+              </Button>
+            </div>
           </div>
 
           <Card className="shadow-md border-0 border-t-4 border-t-blue-500 bg-white print:shadow-none print:border-t-2 print:border-blue-500 print:break-inside-avoid">
@@ -493,7 +498,7 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
-{/* NEW: FAMILY GAME NIGHT */}
+
           <Card className="shadow-md border-0 border-t-4 border-t-emerald-500 bg-white print:shadow-none print:border-t-2 print:border-emerald-500 print:break-inside-avoid mt-6">
             <CardHeader className="print:p-4">
               <CardTitle className="text-xl text-slate-800">🎲 Family Game Night</CardTitle>
@@ -514,7 +519,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* NEW: CAR PODCASTS & AUDIOBOOKS */}
           <Card className="shadow-md border-0 border-t-4 border-t-cyan-500 bg-white print:shadow-none print:border-t-2 print:border-cyan-500 print:break-inside-avoid mt-6">
             <CardHeader className="print:p-4">
               <CardTitle className="text-xl text-slate-800">🎧 Car Podcasts & Audiobooks</CardTitle>
@@ -532,6 +536,7 @@ export default function Dashboard() {
               ))}
             </CardContent>
           </Card>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:gap-4 print:break-inside-avoid">
             <Card className="shadow-md border-0 border-t-4 border-t-indigo-500 bg-white print:shadow-none print:border-t-2 print:border-slate-400">
               <CardHeader className="print:p-4">
@@ -559,6 +564,26 @@ export default function Dashboard() {
           </div>
 
         </div>
+      )}
+
+      {/* THE REVIEW MODAL */}
+      {generatedData && user && (
+        <ReviewModal 
+          isOpen={isReviewModalOpen}
+          onClose={() => setIsReviewModalOpen(false)}
+          scheduleId={generatedData.weekTheme} 
+          studentId={selectedStudentId}
+          userId={user.id}
+          recommendations={[
+            ...(generatedData.mediaLinks || []).map((m: any) => ({ title: m.podcastName, category: "Media" })),
+            ...(generatedData.familyGameNight || []).map((g: any) => ({ title: g.gameName, category: "Game Night" })),
+            ...(generatedData.carPodcasts || []).map((p: any) => ({ title: p.title, category: "Audio/Podcast" }))
+          ]}
+          onFeedbackSubmitted={(sparks) => {
+             toast.success(`Awesome! ${sparks} Sparks added to your vault!`);
+             setIsReviewModalOpen(false);
+          }}
+        />
       )}
     </main>
   );
