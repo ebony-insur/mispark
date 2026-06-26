@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// Initialize standard Supabase client for backend ops
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // Uses the secure service key to award Sparks reliably
-);
-
 export async function POST(request: Request) {
   try {
+    // INITIALIZE SUPABASE HERE (Inside the function so it doesn't crash the build)
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY! 
+    );
+
     const { userId, studentId, scheduleId, feedbackItems } = await request.json();
 
     if (!userId || !feedbackItems || feedbackItems.length === 0) {
@@ -34,7 +34,6 @@ export async function POST(request: Request) {
     if (insertError) throw insertError;
 
     // 2. Award 10 Free Sparks for participating in the review!
-    // First, get their current token balance
     const { data: profileData } = await supabase
       .from("profiles")
       .select("tokens")
@@ -42,7 +41,7 @@ export async function POST(request: Request) {
       .single();
 
     const currentTokens = profileData?.tokens || 0;
-    const newTokens = currentTokens + 10; // Reward amount
+    const newTokens = currentTokens + 10; 
 
     // Update their balance
     const { error: updateError } = await supabase
