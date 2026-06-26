@@ -493,7 +493,45 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
+{/* NEW: FAMILY GAME NIGHT */}
+          <Card className="shadow-md border-0 border-t-4 border-t-emerald-500 bg-white print:shadow-none print:border-t-2 print:border-emerald-500 print:break-inside-avoid mt-6">
+            <CardHeader className="print:p-4">
+              <CardTitle className="text-xl text-slate-800">🎲 Family Game Night</CardTitle>
+              <CardDescription className="print:hidden">Games to reinforce this week's concepts</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 print:p-4 print:pt-0">
+              {generatedData.familyGameNight?.map((game: any, idx: number) => (
+                <div key={idx} className="bg-slate-50 p-4 rounded-lg border border-slate-200 print:border-slate-300 print:bg-white">
+                  <div className="flex justify-between items-center mb-1">
+                    <h4 className="font-extrabold text-emerald-700 text-lg">{game.gameName}</h4>
+                    <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-1 rounded-md print:bg-transparent print:px-0">
+                      Skills: {game.skillsReinforced}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-700 mt-2">{game.description}</p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
 
+          {/* NEW: CAR PODCASTS & AUDIOBOOKS */}
+          <Card className="shadow-md border-0 border-t-4 border-t-cyan-500 bg-white print:shadow-none print:border-t-2 print:border-cyan-500 print:break-inside-avoid mt-6">
+            <CardHeader className="print:p-4">
+              <CardTitle className="text-xl text-slate-800">🎧 Car Podcasts & Audiobooks</CardTitle>
+              <CardDescription className="print:hidden">Stories on the go (Support your local library or use Amazon/Audible)</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 print:p-4 print:pt-0">
+              {generatedData.carPodcasts?.map((pod: any, idx: number) => (
+                <div key={idx} className="bg-slate-50 p-4 rounded-lg border border-slate-200 print:border-slate-300 print:bg-white">
+                  <h4 className="font-extrabold text-cyan-700 text-lg">{pod.title}</h4>
+                  <p className="text-sm text-slate-700 mt-1">{pod.description}</p>
+                  <div className="mt-3 inline-block bg-cyan-50 border border-cyan-100 text-cyan-800 text-xs font-bold px-3 py-1 rounded-md print:bg-transparent print:border-none print:px-0 print:text-slate-600">
+                    💡 <strong>Listen:</strong> {pod.whereToListen}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:gap-4 print:break-inside-avoid">
             <Card className="shadow-md border-0 border-t-4 border-t-indigo-500 bg-white print:shadow-none print:border-t-2 print:border-slate-400">
               <CardHeader className="print:p-4">
