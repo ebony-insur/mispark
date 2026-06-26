@@ -1,4 +1,4 @@
-// HELLO GIT, THIS IS THE PERFECTED DASHBOARD
+// HELLO GIT, THIS IS THE ULTIMATE DASHBOARD UI
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Coins, Printer, Upload, AlertCircle, Users, Loader2 } from "lucide-react";
+import { Coins, Printer, Upload, AlertCircle, Users, Loader2, BookOpen, PenTool, FileText, ShoppingBag } from "lucide-react";
 import ReviewModal from "@/components/ReviewModal";
 
 export default function Dashboard() {
@@ -262,7 +262,7 @@ export default function Dashboard() {
               >
                 {students.map(s => (
                   <option key={s.id} value={s.id}>
-                    {s.nickname} ({s.grade})
+                    {s.nickname} (Grade: {s.grade} {s.reading_grade && `| Reading: ${s.reading_grade}`})
                   </option>
                 ))}
               </select>
@@ -375,9 +375,8 @@ export default function Dashboard() {
       </Card>
 
       {/* RESULTS DASHBOARD */}
-     {/* RESULTS DASHBOARD */}
       {generatedData && (
-        <div className="w-full max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 print:pb-0 print:space-y-4 print:max-w-none">
+        <div className="w-full max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 print:pb-0 print:space-y-6 print:max-w-none">
           
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-xl shadow-sm border border-slate-200 gap-4 print:border-b-4 print:border-slate-800 print:rounded-none print:shadow-none print:p-0 print:pb-4">
             <div>
@@ -398,7 +397,7 @@ export default function Dashboard() {
               </div>
             </div>
             
-            <div className="flex gap-3 print:hidden">
+            <div className="flex gap-3 print:hidden flex-wrap">
               <Button onClick={() => router.push('/dashboard/resources')} className="bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-sm">
                 📚 Resource Hub
               </Button>
@@ -426,6 +425,53 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
+          {/* NEW: WRITING PROMPT */}
+          {generatedData.writingPrompt && (
+            <Card className="shadow-md border-0 border-t-4 border-t-purple-500 bg-white print:shadow-none print:border-t-2 print:border-purple-500 print:break-inside-avoid">
+              <CardHeader className="print:p-4 flex flex-row items-center gap-2">
+                <PenTool className="w-5 h-5 text-purple-600 print:hidden" />
+                <CardTitle className="text-xl text-slate-800">Writing Prompt</CardTitle>
+              </CardHeader>
+              <CardContent className="print:p-4 print:pt-0 space-y-3">
+                <p className="text-lg text-slate-800 font-medium italic border-l-4 border-purple-300 pl-4 py-2 bg-purple-50/50 print:bg-white">
+                  "{generatedData.writingPrompt.prompt}"
+                </p>
+                <div className="bg-slate-50 p-3 rounded-md border border-slate-200 text-sm text-slate-700 print:bg-transparent print:border-none print:p-0">
+                  <strong>💡 Parent Tips:</strong> {generatedData.writingPrompt.tipsForParent}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* NEW: READING LIST */}
+          {generatedData.readingList && (
+            <Card className="shadow-md border-0 border-t-4 border-t-indigo-500 bg-white print:shadow-none print:border-t-2 print:border-indigo-500 print:break-inside-avoid">
+              <CardHeader className="print:p-4 flex flex-row items-center gap-2">
+                <BookOpen className="w-5 h-5 text-indigo-600 print:hidden" />
+                <CardTitle className="text-xl text-slate-800">Recommended Reading List</CardTitle>
+              </CardHeader>
+              <CardContent className="print:p-4 print:pt-0 space-y-4">
+                {generatedData.readingList.map((book: any, idx: number) => (
+                  <div key={idx} className="bg-slate-50 p-4 rounded-lg border border-slate-200 flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center print:bg-white print:border-slate-300">
+                    <div>
+                      <h4 className="font-extrabold text-indigo-900 text-lg">{book.title}</h4>
+                      <p className="text-sm font-bold text-slate-600 mb-1">by {book.author}</p>
+                      <p className="text-sm text-slate-700 leading-relaxed">{book.description}</p>
+                    </div>
+                    <a 
+                      href={`https://www.amazon.com/s?k=${encodeURIComponent(book.title + ' ' + book.author)}&tag=YOUR_AMAZON_TAG`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center rounded-lg text-sm font-bold transition-colors bg-amber-400 text-amber-950 hover:bg-amber-500 h-10 px-4 py-2 shrink-0 shadow-sm print:hidden whitespace-nowrap"
+                    >
+                      <ShoppingBag className="w-4 h-4 mr-2" /> Find Book
+                    </a>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="shadow-md border-0 border-t-4 border-t-red-500 bg-white print:shadow-none print:border-t-2 print:border-red-500 print:break-inside-avoid">
             <CardHeader className="print:p-4">
               <CardTitle className="text-xl text-slate-800">Media & Exploration</CardTitle>
@@ -441,9 +487,9 @@ export default function Dashboard() {
                     href={`https://www.youtube.com/results?search_query=${encodeURIComponent(media.youtubeSearchQuery)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center rounded-lg text-sm font-bold transition-colors bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2 shrink-0 shadow-sm print:hidden"
+                    className="inline-flex items-center justify-center rounded-lg text-sm font-bold transition-colors bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2 shrink-0 shadow-sm print:hidden whitespace-nowrap"
                   >
-                    ▶️ Watch on YouTube
+                    ▶️ Search YouTube
                   </a>
                 </div>
               ))}
@@ -481,6 +527,18 @@ export default function Dashboard() {
                     </div>
                   </div>
                 )}
+                {generatedData.catalysts.capstoneSpark && (
+                  <div className="bg-purple-50/50 p-6 rounded-xl border border-purple-200 print:bg-white print:border-slate-300 print:p-4 print:break-inside-avoid">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-extrabold text-purple-900 text-lg uppercase tracking-tight print:text-slate-800">Capstone Spark</h4>
+                    </div>
+                    <p className="font-bold text-purple-950 text-xl mb-4 print:text-slate-900">{generatedData.catalysts.capstoneSpark.title}</p>
+                    <div className="space-y-3 text-sm text-purple-900 print:text-slate-700">
+                      <p><strong>Supplies:</strong> {generatedData.catalysts.capstoneSpark.supplies?.join(", ")}</p>
+                      <p className="leading-relaxed"><strong>Instructions:</strong> {generatedData.catalysts.capstoneSpark.instructions}</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -494,9 +552,14 @@ export default function Dashboard() {
                 <div key={idx} className="bg-slate-50 p-4 rounded-lg border border-slate-200 print:border-slate-300 print:bg-white flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
                   <div>
                     <h4 className="font-extrabold text-emerald-700 text-lg">{game.gameName}</h4>
-                    <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-1 rounded-md mt-1 inline-block">
-                      Skills: {game.skillsReinforced}
-                    </span>
+                    <div className="flex gap-2 mt-1">
+                      <span className="text-xs font-bold bg-emerald-200 text-emerald-900 px-2 py-1 rounded-md inline-block">
+                        {game.modality}
+                      </span>
+                      <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-1 rounded-md inline-block">
+                        Skills: {game.skillsReinforced}
+                      </span>
+                    </div>
                     <p className="text-sm text-slate-700 mt-2">{game.description}</p>
                   </div>
                   <a 
@@ -505,7 +568,7 @@ export default function Dashboard() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center rounded-lg text-sm font-bold transition-colors bg-amber-400 text-amber-950 hover:bg-amber-500 h-10 px-4 py-2 shrink-0 shadow-sm print:hidden whitespace-nowrap"
                   >
-                    🛒 Check Amazon
+                    <ShoppingBag className="w-4 h-4 mr-2" /> Find Game
                   </a>
                 </div>
               ))}
@@ -559,8 +622,52 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+
+          {/* NEW: DAILY PRINTABLE WORKSHEETS (Formatted for Printing!) */}
+          {generatedData.printableWorksheets && generatedData.printableWorksheets.length > 0 && (
+            <div className="space-y-8 mt-12 print:mt-0">
+              <div className="text-center print:hidden">
+                <h3 className="text-2xl font-extrabold text-slate-800">Daily Worksheets</h3>
+                <p className="text-slate-500">Hit the Print button at the top to print these out directly!</p>
+              </div>
+              
+              {generatedData.printableWorksheets.map((worksheet: any, idx: number) => (
+                <Card key={idx} className="shadow-sm border-2 border-slate-200 bg-white print:shadow-none print:border-none print:page-break-before-always print:m-0 print:p-0">
+                  <CardHeader className="border-b border-slate-100 bg-slate-50 print:bg-white print:border-b-2 print:border-slate-800 print:px-0">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-sm font-extrabold text-teal-600 uppercase tracking-wider">{worksheet.day}</p>
+                        <CardTitle className="text-2xl text-slate-900 mt-1">{worksheet.worksheetTitle}</CardTitle>
+                      </div>
+                      <div className="text-right print:hidden">
+                        <FileText className="w-8 h-8 text-slate-300" />
+                      </div>
+                    </div>
+                    <p className="text-sm font-medium text-slate-500 mt-2">
+                      ⏱️ Estimated Duration: {worksheet.estimatedDuration}
+                    </p>
+                  </CardHeader>
+                  <CardContent className="p-8 print:p-0 print:pt-8">
+                    {/* The actual worksheet content */}
+                    <div className="space-y-8">
+                      {worksheet.content?.map((question: string, qIdx: number) => (
+                        <div key={qIdx} className="text-lg text-slate-800">
+                          <span className="font-bold mr-2">{qIdx + 1}.</span> {question}
+                          {/* Add blank writing lines for the student */}
+                          <div className="mt-6 border-b-2 border-dashed border-slate-300 w-full h-8"></div>
+                          <div className="mt-6 border-b-2 border-dashed border-slate-300 w-full h-8"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
         </div>
       )}
+
       {/* THE REVIEW MODAL */}
       {generatedData && user && (
         <ReviewModal 
