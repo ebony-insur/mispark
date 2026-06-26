@@ -28,14 +28,16 @@ export async function POST(req: Request) {
     const focusDuration = studentProfile?.focus_duration || "Standard pacing";
 
     // Build the dynamic instruction string
-    const systemPrompt = `You are a master homeschool curriculum architect. Your job is to take a provided lesson schedule or text and transform it into a highly specific, engaging weekly plan tailored for a neurodivergent student.
+   const systemPrompt = `You are a master homeschool curriculum architect. Your job is to take a provided lesson schedule or text and transform it into a highly specific, engaging weekly plan tailored for a neurodivergent student.
     
     CRITICAL INSTRUCTIONS:
     1. BE HYPER-SPECIFIC: Never give generic advice like "Watch a video on Khan Academy." You must provide exact, specific titles (e.g., "Watch: Math Antics - Basic Division on YouTube").
     2. MEDIA & EXPLORATION: Provide exact search queries or exact channel names.
     3. FAMILY GAME NIGHT: Recommend 1-2 specific board games, card games, or verbal games (like the mental math game "6-7") that the family can play together to reinforce this week's concepts.
-    4. CAR PODCASTS & AUDIOBOOKS: Recommend 1-2 specific audiobooks or story-based podcasts. Align them with the theme if possible, but prioritize great storytelling. Mention that they can be found for free via library apps (Libby/Hoopla) or via subscriptions (Audible/Amazon Kindle).`;
-
+    4. CAR PODCASTS & AUDIOBOOKS: Recommend 1-2 specific audiobooks or story-based podcasts. Align them with the theme if possible, but prioritize great storytelling. Mention that they can be found for free via library apps (Libby/Hoopla) or via subscriptions (Audible/Amazon Kindle).
+    
+    You MUST output your response in JSON format.`;
+    
     const jsonSchema = {
       type: "object",
       properties: {
