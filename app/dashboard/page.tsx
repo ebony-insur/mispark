@@ -375,6 +375,7 @@ export default function Dashboard() {
       </Card>
 
       {/* RESULTS DASHBOARD */}
+     {/* RESULTS DASHBOARD */}
       {generatedData && (
         <div className="w-full max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 print:pb-0 print:space-y-4 print:max-w-none">
           
@@ -398,14 +399,14 @@ export default function Dashboard() {
             </div>
             
             <div className="flex gap-3 print:hidden">
-              <Button 
-                onClick={() => setIsReviewModalOpen(true)} 
-                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-sm shadow-emerald-200"
-              >
+              <Button onClick={() => router.push('/dashboard/resources')} className="bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-sm">
+                📚 Resource Hub
+              </Button>
+              <Button onClick={() => setIsReviewModalOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-sm shadow-emerald-200">
                 <Coins className="w-4 h-4" /> Review & Earn Sparks
               </Button>
               <Button onClick={handlePrint} className="bg-slate-800 hover:bg-slate-900 text-white gap-2 shrink-0">
-                <Printer className="w-4 h-4" /> Print to Fridge
+                <Printer className="w-4 h-4" /> Print
               </Button>
             </div>
           </div>
@@ -428,22 +429,21 @@ export default function Dashboard() {
           <Card className="shadow-md border-0 border-t-4 border-t-red-500 bg-white print:shadow-none print:border-t-2 print:border-red-500 print:break-inside-avoid">
             <CardHeader className="print:p-4">
               <CardTitle className="text-xl text-slate-800">Media & Exploration</CardTitle>
-              <CardDescription className="print:hidden">Curated resources to supplement the week</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 print:p-4 print:pt-0">
               {generatedData.mediaLinks?.map((media: any, idx: number) => (
                 <div key={idx} className="bg-slate-50 p-4 rounded-lg border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:border-slate-300 print:bg-white">
                   <div>
                     <p className="font-bold text-slate-800">{media.topicReference}</p>
-                    <p className="text-sm text-slate-600 mt-1">Suggested Search: <span className="font-bold text-slate-700">{media.podcastName}</span></p>
+                    <p className="text-sm text-slate-600 mt-1">{media.podcastName}</p>
                   </div>
                   <a 
                     href={`https://www.youtube.com/results?search_query=${encodeURIComponent(media.youtubeSearchQuery)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center rounded-lg text-sm font-bold transition-colors bg-red-100 text-red-700 hover:bg-red-200 border border-red-200 h-10 px-4 py-2 shrink-0 shadow-sm print:hidden"
+                    className="inline-flex items-center justify-center rounded-lg text-sm font-bold transition-colors bg-red-600 text-white hover:bg-red-700 h-10 px-4 py-2 shrink-0 shadow-sm print:hidden"
                   >
-                    Search YouTube
+                    ▶️ Watch on YouTube
                   </a>
                 </div>
               ))}
@@ -457,14 +457,10 @@ export default function Dashboard() {
                 <CardTitle className="text-xl text-slate-800">Catalysts (Hands-On Sparks)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6 print:space-y-4 print:p-4 print:pt-0">
-                
                 {generatedData.catalysts.pantrySpark && (
                   <div className="bg-amber-50/50 p-6 rounded-xl border border-amber-200 print:bg-white print:border-slate-300 print:p-4 print:break-inside-avoid">
                     <div className="flex justify-between items-center mb-3">
                       <h4 className="font-extrabold text-amber-900 text-lg uppercase tracking-tight print:text-slate-800">Pantry Spark</h4>
-                      <span className="text-xs font-bold bg-amber-200 text-amber-900 px-3 py-1 rounded-full print:bg-slate-100 print:text-slate-800">
-                        {generatedData.catalysts.pantrySpark.cost}
-                      </span>
                     </div>
                     <p className="font-bold text-amber-950 text-xl mb-4 print:text-slate-900">{generatedData.catalysts.pantrySpark.title}</p>
                     <div className="space-y-3 text-sm text-amber-900 print:text-slate-700">
@@ -473,35 +469,15 @@ export default function Dashboard() {
                     </div>
                   </div>
                 )}
-
                 {generatedData.catalysts.quickTripSpark && (
                   <div className="bg-emerald-50/50 p-6 rounded-xl border border-emerald-200 print:bg-white print:border-slate-300 print:p-4 print:break-inside-avoid">
                     <div className="flex justify-between items-center mb-3">
                       <h4 className="font-extrabold text-emerald-900 text-lg uppercase tracking-tight print:text-slate-800">Quick-Trip Spark</h4>
-                      <span className="text-xs font-bold bg-emerald-200 text-emerald-900 px-3 py-1 rounded-full print:bg-slate-100 print:text-slate-800">
-                        {generatedData.catalysts.quickTripSpark.cost}
-                      </span>
                     </div>
                     <p className="font-bold text-emerald-950 text-xl mb-4 print:text-slate-900">{generatedData.catalysts.quickTripSpark.title}</p>
                     <div className="space-y-3 text-sm text-emerald-900 print:text-slate-700">
                       <p><strong>Supplies:</strong> {generatedData.catalysts.quickTripSpark.supplies?.join(", ")}</p>
                       <p className="leading-relaxed"><strong>Instructions:</strong> {generatedData.catalysts.quickTripSpark.instructions}</p>
-                    </div>
-                  </div>
-                )}
-
-                {generatedData.catalysts.capstoneSpark && (
-                  <div className="bg-purple-50/50 p-6 rounded-xl border border-purple-200 print:bg-white print:border-slate-300 print:p-4 print:break-inside-avoid">
-                    <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-extrabold text-purple-900 text-lg uppercase tracking-tight print:text-slate-800">Capstone Spark</h4>
-                      <span className="text-xs font-bold bg-purple-200 text-purple-900 px-3 py-1 rounded-full print:bg-slate-100 print:text-slate-800">
-                        {generatedData.catalysts.capstoneSpark.cost}
-                      </span>
-                    </div>
-                    <p className="font-bold text-purple-950 text-xl mb-4 print:text-slate-900">{generatedData.catalysts.capstoneSpark.title}</p>
-                    <div className="space-y-3 text-sm text-purple-900 print:text-slate-700">
-                      <p><strong>Supplies:</strong> {generatedData.catalysts.capstoneSpark.supplies?.join(", ")}</p>
-                      <p className="leading-relaxed"><strong>Instructions:</strong> {generatedData.catalysts.capstoneSpark.instructions}</p>
                     </div>
                   </div>
                 )}
@@ -512,18 +488,25 @@ export default function Dashboard() {
           <Card className="shadow-md border-0 border-t-4 border-t-emerald-500 bg-white print:shadow-none print:border-t-2 print:border-emerald-500 print:break-inside-avoid mt-6">
             <CardHeader className="print:p-4">
               <CardTitle className="text-xl text-slate-800">🎲 Family Game Night</CardTitle>
-              <CardDescription className="print:hidden">Games to reinforce this week's concepts</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 print:p-4 print:pt-0">
               {generatedData.familyGameNight?.map((game: any, idx: number) => (
-                <div key={idx} className="bg-slate-50 p-4 rounded-lg border border-slate-200 print:border-slate-300 print:bg-white">
-                  <div className="flex justify-between items-center mb-1">
+                <div key={idx} className="bg-slate-50 p-4 rounded-lg border border-slate-200 print:border-slate-300 print:bg-white flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
+                  <div>
                     <h4 className="font-extrabold text-emerald-700 text-lg">{game.gameName}</h4>
-                    <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-1 rounded-md print:bg-transparent print:px-0">
+                    <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-1 rounded-md mt-1 inline-block">
                       Skills: {game.skillsReinforced}
                     </span>
+                    <p className="text-sm text-slate-700 mt-2">{game.description}</p>
                   </div>
-                  <p className="text-sm text-slate-700 mt-2">{game.description}</p>
+                  <a 
+                    href={`https://www.amazon.com/s?k=${encodeURIComponent(game.gameName)}&tag=YOUR_AMAZON_TAG`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center rounded-lg text-sm font-bold transition-colors bg-amber-400 text-amber-950 hover:bg-amber-500 h-10 px-4 py-2 shrink-0 shadow-sm print:hidden whitespace-nowrap"
+                  >
+                    🛒 Check Amazon
+                  </a>
                 </div>
               ))}
             </CardContent>
@@ -532,16 +515,22 @@ export default function Dashboard() {
           <Card className="shadow-md border-0 border-t-4 border-t-cyan-500 bg-white print:shadow-none print:border-t-2 print:border-cyan-500 print:break-inside-avoid mt-6">
             <CardHeader className="print:p-4">
               <CardTitle className="text-xl text-slate-800">🎧 Car Podcasts & Audiobooks</CardTitle>
-              <CardDescription className="print:hidden">Stories on the go (Support your local library or use Amazon/Audible)</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 print:p-4 print:pt-0">
               {generatedData.carPodcasts?.map((pod: any, idx: number) => (
-                <div key={idx} className="bg-slate-50 p-4 rounded-lg border border-slate-200 print:border-slate-300 print:bg-white">
-                  <h4 className="font-extrabold text-cyan-700 text-lg">{pod.title}</h4>
-                  <p className="text-sm text-slate-700 mt-1">{pod.description}</p>
-                  <div className="mt-3 inline-block bg-cyan-50 border border-cyan-100 text-cyan-800 text-xs font-bold px-3 py-1 rounded-md print:bg-transparent print:border-none print:px-0 print:text-slate-600">
-                    💡 <strong>Listen:</strong> {pod.whereToListen}
+                <div key={idx} className="bg-slate-50 p-4 rounded-lg border border-slate-200 print:border-slate-300 print:bg-white flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
+                  <div>
+                    <h4 className="font-extrabold text-cyan-700 text-lg">{pod.title}</h4>
+                    <p className="text-sm text-slate-700 mt-1">{pod.description}</p>
                   </div>
+                  <a 
+                    href={`https://www.audible.com/pd/search?keywords=${encodeURIComponent(pod.title)}&action_code=YOUR_AUDIBLE_TAG`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center rounded-lg text-sm font-bold transition-colors bg-slate-800 text-white hover:bg-slate-900 h-10 px-4 py-2 shrink-0 shadow-sm print:hidden whitespace-nowrap"
+                  >
+                    🎧 Find on Audible
+                  </a>
                 </div>
               ))}
             </CardContent>
@@ -551,7 +540,6 @@ export default function Dashboard() {
             <Card className="shadow-md border-0 border-t-4 border-t-indigo-500 bg-white print:shadow-none print:border-t-2 print:border-slate-400">
               <CardHeader className="print:p-4">
                 <CardTitle className="text-xl text-slate-800">Illuminations</CardTitle>
-                <CardDescription className="print:hidden">Deep-dive questions</CardDescription>
               </CardHeader>
               <CardContent className="print:p-4 print:pt-0">
                 <ul className="list-disc pl-5 space-y-3 text-slate-700 text-sm font-medium">
@@ -563,7 +551,6 @@ export default function Dashboard() {
             <Card className="shadow-md border-0 border-t-4 border-t-rose-500 bg-white print:shadow-none print:border-t-2 print:border-slate-400">
               <CardHeader className="print:p-4">
                 <CardTitle className="text-xl text-slate-800">Kindling</CardTitle>
-                <CardDescription className="print:hidden">Dinner table starters</CardDescription>
               </CardHeader>
               <CardContent className="print:p-4 print:pt-0">
                 <ul className="list-disc pl-5 space-y-3 text-slate-700 text-sm font-medium">
@@ -572,10 +559,8 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
-
         </div>
       )}
-
       {/* THE REVIEW MODAL */}
       {generatedData && user && (
         <ReviewModal 
