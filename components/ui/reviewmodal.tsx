@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Star, Sparkles, CheckCircle2 } from "lucide-react";
+import {  Star, Sparkles, CheckCircle2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
