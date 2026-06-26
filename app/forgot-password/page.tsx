@@ -1,4 +1,5 @@
-"use client";
+// VERCEL, WAKE UP AND READ THIS MODULE
+// "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
