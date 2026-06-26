@@ -1,16 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
-import {  Star, Sparkles, CheckCircle2 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { useState, useEffect } from "react";
+import { X, CheckCircle, BookOpen, Headphones, Gamepad2, PlaySquare, Coins, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+
+interface Recommendation {
+  title: string;
+  category: string;
+}
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -18,8 +15,8 @@ interface ReviewModalProps {
   scheduleId: string;
   studentId: string;
   userId: string;
-  recommendations: Array<{ title: string; category: string }>;
-  onFeedbackSubmitted: (sparksAwarded: number) => void;
+  recommendations: Recommendation[];
+  onFeedbackSubmitted: (sparks: number) => void;
 }
 
 export default function ReviewModal({
@@ -31,175 +28,150 @@ export default function ReviewModal({
   recommendations,
   onFeedbackSubmitted,
 }: ReviewModalProps) {
-  const [reviews, setReviews] = useState<Record<string, { wasUsed: boolean; rating: number; notes: string }>>(
-    recommendations.reduce((acc, rec) => ({
-      ...acc,
-      [rec.title]: { wasUsed: false, rating: 5, notes: "" }
-    }), {})
-  );
+  // Track status: "none", "started", or "finished" for each item by title
+  const [statusMap, setStatusMap] = useState<Record<string, "none" | "started" | "finished">>(({}));
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
 
-  const handleToggleUsed = (title: string) => {
-    setReviews(prev => ({
+  useEffect(() => {
+    // Reset state when modal opens
+    if (isOpen) {
+      const initialMap: Record<string, "none" | "started" | "finished"> = {};
+      recommendations.forEach(r => {
+        initialMap[r.title] = "none";
+      });
+      setStatusMap(initialMap);
+    }
+  }, [isOpen, recommendations]);
+
+  if (!isOpen) return null;
+
+  const handleStatusChange = (title: string, newStatus: "none" | "started" | "finished") => {
+    setStatusMap(prev => ({
       ...prev,
-      [title]: { ...prev[title], wasUsed: !prev[title].wasUsed }
+      [title]: prev[title] === newStatus ? "none" : newStatus // Toggle off if clicked again
     }));
   };
 
-  const handleRatingChange = (title: string, value: number) => {
-    setReviews(prev => ({
-      ...prev,
-      [title]: { ...prev[title], rating: value }
-    }));
-  };
-
-  const handleNotesChange = (title: string, value: string) => {
-    setReviews(prev => ({
-      ...prev,
-      [title]: { ...prev[title], notes: value }
-    }));
+  const calculateSparks = () => {
+    let total = 10; // Base 10 sparks just for reviewing!
+    Object.values(statusMap).forEach(status => {
+      if (status === "started") total += 10;
+      if (status === "finished") total += 25;
+    });
+    return total;
   };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    try {
-      const formattedItems = Object.entries(reviews).map(([title, data]) => ({
-        title,
-        category: recommendations.find(r => r.title === title)?.category || "General",
-        wasUsed: data.wasUsed,
-        rating: data.wasUsed ? data.rating : null,
-        notes: data.notes
-      }));
+    
+    // Calculate final sparks
+    const earnedSparks = calculateSparks();
 
-      const res = await fetch("/api/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          studentId,
-          scheduleId,
-          feedbackItems: formattedItems,
-        }),
-      });
+    // NOTE: In a future step, we can add a Supabase call here to save this exact array 
+    // to a "progress_tracking" table and update their total Spark balance.
+    // For now, we fire the success callback to the dashboard!
 
-      if (!res.ok) throw new Error("Failed to save reviews");
-      
-      const data = await res.json();
-      setSuccess(true);
-      setTimeout(() => {
-        onFeedbackSubmitted(data.sparksAwarded);
-        onClose();
-        setSuccess(false);
-      }, 2000);
-    } catch (err) {
-      console.error(err);
-    } finally {
+    setTimeout(() => {
+      onFeedbackSubmitted(earnedSparks);
       setIsSubmitting(false);
+    }, 1000);
+  };
+
+  const getIcon = (category: string) => {
+    switch (category) {
+      case "Book": return <BookOpen className="w-5 h-5 text-indigo-500" />;
+      case "Game Night": return <Gamepad2 className="w-5 h-5 text-emerald-500" />;
+      case "Audio/Podcast": return <Headphones className="w-5 h-5 text-cyan-500" />;
+      default: return <PlaySquare className="w-5 h-5 text-red-500" />;
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-white p-6 rounded-xl shadow-2xl">
-        {success ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center space-y-4 animate-in fade-in zoom-in-95">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
-              <CheckCircle2 className="w-10 h-10 animate-bounce" />
-            </div>
-            <DialogTitle className="text-2xl font-extrabold text-slate-800">Review Submitted!</DialogTitle>
-            <p className="text-slate-600 flex items-center gap-1.5 font-medium">
-              <Sparkles className="w-5 h-5 text-amber-500 fill-amber-400" />
-              +10 Free Sparks deposited into your vault!
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden relative">
+        
+        {/* Header */}
+        <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-center relative overflow-hidden">
+          <div className="relative z-10">
+            <h2 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
+              <Star className="w-6 h-6 text-amber-400 fill-amber-400" /> Track Progress
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Mark what you've started or finished to earn Sparks!
             </p>
           </div>
-        ) : (
-          <>
-            <DialogHeader>
-              <div className="flex items-center justify-between">
-                <DialogTitle className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
-                  ✨ Weekly Review & Reward
-                </DialogTitle>
-              </div>
-              <DialogDescription className="text-slate-500 mt-1">
-                Tell us what worked! Earn <strong className="text-amber-600">10 Free Sparks</strong> and tune your engine to prevent duplicate recommendations.
-              </DialogDescription>
-            </DialogHeader>
+          <button onClick={onClose} className="p-2 bg-white rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition shadow-sm relative z-10">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-            <div className="mt-6 space-y-6 divide-y divide-slate-100">
-              {recommendations.map((rec, i) => {
-                const current = reviews[rec.title];
-                return (
-                  <div key={i} className={`pt-4 first:pt-0 flex flex-col space-y-3 transition-opacity ${!current?.wasUsed ? 'opacity-70' : 'opacity-100'}`}>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div>
-                        <span className="text-xs font-bold uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded text-slate-600 mb-1 inline-block">
-                          {rec.category}
-                        </span>
-                        <h4 className="font-bold text-slate-800 text-base">{rec.title}</h4>
-                      </div>
-                      <label className="flex items-center gap-2 cursor-pointer bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg select-none hover:bg-slate-100 transition">
-                        <input
-                          type="checkbox"
-                          checked={current?.wasUsed || false}
-                          onChange={() => handleToggleUsed(rec.title)}
-                          className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
-                        />
-                        <span className="text-sm font-semibold text-slate-700">We Tried This</span>
-                      </label>
-                    </div>
-
-                    {current?.wasUsed && (
-                      <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3 animate-in slide-in-from-top-2 duration-200">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-slate-600">Rating:</span>
-                          <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <button
-                                key={star}
-                                type="button"
-                                onClick={() => handleRatingChange(rec.title, star)}
-                                className="focus:outline-none"
-                              >
-                                <Star
-                                  className={`w-6 h-6 transition-colors ${
-                                    star <= current.rating
-                                      ? "text-amber-400 fill-amber-400"
-                                      : "text-slate-300"
-                                  }`}
-                                />
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <Textarea
-                          placeholder="Tell us what they liked or hated (e.g., 'Too fast-paced' or 'Loved the visual logic puzzle format')"
-                          value={current.notes}
-                          onChange={(e) => handleNotesChange(rec.title, e.target.value)}
-                          className="bg-white border-slate-200 text-sm placeholder:text-slate-400 focus-visible:ring-emerald-500"
-                        />
-                      </div>
-                    )}
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-white">
+          {recommendations.length === 0 ? (
+            <p className="text-slate-500 text-center py-8">No trackable items for this week.</p>
+          ) : (
+            recommendations.map((item, idx) => (
+              <div key={idx} className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 p-4 rounded-xl border border-slate-200 bg-slate-50 hover:border-teal-200 hover:bg-teal-50/30 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100 shrink-0">
+                    {getIcon(item.category)}
                   </div>
-                );
-              })}
-            </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{item.category}</span>
+                    <p className="font-bold text-slate-800 line-clamp-2">{item.title}</p>
+                  </div>
+                </div>
 
-            <div className="mt-8 flex justify-end gap-3 border-t border-slate-100 pt-4">
-              <Button variant="ghost" onClick={onClose} disabled={isSubmitting} className="text-slate-600 hover:bg-slate-50">
-                Skip
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 shadow-md shadow-emerald-100"
-              >
-                {isSubmitting ? "Saving..." : "Submit Review & Claim Sparks 🪙"}
-              </Button>
+                {/* Status Toggles */}
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={() => handleStatusChange(item.title, "started")}
+                    className={`px-4 py-2 text-sm font-bold rounded-lg border-2 transition-all flex items-center gap-1 ${
+                      statusMap[item.title] === "started" || statusMap[item.title] === "finished"
+                        ? "bg-teal-100 border-teal-200 text-teal-800"
+                        : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                    }`}
+                  >
+                    {(statusMap[item.title] === "started" || statusMap[item.title] === "finished") && <CheckCircle className="w-4 h-4" />}
+                    Started
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange(item.title, "finished")}
+                    className={`px-4 py-2 text-sm font-bold rounded-lg border-2 transition-all flex items-center gap-1 ${
+                      statusMap[item.title] === "finished"
+                        ? "bg-amber-100 border-amber-300 text-amber-900"
+                        : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                    }`}
+                  >
+                    {statusMap[item.title] === "finished" && <CheckCircle className="w-4 h-4" />}
+                    Finished
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Footer & Spark Calculation */}
+        <div className="p-6 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200">
+            <Coins className="w-8 h-8 text-amber-500" />
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase">Potential Sparks</p>
+              <p className="text-2xl font-black text-amber-600">+{calculateSparks()}</p>
             </div>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+          </div>
+          
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isSubmitting}
+            className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-bold py-6 px-8 text-lg shadow-md"
+          >
+            {isSubmitting ? "Claiming..." : "Claim My Sparks!"}
+          </Button>
+        </div>
+
+      </div>
+    </div>
   );
 }

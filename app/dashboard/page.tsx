@@ -676,10 +676,12 @@ export default function Dashboard() {
           scheduleId={generatedData.weekTheme} 
           studentId={selectedStudentId}
           userId={user.id}
-          recommendations={[
+recommendations={[
             ...(generatedData.mediaLinks || []).map((m: any) => ({ title: m.podcastName, category: "Media" })),
             ...(generatedData.familyGameNight || []).map((g: any) => ({ title: g.gameName, category: "Game Night" })),
-            ...(generatedData.carPodcasts || []).map((p: any) => ({ title: p.title, category: "Audio/Podcast" }))
+            ...(generatedData.carPodcasts || []).map((p: any) => ({ title: p.title, category: "Audio/Podcast" })),
+            // Add this new line right here! 👇
+            ...(generatedData.readingList || []).map((b: any) => ({ title: b.title, category: "Book" }))
           ]}
           onFeedbackSubmitted={(sparks) => {
              toast.success(`Awesome! ${sparks} Sparks added to your vault!`);
