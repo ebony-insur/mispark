@@ -1,4 +1,4 @@
-// HELLO GIT, THIS IS A NEW CHANGE
+// HELLO GIT, THIS IS THE PERFECTED DASHBOARD
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -397,7 +397,6 @@ export default function Dashboard() {
               </div>
             </div>
             
-            {/* HERE IS THE NEW BUTTON SECTION */}
             <div className="flex gap-3 print:hidden">
               <Button 
                 onClick={() => setIsReviewModalOpen(true)} 
@@ -451,54 +450,64 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md border-0 border-t-4 border-t-orange-500 bg-white print:shadow-none print:border-t-2 print:border-orange-500 print:break-inside-avoid">
-            <CardHeader className="print:p-4">
-              <CardTitle className="text-xl text-slate-800">Catalysts (Hands-On Sparks)</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6 print:space-y-4 print:p-4 print:pt-0">
-              <div className="bg-amber-50/50 p-6 rounded-xl border border-amber-200 print:bg-white print:border-slate-300 print:p-4 print:break-inside-avoid">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="font-extrabold text-amber-900 text-lg uppercase tracking-tight print:text-slate-800">Pantry Spark</h4>
-                  <span className="text-xs font-bold bg-amber-200 text-amber-900 px-3 py-1 rounded-full print:bg-slate-100 print:text-slate-800">
-                    {generatedData.catalysts.pantrySpark.cost}
-                  </span>
-                </div>
-                <p className="font-bold text-amber-950 text-xl mb-4 print:text-slate-900">{generatedData.catalysts.pantrySpark.title}</p>
-                <div className="space-y-3 text-sm text-amber-900 print:text-slate-700">
-                  <p><strong>Supplies:</strong> {generatedData.catalysts.pantrySpark.supplies.join(", ")}</p>
-                  <p className="leading-relaxed"><strong>Instructions:</strong> {generatedData.catalysts.pantrySpark.instructions}</p>
-                </div>
-              </div>
+          {/* BULLETPROOF CATALYSTS CARD */}
+          {generatedData.catalysts && (
+            <Card className="shadow-md border-0 border-t-4 border-t-orange-500 bg-white print:shadow-none print:border-t-2 print:border-orange-500 print:break-inside-avoid">
+              <CardHeader className="print:p-4">
+                <CardTitle className="text-xl text-slate-800">Catalysts (Hands-On Sparks)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6 print:space-y-4 print:p-4 print:pt-0">
+                
+                {generatedData.catalysts.pantrySpark && (
+                  <div className="bg-amber-50/50 p-6 rounded-xl border border-amber-200 print:bg-white print:border-slate-300 print:p-4 print:break-inside-avoid">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-extrabold text-amber-900 text-lg uppercase tracking-tight print:text-slate-800">Pantry Spark</h4>
+                      <span className="text-xs font-bold bg-amber-200 text-amber-900 px-3 py-1 rounded-full print:bg-slate-100 print:text-slate-800">
+                        {generatedData.catalysts.pantrySpark.cost}
+                      </span>
+                    </div>
+                    <p className="font-bold text-amber-950 text-xl mb-4 print:text-slate-900">{generatedData.catalysts.pantrySpark.title}</p>
+                    <div className="space-y-3 text-sm text-amber-900 print:text-slate-700">
+                      <p><strong>Supplies:</strong> {generatedData.catalysts.pantrySpark.supplies?.join(", ")}</p>
+                      <p className="leading-relaxed"><strong>Instructions:</strong> {generatedData.catalysts.pantrySpark.instructions}</p>
+                    </div>
+                  </div>
+                )}
 
-              <div className="bg-emerald-50/50 p-6 rounded-xl border border-emerald-200 print:bg-white print:border-slate-300 print:p-4 print:break-inside-avoid">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="font-extrabold text-emerald-900 text-lg uppercase tracking-tight print:text-slate-800">Quick-Trip Spark</h4>
-                  <span className="text-xs font-bold bg-emerald-200 text-emerald-900 px-3 py-1 rounded-full print:bg-slate-100 print:text-slate-800">
-                    {generatedData.catalysts.quickTripSpark.cost}
-                  </span>
-                </div>
-                <p className="font-bold text-emerald-950 text-xl mb-4 print:text-slate-900">{generatedData.catalysts.quickTripSpark.title}</p>
-                <div className="space-y-3 text-sm text-emerald-900 print:text-slate-700">
-                  <p><strong>Supplies:</strong> {generatedData.catalysts.quickTripSpark.supplies.join(", ")}</p>
-                  <p className="leading-relaxed"><strong>Instructions:</strong> {generatedData.catalysts.quickTripSpark.instructions}</p>
-                </div>
-              </div>
+                {generatedData.catalysts.quickTripSpark && (
+                  <div className="bg-emerald-50/50 p-6 rounded-xl border border-emerald-200 print:bg-white print:border-slate-300 print:p-4 print:break-inside-avoid">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-extrabold text-emerald-900 text-lg uppercase tracking-tight print:text-slate-800">Quick-Trip Spark</h4>
+                      <span className="text-xs font-bold bg-emerald-200 text-emerald-900 px-3 py-1 rounded-full print:bg-slate-100 print:text-slate-800">
+                        {generatedData.catalysts.quickTripSpark.cost}
+                      </span>
+                    </div>
+                    <p className="font-bold text-emerald-950 text-xl mb-4 print:text-slate-900">{generatedData.catalysts.quickTripSpark.title}</p>
+                    <div className="space-y-3 text-sm text-emerald-900 print:text-slate-700">
+                      <p><strong>Supplies:</strong> {generatedData.catalysts.quickTripSpark.supplies?.join(", ")}</p>
+                      <p className="leading-relaxed"><strong>Instructions:</strong> {generatedData.catalysts.quickTripSpark.instructions}</p>
+                    </div>
+                  </div>
+                )}
 
-              <div className="bg-purple-50/50 p-6 rounded-xl border border-purple-200 print:bg-white print:border-slate-300 print:p-4 print:break-inside-avoid">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="font-extrabold text-purple-900 text-lg uppercase tracking-tight print:text-slate-800">Capstone Spark</h4>
-                  <span className="text-xs font-bold bg-purple-200 text-purple-900 px-3 py-1 rounded-full print:bg-slate-100 print:text-slate-800">
-                    {generatedData.catalysts.capstoneSpark.cost}
-                  </span>
-                </div>
-                <p className="font-bold text-purple-950 text-xl mb-4 print:text-slate-900">{generatedData.catalysts.capstoneSpark.title}</p>
-                <div className="space-y-3 text-sm text-purple-900 print:text-slate-700">
-                  <p><strong>Supplies:</strong> {generatedData.catalysts.capstoneSpark.supplies.join(", ")}</p>
-                  <p className="leading-relaxed"><strong>Instructions:</strong> {generatedData.catalysts.capstoneSpark.instructions}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                {generatedData.catalysts.capstoneSpark && (
+                  <div className="bg-purple-50/50 p-6 rounded-xl border border-purple-200 print:bg-white print:border-slate-300 print:p-4 print:break-inside-avoid">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-extrabold text-purple-900 text-lg uppercase tracking-tight print:text-slate-800">Capstone Spark</h4>
+                      <span className="text-xs font-bold bg-purple-200 text-purple-900 px-3 py-1 rounded-full print:bg-slate-100 print:text-slate-800">
+                        {generatedData.catalysts.capstoneSpark.cost}
+                      </span>
+                    </div>
+                    <p className="font-bold text-purple-950 text-xl mb-4 print:text-slate-900">{generatedData.catalysts.capstoneSpark.title}</p>
+                    <div className="space-y-3 text-sm text-purple-900 print:text-slate-700">
+                      <p><strong>Supplies:</strong> {generatedData.catalysts.capstoneSpark.supplies?.join(", ")}</p>
+                      <p className="leading-relaxed"><strong>Instructions:</strong> {generatedData.catalysts.capstoneSpark.instructions}</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="shadow-md border-0 border-t-4 border-t-emerald-500 bg-white print:shadow-none print:border-t-2 print:border-emerald-500 print:break-inside-avoid mt-6">
             <CardHeader className="print:p-4">
