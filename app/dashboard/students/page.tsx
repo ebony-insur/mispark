@@ -20,6 +20,7 @@ export default function ManageStudents() {
   // Form State
   const [nickname, setNickname] = useState("");
   const [grade, setGrade] = useState("");
+  const [readingGrade, setReadingGrade] = useState(""); // NEW FIELD
   const [learningStyle, setLearningStyle] = useState("");
   const [interests, setInterests] = useState("");
   const [sensoryNeeds, setSensoryNeeds] = useState("");
@@ -53,9 +54,9 @@ export default function ManageStudents() {
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // NEW STRICT VALIDATION: Require every single field
+    // NEW STRICT VALIDATION: Require every single field (Except reading grade, which can default to standard grade)
     if (!nickname || !grade || !learningStyle || !interests || !sensoryNeeds || !focusDuration) {
-      toast.error("Please fill out all fields. The AI needs this data to personalize your schedule!");
+      toast.error("Please fill out all required fields. The AI needs this data to personalize your schedule!");
       return;
     }
 
@@ -66,6 +67,7 @@ export default function ManageStudents() {
       parent_id: user.id,
       nickname,
       grade,
+      reading_grade: readingGrade, // NEW FIELD
       learning_style: learningStyle,
       interests,
       sensory_needs: sensoryNeeds,
@@ -80,6 +82,7 @@ export default function ManageStudents() {
       // Reset form
       setNickname("");
       setGrade("");
+      setReadingGrade("");
       setLearningStyle("");
       setInterests("");
       setSensoryNeeds("");
@@ -119,15 +122,15 @@ export default function ManageStudents() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleAddStudent} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label htmlFor="nickname" className="text-sm font-bold text-slate-700">Nickname *</label>
-                  <Input id="nickname" name="nickname" placeholder="e.g., J.M. or Buddy" value={nickname} onChange={(e) => setNickname(e.target.value)} disabled={isSubmitting} required />
-                </div>
+              <div className="space-y-2">
+                <label htmlFor="nickname" className="text-sm font-bold text-slate-700">Nickname *</label>
+                <Input id="nickname" name="nickname" placeholder="e.g., J.M. or Buddy" value={nickname} onChange={(e) => setNickname(e.target.value)} disabled={isSubmitting} required />
+              </div>
                 
-                {/* NEW DROPDOWN: Grade Level */}
+              {/* TWO COLUMN GRADES SECTION */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label htmlFor="grade" className="text-sm font-bold text-slate-700">Grade Level *</label>
+                  <label htmlFor="grade" className="text-sm font-bold text-slate-700">Overall Grade *</label>
                   <select
                     id="grade"
                     name="grade"
@@ -135,11 +138,39 @@ export default function ManageStudents() {
                     onChange={(e) => setGrade(e.target.value)}
                     disabled={isSubmitting}
                     required
-                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                   >
                     <option value="" disabled>Select Grade</option>
-                    <option value="Pre-K">Pre-K (Pre-Kindergarten)</option>
-                    <option value="K">K (Kindergarten)</option>
+                    <option value="Pre-K">Pre-K</option>
+                    <option value="K">Kindergarten</option>
+                    <option value="1">1st Grade</option>
+                    <option value="2">2nd Grade</option>
+                    <option value="3">3rd Grade</option>
+                    <option value="4">4th Grade</option>
+                    <option value="5">5th Grade</option>
+                    <option value="6">6th Grade</option>
+                    <option value="7">7th Grade</option>
+                    <option value="8">8th Grade</option>
+                    <option value="9">9th Grade</option>
+                    <option value="10">10th Grade</option>
+                    <option value="11">11th Grade</option>
+                    <option value="12">12th Grade</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="readingGrade" className="text-sm font-bold text-slate-700">Reading Level</label>
+                  <select
+                    id="readingGrade"
+                    name="readingGrade"
+                    value={readingGrade}
+                    onChange={(e) => setReadingGrade(e.target.value)}
+                    disabled={isSubmitting}
+                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 text-slate-600"
+                  >
+                    <option value="">Same as Overall</option>
+                    <option value="Pre-K">Pre-K</option>
+                    <option value="K">Kindergarten</option>
                     <option value="1">1st Grade</option>
                     <option value="2">2nd Grade</option>
                     <option value="3">3rd Grade</option>
@@ -200,7 +231,10 @@ export default function ManageStudents() {
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="text-xl font-extrabold text-slate-900">{student.nickname}</h3>
-                      <p className="text-sm font-bold text-orange-600">{student.grade}</p>
+                      <p className="text-sm font-bold text-orange-600 mt-1">
+                        Grade: {student.grade} 
+                        {student.reading_grade && <span className="text-teal-600 ml-2">| Reading: {student.reading_grade}</span>}
+                      </p>
                     </div>
                   </div>
                   <div className="mt-4 space-y-1 text-sm text-slate-600">

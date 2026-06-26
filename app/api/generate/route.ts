@@ -12,10 +12,12 @@ export async function POST(req: Request) {
     const systemPrompt = `You are a master homeschool curriculum architect. Your job is to take a provided lesson schedule or text and transform it into a highly specific, engaging weekly plan tailored for a neurodivergent student.
     
     CRITICAL INSTRUCTIONS:
-    1. ACADEMIC RIGOR (NO LAZY GENERALIZATIONS): You MUST match the exact complexity of the requested topic. If the prompt says "3-digit addition," your games and resources MUST be for 3-digit addition. Do not output basic single-digit math resources. If a grade level is provided in the student profile, ensure materials match it perfectly.
-    2. BE HYPER-SPECIFIC: Never give generic advice. Provide exact, specific titles (e.g., "Math Antics - Basic Division").
-    3. FAMILY GAME NIGHT: Recommend 1-2 exact board games, card games, or verbal games. We need the exact commercial name of the game if it is something they can buy (e.g., "Proof! Math Game").
-    4. CAR PODCASTS & AUDIOBOOKS: Recommend 1-2 specific audiobooks or podcasts. Prioritize major titles found on Audible or Libby.
+    1. ACADEMIC RIGOR: You MUST match the exact complexity of the requested topic. If the prompt says "3-digit addition," your games and worksheets MUST be for 3-digit addition. Do not output basic single-digit math resources. 
+    2. GAMES (4 EXACT): Recommend exactly 4 games with varying modalities (e.g., 1 board game, 1 card game, 1 drawing game, 1 verbal/movement game). Provide the exact commercial name if it's a product.
+    3. READING LIST (3 BOOKS): Recommend exactly 3 books. If a 'reading_grade' is provided in the student profile, the books MUST match this reading level perfectly. Give the exact Title and Author.
+    4. WRITING PROMPT: Provide 1 highly engaging writing prompt tailored exactly to the student's overall grade level and current fixations.
+    5. DAILY PRINTABLE WORKSHEETS: Generate ONE short printable worksheet for EACH day based on that day's specific topic. CRITICAL: You MUST adjust the length and number of questions (the 'content' array) to perfectly align with the student's 'focus_duration' (e.g., a 15-minute focus gets 3-5 quick questions; a 45-minute focus gets 10-15 deeper questions).
+    6. CATALYSTS: You MUST provide all three catalysts (Pantry, Quick-Trip, Capstone). Never omit the Capstone Spark.
     
     You MUST output your response in JSON format.`;
 
@@ -48,16 +50,54 @@ export async function POST(req: Request) {
             required: ["topicReference", "podcastName", "youtubeSearchQuery"]
           }
         },
+        readingList: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string", description: "Exact book title." },
+              author: { type: "string" },
+              description: { type: "string", description: "Why this book fits the theme and reading level." }
+            },
+            required: ["title", "author", "description"]
+          }
+        },
+        writingPrompt: {
+          type: "object",
+          properties: {
+            prompt: { type: "string", description: "The actual writing prompt text for the student." },
+            tipsForParent: { type: "string", description: "How the parent can help them execute this." }
+          },
+          required: ["prompt", "tipsForParent"]
+        },
+        printableWorksheets: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              day: { type: "string", description: "The day of the week this matches." },
+              worksheetTitle: { type: "string" },
+              estimatedDuration: { type: "string", description: "e.g., '15 minutes' matching the student's profile." },
+              content: { 
+                type: "array", 
+                items: { type: "string" },
+                description: "An array of questions, word problems, or sentences tailored in length to their focus duration."
+              }
+            },
+            required: ["day", "worksheetTitle", "estimatedDuration", "content"]
+          }
+        },
         familyGameNight: {
           type: "array",
           items: {
             type: "object",
             properties: {
               gameName: { type: "string", description: "Specific commercial board, card, or verbal game." },
+              modality: { type: "string", description: "e.g., Card Game, Board Game, Drawing, Verbal, Physical" },
               skillsReinforced: { type: "string" },
               description: { type: "string" }
             },
-            required: ["gameName", "skillsReinforced", "description"]
+            required: ["gameName", "modality", "skillsReinforced", "description"]
           }
         },
         carPodcasts: {
@@ -82,7 +122,8 @@ export async function POST(req: Request) {
                 supplies: { type: "array", items: { type: "string" } },
                 instructions: { type: "string" },
                 cost: { type: "string" }
-              }
+              },
+              required: ["title", "supplies", "instructions", "cost"]
             },
             quickTripSpark: {
               type: "object",
@@ -91,7 +132,8 @@ export async function POST(req: Request) {
                 supplies: { type: "array", items: { type: "string" } },
                 instructions: { type: "string" },
                 cost: { type: "string" }
-              }
+              },
+              required: ["title", "supplies", "instructions", "cost"]
             },
             capstoneSpark: {
               type: "object",
@@ -100,7 +142,8 @@ export async function POST(req: Request) {
                 supplies: { type: "array", items: { type: "string" } },
                 instructions: { type: "string" },
                 cost: { type: "string" }
-              }
+              },
+              required: ["title", "supplies", "instructions", "cost"]
             }
           },
           required: ["pantrySpark", "quickTripSpark", "capstoneSpark"]
@@ -108,7 +151,7 @@ export async function POST(req: Request) {
         illuminations: { type: "array", items: { type: "string" } },
         kindling: { type: "array", items: { type: "string" } }
       },
-      required: ["weekTheme", "studentProfile", "dailyFramework", "mediaLinks", "familyGameNight", "carPodcasts", "catalysts", "illuminations", "kindling"]
+      required: ["weekTheme", "studentProfile", "dailyFramework", "mediaLinks", "readingList", "writingPrompt", "printableWorksheets", "familyGameNight", "carPodcasts", "catalysts", "illuminations", "kindling"]
     };
 
     const completion = await openai.chat.completions.create({
@@ -136,4 +179,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message || "Failed to generate schedule." }, { status: 500 });
   }
 }
-///Force Update
