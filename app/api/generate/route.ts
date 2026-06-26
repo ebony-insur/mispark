@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     4. CAR PODCASTS & AUDIOBOOKS: Recommend 1-2 specific audiobooks or story-based podcasts. Align them with the theme if possible, but prioritize great storytelling. Mention that they can be found for free via library apps (Libby/Hoopla) or via subscriptions (Audible/Amazon Kindle).
     
     You MUST output your response in JSON format.`;
-    
+
     const jsonSchema = {
       type: "object",
       properties: {
@@ -136,11 +136,17 @@ export async function POST(req: Request) {
       required: ["weekTheme", "studentProfile", "dailyFramework", "mediaLinks", "familyGameNight", "carPodcasts", "catalysts", "illuminations", "kindling"]
     };
     // Call OpenAI using the fast and cheap gpt-4o-mini model
-    const completion = await openai.chat.completions.create({
+const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: `Here is the curriculum text to analyze:\n\n${lessonText}` }
+        { 
+          role: "system", 
+          content: `${systemPrompt}\n\nYou MUST use exactly this JSON schema to format your response:\n${JSON.stringify(jsonSchema)}` 
+        },
+        { 
+          role: "user", 
+          content: `Here is the curriculum text to analyze:\n\n${lessonText}` 
+        }
       ],
       response_format: { type: "json_object" },
       temperature: 0.7,
