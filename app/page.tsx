@@ -35,17 +35,17 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
       {/* GLOBAL HEADER */}
-      <header className="w-full max-w-7xl mx-auto flex justify-between items-center px-6 py-4 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 rounded-b-xl shadow-sm">
+      <header className="w-full max-w-7xl mx-auto flex justify-between items-center px-6 py-2 md:py-3 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 rounded-b-xl shadow-sm">
         
-        {/* NEW: CUSTOM LOGO IN NAVBAR */}
-        <div className="cursor-pointer shrink-0 transition-transform hover:scale-105" onClick={() => router.push("/")}>
+        {/* ENLARGED CUSTOM LOGO IN NAVBAR */}
+        <div className="cursor-pointer shrink-0 transition-transform hover:scale-105 flex items-center" onClick={() => router.push("/")}>
           <Image 
             src="/MiSpark.svg" 
             alt="miSpark Logo" 
-            width={140} 
-            height={45} 
+            width={240} 
+            height={70} 
             priority 
-            className="w-auto h-8 md:h-10 object-contain"
+            className="w-auto h-12 md:h-16 object-contain"
           />
         </div>
         
@@ -67,7 +67,6 @@ export default function LandingPage() {
                 {/* DROPDOWN MENU */}
                 {isAccountMenuOpen && (
                   <>
-                    {/* Invisible overlay to close menu when clicking outside */}
                     <div className="fixed inset-0 z-40" onClick={() => setIsAccountMenuOpen(false)}></div>
                     
                     <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -96,7 +95,7 @@ export default function LandingPage() {
           ) : (
             // PUBLIC NAVIGATION
             <>
-              <Button onClick={() => router.push("/login")} variant="ghost" className="text-slate-600 font-semibold hover:bg-slate-100">
+              <Button onClick={() => router.push("/login")} variant="ghost" className="text-slate-600 font-semibold hover:bg-slate-100 hidden sm:flex">
                 Login
               </Button>
               <Button onClick={() => router.push("/login?signup=true")} className="bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm transition-colors">
@@ -108,26 +107,26 @@ export default function LandingPage() {
       </header>
 
       {/* HERO SECTION */}
-      <main className="flex-1 max-w-7xl mx-auto px-6 py-16 md:py-24 flex flex-col justify-center space-y-16">
+      <main className="flex-1 max-w-7xl mx-auto px-6 py-12 md:py-16 flex flex-col justify-center space-y-16">
         
         {/* TOP SPLIT: Text Left, Image Right */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           
           {/* LEFT COLUMN: Text & Buttons */}
           <div className="space-y-8 text-center lg:text-left flex flex-col items-center lg:items-start">
             
-            {/* NEW: CUSTOM LOGO IN LEFT COLUMN */}
+            {/* MASSIVE CUSTOM LOGO IN LEFT COLUMN */}
             <Image 
               src="/MiSpark.svg" 
               alt="miSpark" 
-              width={200} 
-              height={64} 
+              width={400} 
+              height={120} 
               priority 
-              className="w-auto h-12 md:h-16 object-contain mb-2"
+              className="w-auto h-20 md:h-28 lg:h-32 object-contain mb-2"
             />
 
             <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-800 text-sm font-extrabold px-4 py-1.5 rounded-full border border-orange-200 shadow-sm animate-bounce">
-              <Sparkles className="w-4 h-4" /> Built To Create Curious Learners
+              <Sparkles className="w-4 h-4" /> Built To Support Curious Learners
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight max-w-2xl">
@@ -148,15 +147,15 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* RIGHT COLUMN: Custom Graphic */}
+          {/* RIGHT COLUMN: Custom Graphic (Scaled up to match) */}
           <div className="flex justify-center lg:justify-end w-full relative">
             <Image 
               src="/heroside.svg" 
               alt="miSpark Dynamic Learning" 
-              width={600} 
-              height={500} 
+              width={800} 
+              height={800} 
               priority 
-              className="w-full max-w-lg h-auto object-contain drop-shadow-xl"
+              className="w-full max-w-xl lg:max-w-2xl h-auto object-contain drop-shadow-xl"
             />
           </div>
         </div>
