@@ -52,15 +52,15 @@ export default function LandingPage() {
       {/* HERO SECTION */}
       <main className="flex-1 max-w-5xl mx-auto px-6 py-16 md:py-24 text-center space-y-8 flex flex-col items-center justify-center">
         <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-800 text-sm font-extrabold px-4 py-1.5 rounded-full border border-orange-200 shadow-sm animate-bounce">
-          <Sparkles className="w-4 h-4" /> Built For Neurodivergent Thinkers
+          <Sparkles className="w-4 h-4" /> Personalized for Every Thinker
         </div>
         
         <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-none max-w-4xl">
-          Turn Any Homeschool Topic Into A <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-orange-500">Tailored Dynamic Adventure</span>
+          Turn Any Educational Topic Into A <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-orange-500">Tailored Dynamic Adventure</span>
         </h1>
         
         <p className="text-lg md:text-xl text-slate-600 max-w-2xl font-medium leading-relaxed">
-          Upload your state syllabus or weekly targets. miSpark immediately builds curated game nights, precise reading lists, audio discovery logs, and duration-calibrated worksheets matching your child's exact profile.
+          Upload your syllabus or weekly targets. miSpark instantly engineers curated reading lists, interactive activities, and duration-calibrated worksheets designed specifically for how your child learns best.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 w-full justify-center">
