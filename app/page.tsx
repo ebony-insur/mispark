@@ -1,151 +1,107 @@
+
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase"; // Adjust this import to match your setup
+import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
-import { CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Sparkles, GraduationCap, CheckCircle2, ShieldCheck, ArrowRight } from "lucide-react";
 
-export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPasswordWarning, setShowPasswordWarning] = useState(false);
-  
+export default function LandingPage() {
   const router = useRouter();
   const supabase = createClient();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-  // Dynamic Password Validation
-  const criteria = {
-    length: password.length >= 8,
-    uppercase: /[A-Z]/.test(password),
-    number: /[0-9]/.test(password),
-    special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-  };
-  const isPasswordValid = Object.values(criteria).every(Boolean);
-
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // If signing up and password fails, stop them and show the warning!
-    if (isSignUp && !isPasswordValid) {
-      setShowPasswordWarning(true);
-      toast.error("Your password doesn't meet the security requirements.");
-      return;
-    }
-
-    setIsLoading(true);
-    setShowPasswordWarning(false);
-
-    try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        toast.success("Check your email to confirm your account!");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        toast.success("Welcome back!");
-        router.push("/dashboard");
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Authentication failed.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsAuthenticated(!!user);
+    };
+    checkAuth();
+  }, []);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold tracking-tight">
-            <span className="text-teal-500">mi</span><span className="text-orange-500">Spark</span>
-          </h1>
-          <p className="text-slate-500 mt-2">
-            {isSignUp ? "Create your parent account" : "Sign in to your account"}
-          </p>
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
+      {/* GLOBAL HEADER */}
+      <header className="w-full max-w-7xl mx-auto flex justify-between items-center px-6 py-4 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 rounded-b-xl shadow-sm">
+        <div className="text-2xl font-extrabold tracking-tight">
+          <span className="text-teal-500">mi</span>
+          <span className="text-orange-500">Spark</span>
         </div>
-
-        <form onSubmit={handleAuth} className="space-y-4">
-          <div>
-            <label className="text-sm font-bold text-slate-700">Email</label>
-            <Input 
-              type="email" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
-              required 
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center">
-              <label className="text-sm font-bold text-slate-700">Password</label>
-              {!isSignUp && (
-                <Button 
-                  type="button" 
-                  variant="link" 
-                  className="text-xs text-teal-600 px-0 h-auto"
-                  onClick={() => router.push("/forgot-password")}
-                >
-                  Forgot password?
-                </Button>
-              )}
-            </div>
-            <Input 
-              type="password" 
-              value={password} 
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setShowPasswordWarning(false); // Hide warning once they start typing again
-              }} 
-              required 
-              className={`mt-1 ${showPasswordWarning ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-            />
-          </div>
-
-          {/* PASSWORD CRITERIA BOX - Only shows on Sign Up or if they triggered the warning */}
-          {(isSignUp || showPasswordWarning) && (
-            <div className={`p-4 rounded-xl border text-sm space-y-2 transition-colors ${showPasswordWarning ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200'}`}>
-              <p className={`font-bold flex items-center gap-2 ${showPasswordWarning ? 'text-red-700' : 'text-slate-700'}`}>
-                {showPasswordWarning && <AlertCircle className="w-4 h-4" />}
-                Password Requirements:
-              </p>
-              <ul className="space-y-1">
-                <Criterion met={criteria.length} text="At least 8 characters" />
-                <Criterion met={criteria.uppercase} text="One uppercase letter" />
-                <Criterion met={criteria.number} text="One number" />
-                <Criterion met={criteria.special} text="One special character (!@#$)" />
-              </ul>
-            </div>
+        
+        <div className="flex items-center gap-4">
+          {isAuthenticated === null ? (
+            <div className="w-20 h-8 bg-slate-200 animate-pulse rounded-md" />
+          ) : isAuthenticated ? (
+            <Button onClick={() => router.push("/dashboard")} className="bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm">
+              Go to Dashboard <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          ) : (
+            <>
+              <Button onClick={() => router.push("/login")} variant="ghost" className="text-slate-600 font-semibold">
+                Sign In
+              </Button>
+              <Button onClick={() => router.push("/login?signup=true")} className="bg-orange-500 hover:bg-orange-600 text-white font-bold shadow-sm">
+                Get Started Free
+              </Button>
+            </>
           )}
-
-          <Button type="submit" disabled={isLoading} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-6 mt-4">
-            {isLoading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
-          </Button>
-        </form>
-
-        <div className="mt-6 text-center text-sm text-slate-600">
-          {isSignUp ? "Already have an account?" : "Don't have an account?"}
-          <button onClick={() => setIsSignUp(!isSignUp)} className="ml-1 font-bold text-teal-600 hover:underline">
-            {isSignUp ? "Sign In" : "Sign Up"}
-          </button>
         </div>
-      </div>
-    </main>
-  );
-}
+      </header>
 
-// Helper component for the checklist
-function Criterion({ met, text }: { met: boolean; text: string }) {
-  return (
-    <li className={`flex items-center gap-2 ${met ? 'text-emerald-600' : 'text-slate-500'}`}>
-      {met ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4 opacity-50" />}
-      {text}
-    </li>
+      {/* HERO SECTION */}
+      <main className="flex-1 max-w-5xl mx-auto px-6 py-16 md:py-24 text-center space-y-8 flex flex-col items-center justify-center">
+        <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-800 text-sm font-extrabold px-4 py-1.5 rounded-full border border-orange-200 shadow-sm animate-bounce">
+          <Sparkles className="w-4 h-4" /> Built For Neurodivergent Thinkers
+        </div>
+        
+        <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-none max-w-4xl">
+          Turn Any Homeschool Topic Into A <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-orange-500">Tailored Dynamic Adventure</span>
+        </h1>
+        
+        <p className="text-lg md:text-xl text-slate-600 max-w-2xl font-medium leading-relaxed">
+          Upload your state syllabus or weekly targets. miSpark immediately builds curated game nights, precise reading lists, audio discovery logs, and duration-calibrated worksheets matching your child's exact profile.
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 w-full justify-center">
+          <Button 
+            onClick={() => router.push(isAuthenticated ? "/dashboard" : "/login")} 
+            className="w-full sm:w-auto bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-black text-xl py-8 px-12 rounded-xl shadow-lg transition-transform hover:scale-[1.02]"
+          >
+            {isAuthenticated ? "Launch Dashboard ✨" : "Ignite Your Curriculum Free ✨"}
+          </Button>
+        </div>
+
+        {/* TRUST ACCREDITATION BADGES */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-16 w-full max-w-4xl">
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4 text-left">
+            <GraduationCap className="w-8 h-8 text-teal-500 shrink-0 mt-1" />
+            <div>
+              <h3 className="font-extrabold text-slate-800">State Standard Aligned</h3>
+              <p className="text-xs text-slate-500 mt-1">Calibrates automatically to your home state's strict learning laws.</p>
+            </div>
+          </div>
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4 text-left">
+            <CheckCircle2 className="w-8 h-8 text-orange-500 shrink-0 mt-1" />
+            <div>
+              <h3 className="font-extrabold text-slate-800">Duration-Calibrated</h3>
+              <p className="text-xs text-slate-500 mt-1">Worksheets adapt problem counts directly to student focus bursts.</p>
+            </div>
+          </div>
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4 text-left">
+            <ShieldCheck className="w-8 h-8 text-indigo-500 shrink-0 mt-1" />
+            <div>
+              <h3 className="font-extrabold text-slate-800">Legal Portfolio Builder</h3>
+              <p className="text-xs text-slate-500 mt-1">Upload executed work to auto-compile compliant legal tracking profiles.</p>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* FOOTER */}
+      <footer className="w-full bg-white border-t border-slate-200 py-6 text-center text-xs font-bold text-slate-400">
+        © {new Date().getFullYear()} miSpark. All Rights Reserved.
+      </footer>
+    </div>
   );
 }
