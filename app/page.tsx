@@ -36,9 +36,17 @@ export default function LandingPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
       {/* GLOBAL HEADER */}
       <header className="w-full max-w-7xl mx-auto flex justify-between items-center px-6 py-4 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 rounded-b-xl shadow-sm">
-        <div className="text-2xl font-extrabold tracking-tight cursor-pointer" onClick={() => router.push("/")}>
-          <span className="text-teal-500">mi</span>
-          <span className="text-orange-500">Spark</span>
+        
+        {/* NEW: CUSTOM LOGO IN NAVBAR */}
+        <div className="cursor-pointer shrink-0 transition-transform hover:scale-105" onClick={() => router.push("/")}>
+          <Image 
+            src="/MiSpark.svg" 
+            alt="miSpark Logo" 
+            width={140} 
+            height={45} 
+            priority 
+            className="w-auto h-8 md:h-10 object-contain"
+          />
         </div>
         
         <div className="flex items-center gap-4">
@@ -102,13 +110,24 @@ export default function LandingPage() {
       {/* HERO SECTION */}
       <main className="flex-1 max-w-7xl mx-auto px-6 py-16 md:py-24 flex flex-col justify-center space-y-16">
         
-        {/* TOP SPLIT: Text Left, Image Right (GAP REDUCED TO gap-6) */}
+        {/* TOP SPLIT: Text Left, Image Right */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
           
           {/* LEFT COLUMN: Text & Buttons */}
           <div className="space-y-8 text-center lg:text-left flex flex-col items-center lg:items-start">
+            
+            {/* NEW: CUSTOM LOGO IN LEFT COLUMN */}
+            <Image 
+              src="/MiSpark.svg" 
+              alt="miSpark" 
+              width={200} 
+              height={64} 
+              priority 
+              className="w-auto h-12 md:h-16 object-contain mb-2"
+            />
+
             <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-800 text-sm font-extrabold px-4 py-1.5 rounded-full border border-orange-200 shadow-sm animate-bounce">
-              <Sparkles className="w-4 h-4" /> Built For Neurodivergent Thinkers
+              <Sparkles className="w-4 h-4" /> Built To Create Curious Learners
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight max-w-2xl">
