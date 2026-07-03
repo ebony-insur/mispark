@@ -41,7 +41,7 @@ export default function LandingPage() {
         <div className="cursor-pointer shrink-0 transition-transform hover:scale-105 flex items-center" onClick={() => router.push("/")}>
           <Image 
             src="/MiSpark.svg" 
-            alt="miSpark Logo" 
+            alt="MiSpark Logo" 
             width={240} 
             height={70} 
             priority 
@@ -115,11 +115,11 @@ export default function LandingPage() {
           {/* LEFT COLUMN: Text & Buttons */}
           <div className="space-y-8 text-center lg:text-left flex flex-col items-center lg:items-start">
             
-            {/* NEW: EXPLICITLY CENTERED LOGO AND TAGLINE WRAPPER */}
+            {/* LOGO AND TAGLINE WRAPPER */}
             <div className="w-full flex flex-col items-center justify-center space-y-4">
               <Image 
                 src="/MiSpark.svg" 
-                alt="miSpark" 
+                alt="MiSpark" 
                 width={400} 
                 height={120} 
                 priority 
@@ -136,13 +136,14 @@ export default function LandingPage() {
             </h1>
             
             <p className="text-lg text-slate-600 max-w-xl font-medium leading-relaxed">
-              Upload your state syllabus or weekly targets. miSpark immediately builds curated game nights, precise reading lists, audio discovery logs, and duration-calibrated worksheets matching your child's exact profile.
+              Upload your state syllabus or weekly targets. MiSpark immediately builds curated game nights, precise reading lists, audio discovery logs, and duration-calibrated worksheets matching your child's exact profile.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center gap-4 pt-2 w-full lg:justify-start justify-center">
+            {/* ALWAYS CENTERED BUTTON WRAPPER */}
+            <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 w-full justify-center">
               <Button 
                 onClick={() => router.push(isAuthenticated ? "/dashboard" : "/login")} 
-                className="w-full sm:w-auto bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-black text-xl py-8 px-10 rounded-xl shadow-lg transition-transform hover:scale-[1.02]"
+                className="w-full sm:w-auto bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-black text-xl py-8 px-12 rounded-xl shadow-lg transition-transform hover:scale-[1.02]"
               >
                 Create Plan ✨
               </Button>
@@ -153,7 +154,7 @@ export default function LandingPage() {
           <div className="flex justify-center lg:justify-end w-full relative">
             <Image 
               src="/heroside.svg" 
-              alt="miSpark Dynamic Learning" 
+              alt="MiSpark Dynamic Learning" 
               width={800} 
               height={800} 
               priority 
@@ -162,35 +163,39 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* BOTTOM: TRUST ACCREDITATION BADGES */}
+        {/* BOTTOM: TRUST ACCREDITATION BADGES (UPDATED VERBIAGE) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8 border-t border-slate-200">
+          
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4 text-left hover:border-teal-300 transition-colors">
             <GraduationCap className="w-10 h-10 text-teal-500 shrink-0" />
             <div>
-              <h3 className="font-extrabold text-slate-800 text-lg">State Standard Aligned</h3>
-              <p className="text-sm text-slate-500 mt-1 leading-relaxed">Calibrates automatically to your home state's strict learning laws.</p>
+              <h3 className="font-extrabold text-slate-800 text-lg">State Standards Aligned</h3>
+              <p className="text-sm text-slate-500 mt-1 leading-relaxed">Automatically aligns your dynamic curriculum to your specific state's educational standards.</p>
             </div>
           </div>
+          
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4 text-left hover:border-orange-300 transition-colors">
             <CheckCircle2 className="w-10 h-10 text-orange-500 shrink-0" />
             <div>
-              <h3 className="font-extrabold text-slate-800 text-lg">Duration-Calibrated</h3>
-              <p className="text-sm text-slate-500 mt-1 leading-relaxed">Worksheets adapt problem counts directly to student focus bursts.</p>
+              <h3 className="font-extrabold text-slate-800 text-lg">Custom Curated Content</h3>
+              <p className="text-sm text-slate-500 mt-1 leading-relaxed">Every lesson and activity is dynamically tailored to your child's unique needs and personal interests.</p>
             </div>
           </div>
+          
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4 text-left hover:border-indigo-300 transition-colors">
             <ShieldCheck className="w-10 h-10 text-indigo-500 shrink-0" />
             <div>
-              <h3 className="font-extrabold text-slate-800 text-lg">Legal Portfolio Builder</h3>
-              <p className="text-sm text-slate-500 mt-1 leading-relaxed">Upload executed work to auto-compile compliant legal tracking profiles.</p>
+              <h3 className="font-extrabold text-slate-800 text-lg">End-of-Year Portfolios</h3>
+              <p className="text-sm text-slate-500 mt-1 leading-relaxed">Easily upload and track completed tasks to effortlessly build your end-of-year review portfolios.</p>
             </div>
           </div>
+
         </div>
       </main>
 
       {/* FOOTER */}
       <footer className="w-full bg-white border-t border-slate-200 py-6 text-center text-xs font-bold text-slate-400">
-        © {new Date().getFullYear()} miSpark. All Rights Reserved.
+        © {new Date().getFullYear()} MiSpark. All Rights Reserved.
       </footer>
     </div>
   );
