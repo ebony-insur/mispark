@@ -115,18 +115,20 @@ export default function LandingPage() {
           {/* LEFT COLUMN: Text & Buttons */}
           <div className="space-y-8 text-center lg:text-left flex flex-col items-center lg:items-start">
             
-            {/* MASSIVE CUSTOM LOGO IN LEFT COLUMN */}
-            <Image 
-              src="/MiSpark.svg" 
-              alt="miSpark" 
-              width={400} 
-              height={120} 
-              priority 
-              className="w-auto h-20 md:h-28 lg:h-32 object-contain mb-2"
-            />
+            {/* NEW: EXPLICITLY CENTERED LOGO AND TAGLINE WRAPPER */}
+            <div className="w-full flex flex-col items-center justify-center space-y-4">
+              <Image 
+                src="/MiSpark.svg" 
+                alt="miSpark" 
+                width={400} 
+                height={120} 
+                priority 
+                className="w-auto h-20 md:h-28 lg:h-32 object-contain"
+              />
 
-            <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-800 text-sm font-extrabold px-4 py-1.5 rounded-full border border-orange-200 shadow-sm animate-bounce">
-              <Sparkles className="w-4 h-4" /> Built To Support Curious Learners
+              <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-800 text-sm font-extrabold px-4 py-1.5 rounded-full border border-orange-200 shadow-sm animate-bounce">
+                <Sparkles className="w-4 h-4" /> Built to Support Curious Learners
+              </div>
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight max-w-2xl">
@@ -147,7 +149,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* RIGHT COLUMN: Custom Graphic (Scaled up to match) */}
+          {/* RIGHT COLUMN: Custom Graphic */}
           <div className="flex justify-center lg:justify-end w-full relative">
             <Image 
               src="/heroside.svg" 
