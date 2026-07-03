@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -114,32 +113,6 @@ export default function LandingPage() {
             <div>
               <h3 className="font-extrabold text-slate-800 text-lg">Legal Portfolio Builder</h3>
               <p className="text-sm text-slate-500 mt-1 leading-relaxed">Upload executed work to auto-compile compliant legal tracking profiles.</p>
-            </div>
-          </div>
-        </div>
-      </main>
-
-        {/* TRUST ACCREDITATION BADGES */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-16 w-full max-w-4xl">
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4 text-left">
-            <GraduationCap className="w-8 h-8 text-teal-500 shrink-0 mt-1" />
-            <div>
-              <h3 className="font-extrabold text-slate-800">State Standard Aligned</h3>
-              <p className="text-xs text-slate-500 mt-1">Calibrates automatically to your home state's strict learning laws.</p>
-            </div>
-          </div>
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4 text-left">
-            <CheckCircle2 className="w-8 h-8 text-orange-500 shrink-0 mt-1" />
-            <div>
-              <h3 className="font-extrabold text-slate-800">Duration-Calibrated</h3>
-              <p className="text-xs text-slate-500 mt-1">Worksheets adapt problem counts directly to student focus bursts.</p>
-            </div>
-          </div>
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4 text-left">
-            <ShieldCheck className="w-8 h-8 text-indigo-500 shrink-0 mt-1" />
-            <div>
-              <h3 className="font-extrabold text-slate-800">Legal Portfolio Builder</h3>
-              <p className="text-xs text-slate-500 mt-1">Upload executed work to auto-compile compliant legal tracking profiles.</p>
             </div>
           </div>
         </div>
