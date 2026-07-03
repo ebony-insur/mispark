@@ -4,13 +4,18 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Sparkles, GraduationCap, CheckCircle2, ShieldCheck, ArrowRight } from "lucide-react";
+import { 
+  Sparkles, GraduationCap, CheckCircle2, ShieldCheck, ArrowRight, 
+  ChevronDown, Users, CreditCard, FolderClock, LogOut 
+} from "lucide-react";
 import Image from "next/image";
+import { toast } from "sonner";
 
 export default function LandingPage() {
   const router = useRouter();
   const supabase = createClient();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -20,11 +25,18 @@ export default function LandingPage() {
     checkAuth();
   }, []);
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setIsAuthenticated(false);
+    setIsAccountMenuOpen(false);
+    toast.success("Signed out successfully.");
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
       {/* GLOBAL HEADER */}
       <header className="w-full max-w-7xl mx-auto flex justify-between items-center px-6 py-4 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 rounded-b-xl shadow-sm">
-        <div className="text-2xl font-extrabold tracking-tight">
+        <div className="text-2xl font-extrabold tracking-tight cursor-pointer" onClick={() => router.push("/")}>
           <span className="text-teal-500">mi</span>
           <span className="text-orange-500">Spark</span>
         </div>
@@ -33,16 +45,54 @@ export default function LandingPage() {
           {isAuthenticated === null ? (
             <div className="w-20 h-8 bg-slate-200 animate-pulse rounded-md" />
           ) : isAuthenticated ? (
-            <Button onClick={() => router.push("/dashboard")} className="bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm">
-              Go to Dashboard <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          ) : (
+            // LOGGED IN NAVIGATION
             <>
-              <Button onClick={() => router.push("/login")} variant="ghost" className="text-slate-600 font-semibold">
-                Sign In
+              <div className="relative">
+                <Button 
+                  onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} 
+                  variant="ghost" 
+                  className="text-slate-600 font-semibold flex items-center gap-1 hover:bg-slate-100"
+                >
+                  My Account <ChevronDown className="w-4 h-4 ml-1 text-slate-400" />
+                </Button>
+
+                {/* DROPDOWN MENU */}
+                {isAccountMenuOpen && (
+                  <>
+                    {/* Invisible overlay to close menu when clicking outside */}
+                    <div className="fixed inset-0 z-40" onClick={() => setIsAccountMenuOpen(false)}></div>
+                    
+                    <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <button onClick={() => router.push('/dashboard/students')} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 text-sm font-medium text-slate-700 transition-colors">
+                        <Users className="w-4 h-4 text-teal-600" /> Student Profiles
+                      </button>
+                      <button onClick={() => router.push('/dashboard/billing')} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 text-sm font-medium text-slate-700 transition-colors">
+                        <CreditCard className="w-4 h-4 text-indigo-600" /> Payment & Plans
+                      </button>
+                      <button onClick={() => router.push('/history')} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 text-sm font-medium text-slate-700 transition-colors">
+                        <FolderClock className="w-4 h-4 text-orange-600" /> Previous Plans
+                      </button>
+                      <hr className="my-2 border-slate-100" />
+                      <button onClick={handleSignOut} className="w-full text-left px-4 py-2.5 hover:bg-red-50 flex items-center gap-3 text-sm font-bold text-red-600 transition-colors">
+                        <LogOut className="w-4 h-4" /> Sign Out
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              <Button onClick={() => router.push("/dashboard")} className="bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm transition-colors">
+                Create Plan <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-              <Button onClick={() => router.push("/login?signup=true")} className="bg-orange-500 hover:bg-orange-600 text-white font-bold shadow-sm">
-                Get Started Free
+            </>
+          ) : (
+            // PUBLIC NAVIGATION
+            <>
+              <Button onClick={() => router.push("/login")} variant="ghost" className="text-slate-600 font-semibold hover:bg-slate-100">
+                Login
+              </Button>
+              <Button onClick={() => router.push("/login?signup=true")} className="bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm transition-colors">
+                Create Plan <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </>
           )}
@@ -52,8 +102,8 @@ export default function LandingPage() {
       {/* HERO SECTION */}
       <main className="flex-1 max-w-7xl mx-auto px-6 py-16 md:py-24 flex flex-col justify-center space-y-16">
         
-        {/* TOP SPLIT: Text Left, Image Right */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        {/* TOP SPLIT: Text Left, Image Right (GAP REDUCED TO gap-6) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
           
           {/* LEFT COLUMN: Text & Buttons */}
           <div className="space-y-8 text-center lg:text-left flex flex-col items-center lg:items-start">
@@ -74,7 +124,7 @@ export default function LandingPage() {
                 onClick={() => router.push(isAuthenticated ? "/dashboard" : "/login")} 
                 className="w-full sm:w-auto bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-black text-xl py-8 px-10 rounded-xl shadow-lg transition-transform hover:scale-[1.02]"
               >
-                {isAuthenticated ? "Launch Dashboard ✨" : "Ignite Curriculum Free ✨"}
+                Create Plan ✨
               </Button>
             </div>
           </div>
