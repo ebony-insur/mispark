@@ -98,7 +98,8 @@ export default function LandingPage() {
               <Button onClick={() => router.push("/login")} variant="ghost" className="text-slate-600 font-semibold hover:bg-slate-100 hidden sm:flex">
                 Login
               </Button>
-              <Button onClick={() => router.push("/login?signup=true")} className="bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm transition-colors">
+              {/* FIXED: Now routes to Dashboard instead of Login */}
+              <Button onClick={() => router.push("/dashboard")} className="bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm transition-colors">
                 Create Plan <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </>
@@ -141,8 +142,9 @@ export default function LandingPage() {
 
             {/* ALWAYS CENTERED BUTTON WRAPPER */}
             <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 w-full justify-center">
+              {/* FIXED: Now routes unconditionally to Dashboard so guests can use the free tools */}
               <Button 
-                onClick={() => router.push(isAuthenticated ? "/dashboard" : "/login")} 
+                onClick={() => router.push("/dashboard")} 
                 className="w-full sm:w-auto bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-black text-xl py-8 px-12 rounded-xl shadow-lg transition-transform hover:scale-[1.02]"
               >
                 Create Plan ✨
