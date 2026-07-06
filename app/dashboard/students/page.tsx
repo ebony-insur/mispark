@@ -24,6 +24,13 @@ export default function StudentsPage() {
   const [mathMastery, setMathMastery] = useState("");
   const [readingMastery, setReadingMastery] = useState("");
   const [scienceMastery, setScienceMastery] = useState("");
+  const [currentCurriculum, setCurrentCurriculum] = useState("");
+
+const commonCurricula = [
+  "None / Eclectic", "Abeka", "The Good and the Beautiful", 
+  "Time4Learning", "Master Books", "BJU Press", 
+  "Ambleside Online", "Saxon Math", "Singapore Math"
+];
 
   const router = useRouter();
   const supabase = createClient();
@@ -50,6 +57,7 @@ export default function StudentsPage() {
     e.preventDefault();
     if (!user) return;
     setIsLoading(true);
+    
 
     try {
       const { data, error } = await supabase
@@ -62,7 +70,8 @@ export default function StudentsPage() {
           state_residence: stateResidence,
           math_mastery_level: mathMastery,
           reading_mastery_level: readingMastery,
-          science_mastery_level: scienceMastery
+          science_mastery_level: scienceMastery,
+          current_curriculum: currentCurriculum // <-- Add this
         })
         .select();
 
@@ -131,6 +140,17 @@ export default function StudentsPage() {
                 <div>
                   <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2"><MapPin className="w-4 h-4 text-rose-600"/> State of Residence</label>
                   <Input placeholder="e.g. Texas (For standards alignment)" value={stateResidence} onChange={(e) => setStateResidence(e.target.value)} className="bg-white" />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2"><BookOpen className="w-4 h-4 text-indigo-600"/> Core Curriculum Used</label>
+                  <select 
+                    value={currentCurriculum} 
+                    onChange={(e) => setCurrentCurriculum(e.target.value)} 
+                    className="w-full p-2.5 rounded-md border border-slate-300 bg-white"
+                  >
+                    <option value="">Select Curriculum...</option>
+                    {commonCurricula.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
               </div>
 
