@@ -8,8 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { 
-  Printer, Upload, AlertCircle, Users, BookOpen, PenTool, FileText, 
-  Lock, Calculator, FlaskConical, Globe, Palette, Music, Lightbulb, Gamepad2, Headphones, PlaySquare
+  Printer, Upload, AlertCircle, BookOpen, PenTool, FileText, 
+  Lock, Calculator, FlaskConical, Globe, Palette, Music, Lightbulb, Gamepad2, PlaySquare
 } from "lucide-react";
 import Image from "next/image";
 
@@ -56,7 +56,7 @@ export default function Dashboard() {
       }
     };
     fetchUserAndData();
-  }, []);
+  }, [supabase]);
 
   // Targeted Printing Effect
   useEffect(() => {
@@ -68,7 +68,7 @@ export default function Dashboard() {
     }
   }, [printMode]);
 
-// Subject Icon Mapper
+  // Subject Icon Mapper (Wrapped in spans to prevent TS errors)
   const getSubjectIcons = (subjects: string[]) => {
     return subjects?.map((sub, idx) => {
       const lower = sub.toLowerCase();
@@ -125,7 +125,7 @@ export default function Dashboard() {
       ? { grade: "3rd Grade", focus_duration: "20 mins", math_mastery_level: "Standard", reading_mastery_level: "Standard" } 
       : students.find(s => s.id === selectedStudentId);
     
-try {
+    try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -136,16 +136,17 @@ try {
       if (res.ok) {
         setGeneratedData(data.data);
         
-        // NEW: SILENTLY SAVE TO DATABASE IF LOGGED IN
+        // SILENTLY SAVE TO DATABASE IF LOGGED IN
         if (!isGuest && user) {
           const { error: saveError } = await supabase.from('lesson_plans').insert({
             parent_id: user.id,
-            student_id: selectedStudentId,
+            student_id: selectedStudentId || null,
             original_prompt: lessonText,
             plan_data: data.data
           });
           if (saveError) console.error("Save error:", saveError);
         }
+
       } else {
         throw new Error();
       }
@@ -153,7 +154,8 @@ try {
       toast.error("Generation failed. Please try again.");
     } finally {
       setIsLoading(false);
-    };
+    }
+  };
 
   return (
     <main className="flex min-h-screen flex-col items-center py-12 px-6 bg-slate-50 space-y-8 print:bg-white print:py-0 print:px-0">
@@ -226,7 +228,7 @@ try {
 
           <Button 
             onClick={handleIgnite} 
-            disabled={isLoading || isUnderLimit || isOverLimit} 
+            disabled={isLoading || isUnderLimit || isOverLimit || isUploadingPdf} 
             className="w-full bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-bold text-xl py-8 shadow-md"
           >
             {isLoading ? (
@@ -368,7 +370,30 @@ try {
                         </div>
                       </div>
                     )}
-                    {/* Out and About & Big Ideas would render similarly here */}
+                    {/* Out and About */}
+                    {generatedData.handsOnLearning?.outAndAbout && (
+                      <div className="bg-amber-50 p-4 rounded-xl border border-amber-200">
+                        <h4 className="font-black text-amber-900 uppercase text-sm mb-1">Out and About</h4>
+                        <p className="font-bold text-lg mb-2">{generatedData.handsOnLearning.outAndAbout.title}</p>
+                        <p className="text-sm font-medium mb-2"><strong>Supplies:</strong> {generatedData.handsOnLearning.outAndAbout.supplies.join(", ")}</p>
+                        <p className="text-sm mb-3">{generatedData.handsOnLearning.outAndAbout.instructions}</p>
+                        <div className="bg-white p-3 rounded border border-amber-100 text-sm">
+                          <strong>🗣️ Extended Conversation:</strong> {generatedData.handsOnLearning.outAndAbout.extendedConversation}
+                        </div>
+                      </div>
+                    )}
+                    {/* Big Ideas */}
+                    {generatedData.handsOnLearning?.bigIdeas && (
+                      <div className="bg-amber-50 p-4 rounded-xl border border-amber-200">
+                        <h4 className="font-black text-amber-900 uppercase text-sm mb-1">Big Ideas (Capstone)</h4>
+                        <p className="font-bold text-lg mb-2">{generatedData.handsOnLearning.bigIdeas.title}</p>
+                        <p className="text-sm font-medium mb-2"><strong>Supplies:</strong> {generatedData.handsOnLearning.bigIdeas.supplies.join(", ")}</p>
+                        <p className="text-sm mb-3">{generatedData.handsOnLearning.bigIdeas.instructions}</p>
+                        <div className="bg-white p-3 rounded border border-amber-100 text-sm">
+                          <strong>🗣️ Extended Conversation:</strong> {generatedData.handsOnLearning.bigIdeas.extendedConversation}
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
