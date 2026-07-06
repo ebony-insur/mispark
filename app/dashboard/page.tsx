@@ -68,16 +68,16 @@ export default function Dashboard() {
     }
   }, [printMode]);
 
-  // Subject Icon Mapper
+// Subject Icon Mapper
   const getSubjectIcons = (subjects: string[]) => {
     return subjects?.map((sub, idx) => {
       const lower = sub.toLowerCase();
-      if (lower.includes('math')) return <Calculator key={idx} className="w-5 h-5 text-blue-500" title={sub} />;
-      if (lower.includes('science')) return <FlaskConical key={idx} className="w-5 h-5 text-emerald-500" title={sub} />;
-      if (lower.includes('history') || lower.includes('social')) return <Globe key={idx} className="w-5 h-5 text-amber-500" title={sub} />;
-      if (lower.includes('art')) return <Palette key={idx} className="w-5 h-5 text-purple-500" title={sub} />;
-      if (lower.includes('music')) return <Music key={idx} className="w-5 h-5 text-rose-500" title={sub} />;
-      return <BookOpen key={idx} className="w-5 h-5 text-indigo-500" title={sub} />;
+      if (lower.includes('math')) return <span key={idx} title={sub}><Calculator className="w-5 h-5 text-blue-500" /></span>;
+      if (lower.includes('science')) return <span key={idx} title={sub}><FlaskConical className="w-5 h-5 text-emerald-500" /></span>;
+      if (lower.includes('history') || lower.includes('social')) return <span key={idx} title={sub}><Globe className="w-5 h-5 text-amber-500" /></span>;
+      if (lower.includes('art')) return <span key={idx} title={sub}><Palette className="w-5 h-5 text-purple-500" /></span>;
+      if (lower.includes('music')) return <span key={idx} title={sub}><Music className="w-5 h-5 text-rose-500" /></span>;
+      return <span key={idx} title={sub}><BookOpen className="w-5 h-5 text-indigo-500" /></span>;
     });
   };
 
