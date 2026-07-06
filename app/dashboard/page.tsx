@@ -125,23 +125,35 @@ export default function Dashboard() {
       ? { grade: "3rd Grade", focus_duration: "20 mins", math_mastery_level: "Standard", reading_mastery_level: "Standard" } 
       : students.find(s => s.id === selectedStudentId);
     
-    try {
+try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lessonText, studentProfile }),
       });
       const data = await res.json();
+      
       if (res.ok) {
-        // Data mapping for saving if needed later
         setGeneratedData(data.data);
-      } else throw new Error();
+        
+        // NEW: SILENTLY SAVE TO DATABASE IF LOGGED IN
+        if (!isGuest && user) {
+          const { error: saveError } = await supabase.from('lesson_plans').insert({
+            parent_id: user.id,
+            student_id: selectedStudentId,
+            original_prompt: lessonText,
+            plan_data: data.data
+          });
+          if (saveError) console.error("Save error:", saveError);
+        }
+      } else {
+        throw new Error();
+      }
     } catch {
       toast.error("Generation failed. Please try again.");
     } finally {
       setIsLoading(false);
-    }
-  };
+    };
 
   return (
     <main className="flex min-h-screen flex-col items-center py-12 px-6 bg-slate-50 space-y-8 print:bg-white print:py-0 print:px-0">
