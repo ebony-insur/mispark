@@ -42,13 +42,16 @@ export async function middleware(request: NextRequest) {
 
   const url = request.nextUrl.clone();
   
-  // 1. Protect Dashboard: If trying to access /dashboard paths and NOT logged in -> Send to login
-  if (url.pathname.startsWith("/dashboard") && !user) {
+// 1. Protect specific nested Dashboard routes (billing, students), but allow the main /dashboard to act as a public demo!
+  if (
+    (url.pathname.startsWith("/dashboard/") || url.pathname === "/history") && 
+    !user
+  ) {
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // 2. Redirect authenticated users away from auth pages: If logged in and hitting /login or /signup -> Send straight to dashboard
+  // 2. Redirect authenticated users away from auth pages
   if ((url.pathname === "/login" || url.pathname === "/signup") && user) {
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

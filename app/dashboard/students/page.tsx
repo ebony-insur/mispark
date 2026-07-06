@@ -4,250 +4,232 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft, UserPlus, Users } from "lucide-react";
+import { ArrowLeft, Plus, User, Clock, Calculator, BookOpen, FlaskConical, MapPin } from "lucide-react";
 
-export default function ManageStudents() {
-  const router = useRouter();
-  const supabase = createClient();
-  const [user, setUser] = useState<any>(null);
+export default function StudentsPage() {
   const [students, setStudents] = useState<any[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   // Form State
   const [nickname, setNickname] = useState("");
   const [grade, setGrade] = useState("");
-  const [readingGrade, setReadingGrade] = useState(""); // NEW FIELD
-  const [learningStyle, setLearningStyle] = useState("");
-  const [interests, setInterests] = useState("");
-  const [sensoryNeeds, setSensoryNeeds] = useState("");
   const [focusDuration, setFocusDuration] = useState("");
+  const [stateResidence, setStateResidence] = useState("");
+  const [mathMastery, setMathMastery] = useState("");
+  const [readingMastery, setReadingMastery] = useState("");
+  const [scienceMastery, setScienceMastery] = useState("");
+
+  const router = useRouter();
+  const supabase = createClient();
 
   useEffect(() => {
-    const loadData = async () => {
+    const fetchStudents = async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+
       if (user) {
-        setUser(user);
-        fetchStudents(user.id);
-      } else {
-        router.push("/login");
+        const { data } = await supabase
+          .from("children_profiles")
+          .select("*")
+          .eq("parent_id", user.id)
+          .order("created_at", { ascending: false });
+        
+        if (data) setStudents(data);
       }
     };
-    loadData();
-  }, [router]);
+    fetchStudents();
+  }, []);
 
-  const fetchStudents = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("children_profiles")
-      .select("*")
-      .eq("parent_id", userId)
-      .order("created_at", { ascending: false });
-
-    if (!error && data) {
-      setStudents(data);
-    }
-  };
-
-  const handleAddStudent = async (e: React.FormEvent) => {
+  const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // NEW STRICT VALIDATION: Require every single field (Except reading grade, which can default to standard grade)
-    if (!nickname || !grade || !learningStyle || !interests || !sensoryNeeds || !focusDuration) {
-      toast.error("Please fill out all required fields. The AI needs this data to personalize your schedule!");
-      return;
-    }
+    if (!user) return;
+    setIsLoading(true);
 
-    setIsSubmitting(true);
-    toast.loading("Saving profile...", { id: "save-student" });
+    try {
+      const { data, error } = await supabase
+        .from("children_profiles")
+        .insert({
+          parent_id: user.id,
+          nickname,
+          grade,
+          focus_duration: focusDuration,
+          state_residence: stateResidence,
+          math_mastery_level: mathMastery,
+          reading_mastery_level: readingMastery,
+          science_mastery_level: scienceMastery
+        })
+        .select();
 
-    const { error } = await supabase.from("children_profiles").insert({
-      parent_id: user.id,
-      nickname,
-      grade,
-      reading_grade: readingGrade, // NEW FIELD
-      learning_style: learningStyle,
-      interests,
-      sensory_needs: sensoryNeeds,
-      focus_duration: focusDuration
-    });
+      if (error) throw error;
 
-    if (error) {
-      toast.error("Failed to save profile.", { id: "save-student" });
-      console.error(error);
-    } else {
-      toast.success("Student profile added successfully!", { id: "save-student" });
+      toast.success("Student profile created successfully!");
+      if (data) setStudents([data[0], ...students]);
+      
       // Reset form
+      setIsCreating(false);
       setNickname("");
       setGrade("");
-      setReadingGrade("");
-      setLearningStyle("");
-      setInterests("");
-      setSensoryNeeds("");
       setFocusDuration("");
-      // Refresh list
-      fetchStudents(user.id);
+      setStateResidence("");
+      setMathMastery("");
+      setReadingMastery("");
+      setScienceMastery("");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create profile.");
+    } finally {
+      setIsLoading(false);
     }
-    setIsSubmitting(false);
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 py-12 px-6 flex flex-col items-center space-y-8">
+    <main className="flex min-h-screen flex-col items-center py-12 px-6 bg-slate-50 space-y-8">
       
-      {/* HEADER NAV */}
-      <div className="w-full max-w-4xl flex justify-between items-center">
-        <Button onClick={() => router.push("/dashboard")} variant="ghost" className="text-slate-600 flex items-center gap-2">
-          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-        </Button>
+      {/* HEADER */}
+      <div className="w-full max-w-4xl flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div className="flex items-center gap-4">
+          <Button onClick={() => router.push("/dashboard")} variant="ghost" className="text-slate-500 hover:text-slate-800 px-2">
+            <ArrowLeft className="w-5 h-5 mr-1" /> Back
+          </Button>
+          <h1 className="text-2xl font-extrabold text-slate-800">Student Profiles</h1>
+        </div>
+        {!isCreating && (
+          <Button onClick={() => setIsCreating(true)} className="bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm">
+            <Plus className="w-4 h-4 mr-2" /> Add Student
+          </Button>
+        )}
       </div>
 
-      <div className="w-full max-w-4xl text-center space-y-3">
-        <h1 className="text-4xl font-extrabold text-slate-900">Manage Students</h1>
-        <p className="text-slate-600 text-lg max-w-xl mx-auto">
-          Create secure profiles for your children. We use these details to heavily personalize their hands-on experiments and learning paces.
-        </p>
-      </div>
-
-      <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
-        
-        {/* ADD STUDENT FORM */}
-        <Card className="shadow-md border-t-4 border-t-teal-500 bg-white">
+      {/* CREATE STUDENT FORM */}
+      {isCreating && (
+        <Card className="w-full max-w-4xl shadow-lg border-0 border-t-4 border-t-teal-500 animate-in fade-in slide-in-from-top-4">
           <CardHeader>
-            <CardTitle className="text-2xl flex items-center gap-2 text-slate-800">
-              <UserPlus className="w-6 h-6 text-teal-500" /> Add a Profile
-            </CardTitle>
-            <CardDescription>Use initials or a nickname for privacy. All fields are required.</CardDescription>
+            <CardTitle className="text-2xl text-slate-800">Create New Profile</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleAddStudent} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="nickname" className="text-sm font-bold text-slate-700">Nickname *</label>
-                <Input id="nickname" name="nickname" placeholder="e.g., J.M. or Buddy" value={nickname} onChange={(e) => setNickname(e.target.value)} disabled={isSubmitting} required />
+            <form onSubmit={handleCreateStudent} className="space-y-8">
+              
+              {/* CORE INFO */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                <div>
+                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2"><User className="w-4 h-4 text-teal-600"/> Nickname / First Name</label>
+                  <Input required placeholder="e.g. Leo" value={nickname} onChange={(e) => setNickname(e.target.value)} className="bg-white" />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2"><BookOpen className="w-4 h-4 text-indigo-600"/> Official Grade Level</label>
+                  <Input required placeholder="e.g. 3rd Grade" value={grade} onChange={(e) => setGrade(e.target.value)} className="bg-white" />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2"><Clock className="w-4 h-4 text-orange-600"/> Max Focus Duration</label>
+                  <Input required placeholder="e.g. 20 mins" value={focusDuration} onChange={(e) => setFocusDuration(e.target.value)} className="bg-white" />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2"><MapPin className="w-4 h-4 text-rose-600"/> State of Residence</label>
+                  <Input placeholder="e.g. Texas (For standards alignment)" value={stateResidence} onChange={(e) => setStateResidence(e.target.value)} className="bg-white" />
+                </div>
               </div>
+
+              {/* PROGRESSIVE MASTERY SECTION */}
+              <div className="space-y-6">
+                <h3 className="font-extrabold text-slate-800 text-lg border-b pb-2">Progressive Mastery Tracking</h3>
+                <p className="text-sm text-slate-500">Tell the AI exactly what your child has mastered and what they are currently struggling with to prevent lesson regression.</p>
                 
-              {/* TWO COLUMN GRADES SECTION */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label htmlFor="grade" className="text-sm font-bold text-slate-700">Overall Grade *</label>
-                  <select
-                    id="grade"
-                    name="grade"
-                    value={grade}
-                    onChange={(e) => setGrade(e.target.value)}
-                    disabled={isSubmitting}
-                    required
-                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
-                  >
-                    <option value="" disabled>Select Grade</option>
-                    <option value="Pre-K">Pre-K</option>
-                    <option value="K">Kindergarten</option>
-                    <option value="1">1st Grade</option>
-                    <option value="2">2nd Grade</option>
-                    <option value="3">3rd Grade</option>
-                    <option value="4">4th Grade</option>
-                    <option value="5">5th Grade</option>
-                    <option value="6">6th Grade</option>
-                    <option value="7">7th Grade</option>
-                    <option value="8">8th Grade</option>
-                    <option value="9">9th Grade</option>
-                    <option value="10">10th Grade</option>
-                    <option value="11">11th Grade</option>
-                    <option value="12">12th Grade</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="readingGrade" className="text-sm font-bold text-slate-700">Reading Level</label>
-                  <select
-                    id="readingGrade"
-                    name="readingGrade"
-                    value={readingGrade}
-                    onChange={(e) => setReadingGrade(e.target.value)}
-                    disabled={isSubmitting}
-                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 text-slate-600"
-                  >
-                    <option value="">Same as Overall</option>
-                    <option value="Pre-K">Pre-K</option>
-                    <option value="K">Kindergarten</option>
-                    <option value="1">1st Grade</option>
-                    <option value="2">2nd Grade</option>
-                    <option value="3">3rd Grade</option>
-                    <option value="4">4th Grade</option>
-                    <option value="5">5th Grade</option>
-                    <option value="6">6th Grade</option>
-                    <option value="7">7th Grade</option>
-                    <option value="8">8th Grade</option>
-                    <option value="9">9th Grade</option>
-                    <option value="10">10th Grade</option>
-                    <option value="11">11th Grade</option>
-                    <option value="12">12th Grade</option>
-                  </select>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2"><Calculator className="w-4 h-4 text-blue-600"/> Math Mastery</label>
+                    <Textarea 
+                      placeholder="e.g., Mastered 2-digit addition. Currently struggling with borrowing/carrying numbers." 
+                      value={mathMastery} 
+                      onChange={(e) => setMathMastery(e.target.value)} 
+                      className="bg-slate-50 min-h-[80px]" 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2"><BookOpen className="w-4 h-4 text-emerald-600"/> Reading & Writing Mastery</label>
+                    <Textarea 
+                      placeholder="e.g., Reads at a 4th-grade level. Hates physically writing but excels at verbal storytelling." 
+                      value={readingMastery} 
+                      onChange={(e) => setReadingMastery(e.target.value)} 
+                      className="bg-slate-50 min-h-[80px]" 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2"><FlaskConical className="w-4 h-4 text-purple-600"/> Science / Other Interests</label>
+                    <Textarea 
+                      placeholder="e.g., Obsessed with marine biology and space. Dislikes geology." 
+                      value={scienceMastery} 
+                      onChange={(e) => setScienceMastery(e.target.value)} 
+                      className="bg-slate-50 min-h-[80px]" 
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="learningStyle" className="text-sm font-bold text-slate-700">Learning Style *</label>
-                <Input id="learningStyle" name="learningStyle" placeholder="e.g., Visual, Kinesthetic" value={learningStyle} onChange={(e) => setLearningStyle(e.target.value)} disabled={isSubmitting} required />
+              <div className="flex gap-4 pt-4 border-t border-slate-100">
+                <Button type="button" variant="outline" onClick={() => setIsCreating(false)} className="w-full">Cancel</Button>
+                <Button type="submit" disabled={isLoading} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold">
+                  {isLoading ? "Saving..." : "Save Profile"}
+                </Button>
               </div>
-
-              <div className="space-y-2">
-                <label htmlFor="interests" className="text-sm font-bold text-slate-700">Current Fixations / Interests *</label>
-                <Input id="interests" name="interests" placeholder="e.g., Dinosaurs, Space, Minecraft" value={interests} onChange={(e) => setInterests(e.target.value)} disabled={isSubmitting} required />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="sensoryNeeds" className="text-sm font-bold text-slate-700">Sensory Needs *</label>
-                <Textarea id="sensoryNeeds" name="sensoryNeeds" placeholder="e.g., Avoid messy textures, needs movement breaks" className="resize-none" value={sensoryNeeds} onChange={(e) => setSensoryNeeds(e.target.value)} disabled={isSubmitting} required />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="focusDuration" className="text-sm font-bold text-slate-700">Focus Duration *</label>
-                <Input id="focusDuration" name="focusDuration" placeholder="e.g., Short 15-min bursts" value={focusDuration} onChange={(e) => setFocusDuration(e.target.value)} disabled={isSubmitting} required />
-              </div>
-
-              <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold mt-2" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : "Save Profile"}
-              </Button>
             </form>
           </CardContent>
         </Card>
+      )}
 
-        {/* EXISTING STUDENTS LIST */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2 mb-4">
-            <Users className="w-6 h-6 text-orange-500" /> Saved Profiles
-          </h2>
-          
+      {/* STUDENT LIST */}
+      {!isCreating && (
+        <div className="w-full max-w-4xl space-y-4">
           {students.length === 0 ? (
-            <div className="bg-slate-100 border-2 border-dashed border-slate-300 rounded-xl p-8 text-center text-slate-500">
-              No student profiles saved yet. Create your first one to the left!
+            <div className="text-center py-16 bg-white rounded-xl border border-slate-200 shadow-sm">
+              <User className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-slate-800">No Profiles Yet</h3>
+              <p className="text-slate-500 mt-2">Create a profile to generate tailored lesson plans.</p>
             </div>
           ) : (
-            students.map((student) => (
-              <Card key={student.id} className="shadow-sm border border-slate-200 bg-white">
-                <CardContent className="p-5">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-xl font-extrabold text-slate-900">{student.nickname}</h3>
-                      <p className="text-sm font-bold text-orange-600 mt-1">
-                        Grade: {student.grade} 
-                        {student.reading_grade && <span className="text-teal-600 ml-2">| Reading: {student.reading_grade}</span>}
-                      </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {students.map((student) => (
+                <Card key={student.id} className="shadow-sm hover:shadow-md transition-shadow border-slate-200">
+                  <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
+                    <CardTitle className="flex justify-between items-center text-xl text-slate-800">
+                      {student.nickname}
+                      <span className="text-xs font-bold bg-teal-100 text-teal-800 px-3 py-1 rounded-full">
+                        {student.grade}
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4 space-y-3">
+                    <div className="text-sm flex justify-between border-b border-slate-50 pb-2">
+                      <span className="text-slate-500 font-semibold">Focus Limit:</span>
+                      <span className="font-bold text-slate-800">{student.focus_duration}</span>
                     </div>
-                  </div>
-                  <div className="mt-4 space-y-1 text-sm text-slate-600">
-                    <p><strong className="text-slate-800">Interests:</strong> {student.interests || "None specified"}</p>
-                    <p><strong className="text-slate-800">Sensory:</strong> {student.sensory_needs || "None specified"}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                    {student.state_residence && (
+                      <div className="text-sm flex justify-between border-b border-slate-50 pb-2">
+                        <span className="text-slate-500 font-semibold">State Align:</span>
+                        <span className="font-bold text-slate-800">{student.state_residence}</span>
+                      </div>
+                    )}
+                    {(student.math_mastery_level || student.reading_mastery_level) && (
+                      <div className="mt-4 pt-2 border-t border-slate-100">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Mastery Notes Included</p>
+                        <div className="flex gap-2">
+                          {student.math_mastery_level && <span className="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded font-bold border border-blue-100">Math</span>}
+                          {student.reading_mastery_level && <span className="bg-emerald-50 text-emerald-700 text-xs px-2 py-1 rounded font-bold border border-emerald-100">Reading</span>}
+                          {student.science_mastery_level && <span className="bg-purple-50 text-purple-700 text-xs px-2 py-1 rounded font-bold border border-purple-100">Science</span>}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
         </div>
-
-      </div>
+      )}
     </main>
   );
 }
