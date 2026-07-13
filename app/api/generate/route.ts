@@ -5,63 +5,72 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// 1. ADDED: TypeScript Interface for the incoming request payload
+interface GenerateRequestPayload {
+  lessonText: string;
+  studentProfile?: {
+    grade?: string;
+    focus_duration?: string;
+    math_mastery_level?: string;
+    reading_mastery_level?: string;
+    state_residence?: string;
+    zip_code?: string;
+  };
+  subscriptions?: string[];
+}
+
 export async function POST(req: Request) {
   try {
-    const { lessonText, studentProfile } = await req.json();
+    // 2. ADDED: Tell TypeScript exactly what shape the JSON body is
+    const body = (await req.json()) as GenerateRequestPayload;
+    
+    // Safely destructure
+    const { lessonText, studentProfile, subscriptions } = body;
 
-   const systemPrompt = `You are miSpark, a personable, highly-skilled homeschool co-teacher and personal assistant. Your tone is encouraging, concise, and time-saving. Your job is to transform a provided syllabus into a tailored, dynamic adventure.
+    // Set up safe fallbacks so variables are never undefined
+    const focusDuration = studentProfile?.focus_duration || "20 mins";
+    const stateResidence = studentProfile?.state_residence || "General US";
+    const zipCode = studentProfile?.zip_code || "None provided";
+
+    // Format the subscriptions array into a readable string for the AI
+    const activeSubsList = subscriptions && subscriptions.length > 0 
+      ? subscriptions.join(", ") 
+      : "None listed. Rely on free or public resources.";
+
+    const systemPrompt = `You are miSpark, a personable, highly-skilled homeschool co-teacher and personal assistant. Your tone is encouraging, concise, time-saving, and empathetic to a busy parent. Your job is to transform a provided syllabus into a tailored, dynamic adventure.
 
     CRITICAL INSTRUCTIONS & EXCLUSIONS:
-    1. EXCLUSIONS: Do NOT suggest any materials from MiAcademy or MiPrep. If the student uses a specific 'current_curriculum', do NOT suggest resources that are already included in that curriculum.
-    2. PROGRESSIVE MASTERY: You MUST align content to the student's mastery levels provided. Do not regress.
-    3. ASSESSED FOUNDATION: Start by telling the parent exactly what state standards and educational foundations you have assessed from their text so they understand the goal.
-    4. RECOMMENDED READING (6 Books): Provide exactly 3 Fiction and 3 Non-Fiction books. For EACH book, include 1-2 subject tags (e.g., "Math", "History", "Science") and an accompanying Writing Prompt tailored to that specific book.
-    5. LOOK & LEARN (Media): Provide specific platforms (e.g., Disney+, Netflix, National Geographic). Include this exact note: "Parent Tip: Pay close attention to the chapter match sections in these videos."
-    6. HANDS-ON LEARNING (Catalysts): Provide exactly 3 activities: "Around the House", "Out and About" (neighborhood/local), and "Big Ideas" (capstone). EACH MUST include an "Extended Conversation" section detailing how parents can dive deeper (e.g., discussing fractions while eating the fruit salad).
-    7. LET'S EXPLORE (Illuminations): Provide specific online games/apps (e.g., Prodigy, ABCmouse, Khan Academy) or specific types of local museums to tour.
-    8. LET'S TALK (Kindling): Provide themed songs, and fully equip the parent with the historical context and foundations needed to lead family discussions on the topic. 
-    9. WORKSHEETS: Provide questions ONLY. Do NOT leave blank spaces or lines for answers. Do NOT include numbers in your strings (the UI will handle numbered bullets). Align questions directly to the "Look & Learn" and "Hands-on" activities.
-    
-    You MUST output your response in the following JSON format:
-    {
-      "assessedFoundation": "A concise paragraph explaining the foundation and state standards targeted...",
-      "outlinedStandards": [{"day": "Monday", "subject": "Math", "topic": "Fractions"}],
-      "readingList": [
-        {
-          "title": "Book Title",
-          "author": "Author",
-          "type": "Fiction | Non-Fiction",
-          "subjects": ["Math", "History"],
-          "description": "Short description.",
-          "writingPrompt": "Prompt related to this book."
-        }
-      ],
-      "lookAndLearn": [{"topic": "...", "videoTitle": "...", "platform": "Disney+, Netflix, etc."}],
-      "handsOnLearning": {
-        "aroundTheHouse": {"title": "...", "supplies": ["..."], "instructions": "...", "extendedConversation": "..."},
-        "outAndAbout": {"title": "...", "supplies": ["..."], "instructions": "...", "extendedConversation": "..."},
-        "bigIdeas": {"title": "...", "supplies": ["..."], "instructions": "...", "extendedConversation": "..."}
-      },
-      "letsPlay": [{"gameName": "...", "modality": "...", "skillsReinforced": "...", "description": "..."}],
-      "listenAndLearn": [{"title": "...", "description": "..."}],
-      "letsExplore": ["Specific app or museum link/idea 1", "Idea 2"],
-      "letsTalk": ["Themed song or historical discussion point 1", "Point 2"],
-      "printableWorksheets": [
-        {
-          "day": "Monday",
-          "worksheetTitle": "...",
-          "estimatedDuration": "...",
-          "questions": ["Question text without a number", "Question text without a number"]
-        }
-      ]
-    }`;
+    1. PROGRESSIVE MASTERY & FOCUS: Align content to the student's level. You MUST strictly tailor the length of activities to fit the student's stated 'focus_duration' of ${focusDuration} minutes.
+    2. ASSESSED FOUNDATION (State Standards): Using the provided state of residence (${stateResidence}), explain the targeted educational standards in plain, conversational English. Avoid bureaucratic jargon.
 
+    // 📍 THE ROADSCHOOLING RULE (Hyper-Local Geolocation)
+    3. LET'S EXPLORE (Illuminations): Provide specific, real-world field trip locations. 
+       - You MUST use the provided physical zip code (${zipCode}) to recommend ACTUAL museums, historical sites, or local parks within a 30-mile radius.
+       - DO NOT suggest generic locations like "a local park." Name the exact venue.
+
+    // 🎒 THE DIGITAL BACKPACK RULE (Maximize Investment)
+    4. LOOK & LEARN (Media): The parent currently subscribes to: [${activeSubsList}]. 
+       - You MUST prioritize finding high-quality documentaries, shows, or educational media on THESE specific platforms first. 
+       - Only suggest outside platforms if absolutely necessary, and note if they are free (like YouTube).
+
+    // ✨ THE 1-SPARK SPARKLE RULE (Resource Expansion)
+    5. RESOURCE EXPANSION: Identify exactly ONE world-class external resource (e.g., a specific KiwiCo crate, a highly relevant board game, or an exceptional documentary on a platform they DON'T have). 
+       - It must be a perfect, mind-blowing match for the topic. 
+       - Explain exactly WHY it is worth going out of their way to buy or subscribe to.
+
+    6. HANDS-ON LEARNING (Catalysts): Provide 3 activities ("Around the House", "Out and About", "Big Ideas").
+       - SUPPLY RULE: Restrict required supplies to common household or basic craft items. No obscure materials.
+    
+    7. RECOMMENDED READING (Free Tier): Provide 3 Fiction and 3 Non-Fiction books.
+    
+    8. WORKSHEETS: Provide questions ONLY. Do NOT leave blank spaces for answers.`;
+
+    // 3. FIXED: Completely rebuilt the schema to perfectly match the Dashboard UI Types
     const jsonSchema = {
       type: "object",
       properties: {
-        weekTheme: { type: "string" },
-        studentProfile: { type: "string" },
-        dailyFramework: {
+        assessedFoundation: { type: "string", description: "Conversational explanation of state standards." },
+        outlinedStandards: {
           type: "array",
           items: {
             type: "object",
@@ -73,120 +82,106 @@ export async function POST(req: Request) {
             required: ["day", "subject", "topic"]
           }
         },
-        mediaLinks: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              topicReference: { type: "string" },
-              podcastName: { type: "string", description: "The EXACT specific video or podcast title." },
-              youtubeSearchQuery: { type: "string", description: "Exact terms to type into YouTube to find this specific video." }
-            },
-            required: ["topicReference", "podcastName", "youtubeSearchQuery"]
-          }
-        },
         readingList: {
           type: "array",
           items: {
             type: "object",
             properties: {
-              title: { type: "string", description: "Exact book title." },
-              author: { type: "string" },
-              description: { type: "string", description: "Why this book fits the theme and reading level." }
+              type: { type: "string", description: "Fiction or Non-Fiction" },
+              title: { type: "string" },
+              prompt: { type: "string", description: "Why this book fits the theme." }
             },
-            required: ["title", "author", "description"]
+            required: ["type", "title", "prompt"]
           }
         },
-        writingPrompt: {
-          type: "object",
-          properties: {
-            prompt: { type: "string", description: "The actual writing prompt text for the student." },
-            tipsForParent: { type: "string", description: "How the parent can help them execute this." }
-          },
-          required: ["prompt", "tipsForParent"]
-        },
-        printableWorksheets: {
+        letsPlay: {
           type: "array",
           items: {
             type: "object",
             properties: {
-              day: { type: "string", description: "The day of the week this matches." },
-              worksheetTitle: { type: "string" },
-              estimatedDuration: { type: "string", description: "e.g., '15 minutes' matching the student's profile." },
-              content: { 
-                type: "array", 
-                items: { type: "string" },
-                description: "An array of questions, word problems, or sentences tailored in length to their focus duration."
-              }
-            },
-            required: ["day", "worksheetTitle", "estimatedDuration", "content"]
-          }
-        },
-        familyGameNight: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              gameName: { type: "string", description: "Specific commercial board, card, or verbal game." },
-              modality: { type: "string", description: "e.g., Card Game, Board Game, Drawing, Verbal, Physical" },
+              gameName: { type: "string" },
+              modality: { type: "string" },
               skillsReinforced: { type: "string" },
               description: { type: "string" }
             },
             required: ["gameName", "modality", "skillsReinforced", "description"]
           }
         },
-        carPodcasts: {
+        lookAndLearn: {
           type: "array",
           items: {
             type: "object",
             properties: {
-              title: { type: "string", description: "Specific audiobook or podcast episode." },
-              description: { type: "string" },
-              whereToListen: { type: "string", description: "Recommend Libby/Hoopla for free, or Audible/Amazon." }
+              videoTitle: { type: "string" },
+              platform: { type: "string" },
+              topic: { type: "string" }
             },
-            required: ["title", "description", "whereToListen"]
+            required: ["videoTitle", "platform", "topic"]
           }
         },
-        catalysts: {
+        handsOnLearning: {
           type: "object",
           properties: {
-            pantrySpark: {
+            aroundTheHouse: {
               type: "object",
               properties: {
                 title: { type: "string" },
                 supplies: { type: "array", items: { type: "string" } },
                 instructions: { type: "string" },
-                cost: { type: "string" }
+                extendedConversation: { type: "string" }
               },
-              required: ["title", "supplies", "instructions", "cost"]
+              required: ["title", "supplies", "instructions", "extendedConversation"]
             },
-            quickTripSpark: {
+            outAndAbout: {
               type: "object",
               properties: {
                 title: { type: "string" },
                 supplies: { type: "array", items: { type: "string" } },
                 instructions: { type: "string" },
-                cost: { type: "string" }
+                extendedConversation: { type: "string" }
               },
-              required: ["title", "supplies", "instructions", "cost"]
+              required: ["title", "supplies", "instructions", "extendedConversation"]
             },
-            capstoneSpark: {
+            bigIdeas: {
               type: "object",
               properties: {
                 title: { type: "string" },
                 supplies: { type: "array", items: { type: "string" } },
                 instructions: { type: "string" },
-                cost: { type: "string" }
+                extendedConversation: { type: "string" }
               },
-              required: ["title", "supplies", "instructions", "cost"]
+              required: ["title", "supplies", "instructions", "extendedConversation"]
             }
-          },
-          required: ["pantrySpark", "quickTripSpark", "capstoneSpark"]
+          }
         },
-        illuminations: { type: "array", items: { type: "string" } },
-        kindling: { type: "array", items: { type: "string" } }
+        letsTalk: { type: "array", items: { type: "string" } },
+        letsExplore: { type: "array", items: { type: "string" } },
+        printableWorksheets: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              day: { type: "string" },
+              estimatedDuration: { type: "string" },
+              worksheetTitle: { type: "string" },
+              questions: { type: "array", items: { type: "string" } }
+            },
+            required: ["day", "estimatedDuration", "worksheetTitle", "questions"]
+          }
+        },
+        resourceExpansion: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            whyItsWorthIt: { type: "string" }
+          },
+          required: ["title", "whyItsWorthIt"]
+        }
       },
-      required: ["weekTheme", "studentProfile", "dailyFramework", "mediaLinks", "readingList", "writingPrompt", "printableWorksheets", "familyGameNight", "carPodcasts", "catalysts", "illuminations", "kindling"]
+      required: [
+        "assessedFoundation", "outlinedStandards", "readingList", "letsPlay", 
+        "lookAndLearn", "handsOnLearning", "letsTalk", "letsExplore", "printableWorksheets"
+      ]
     };
 
     const completion = await openai.chat.completions.create({
@@ -209,8 +204,13 @@ export async function POST(req: Request) {
     if (!generatedText) throw new Error("No content generated from OpenAI.");
 
     return NextResponse.json({ data: JSON.parse(generatedText) }, { status: 200 });
-  } catch (error: any) {
+    
+  // 4. FIXED: Removed "any" and added proper Error instance checking
+  } catch (error) {
     console.error("Error in generate API:", error);
-    return NextResponse.json({ error: error.message || "Failed to generate schedule." }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to generate schedule." }, 
+      { status: 500 }
+    );
   }
 }

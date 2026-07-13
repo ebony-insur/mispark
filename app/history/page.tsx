@@ -2,13 +2,30 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client"; // Updated to match standard client import
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Clock, FileText, User, ChevronDown, ChevronUp } from "lucide-react";
 
+// --- TYPESCRIPT INTERFACES --- //
+interface PlanData {
+  assessedFoundation?: string;
+  outlinedStandards?: { day: string; subject: string; topic: string }[];
+  readingList?: { type: string; title: string; prompt: string }[];
+  // Additional fields exist in the DB, but these are the ones rendered in the history preview
+}
+
+interface SavedPlan {
+  id: string;
+  student_id: string;
+  parent_id: string;
+  created_at: string;
+  original_prompt: string;
+  plan_data: PlanData;
+}
+
 export default function HistoryPage() {
-  const [plans, setPlans] = useState<any[]>([]);
+  const [plans, setPlans] = useState<SavedPlan[]>([]);
   const [students, setStudents] = useState<Record<string, string>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   
@@ -41,11 +58,14 @@ export default function HistoryPage() {
         .eq("parent_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (planData) setPlans(planData);
+      if (planData) {
+        // Assert the type coming from the database matches our interface
+        setPlans(planData as SavedPlan[]);
+      }
     };
 
     fetchHistory();
-  }, [router]);
+  }, [router, supabase]);
 
   return (
     <main className="flex min-h-screen flex-col items-center py-12 px-6 bg-slate-50 space-y-8">
@@ -87,7 +107,7 @@ export default function HistoryPage() {
                 </div>
                 <div className="flex items-center gap-4 text-slate-400">
                   <span className="text-xs font-bold uppercase truncate max-w-[150px] hidden sm:block">
-                    "{plan.original_prompt.substring(0, 30)}..."
+                    &quot;{plan.original_prompt.substring(0, 30)}...&quot;
                   </span>
                   {expandedId === plan.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                 </div>
@@ -106,7 +126,7 @@ export default function HistoryPage() {
                   <div>
                     <h4 className="text-xs font-extrabold text-blue-500 uppercase tracking-wide mb-2">Assessed Foundation</h4>
                     <p className="text-sm text-slate-800 font-medium">
-                      {plan.plan_data.assessedFoundation}
+                      {plan.plan_data.assessedFoundation || "No foundation data available."}
                     </p>
                   </div>
 
@@ -114,17 +134,25 @@ export default function HistoryPage() {
                     <div className="bg-white p-4 rounded-lg border border-slate-200">
                       <h4 className="font-bold text-indigo-600 mb-2">Books Suggested</h4>
                       <ul className="text-sm list-disc pl-4 space-y-1 text-slate-700">
-                        {plan.plan_data.readingList?.map((book: any, i: number) => (
-                          <li key={i}>{book.title}</li>
-                        ))}
+                        {plan.plan_data.readingList ? (
+                          plan.plan_data.readingList.map((book, i) => (
+                            <li key={i}>{book.title}</li>
+                          ))
+                        ) : (
+                          <li className="text-slate-400 list-none italic">No books listed.</li>
+                        )}
                       </ul>
                     </div>
                     <div className="bg-white p-4 rounded-lg border border-slate-200">
                       <h4 className="font-bold text-teal-600 mb-2">Topics Covered</h4>
                       <ul className="text-sm list-disc pl-4 space-y-1 text-slate-700">
-                        {plan.plan_data.outlinedStandards?.map((std: any, i: number) => (
-                          <li key={i}>{std.day}: {std.topic}</li>
-                        ))}
+                        {plan.plan_data.outlinedStandards ? (
+                          plan.plan_data.outlinedStandards.map((std, i) => (
+                            <li key={i}>{std.day}: {std.topic}</li>
+                          ))
+                        ) : (
+                          <li className="text-slate-400 list-none italic">No topics listed.</li>
+                        )}
                       </ul>
                     </div>
                   </div>

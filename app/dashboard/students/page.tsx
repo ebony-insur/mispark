@@ -1,255 +1,242 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, User, Clock, Calculator, BookOpen, FlaskConical, MapPin } from "lucide-react";
+import { MapPin, Backpack, GraduationCap, Tv, Library, BookOpen, User, Clock } from "lucide-react";
+
+// The master list of subscriptions for the Digital Backpack
+const SUBSCRIPTION_OPTIONS = [
+  { id: "Netflix", icon: <Tv className="w-4 h-4" /> },
+  { id: "Disney+", icon: <Tv className="w-4 h-4" /> },
+  { id: "Curiosity Stream", icon: <Tv className="w-4 h-4" /> },
+  { id: "Amazon Prime Video", icon: <Tv className="w-4 h-4" /> },
+  { id: "Hulu", icon: <Tv className="w-4 h-4" /> },
+  { id: "ABCMouse", icon: <BookOpen className="w-4 h-4" /> },
+  { id: "Prodigy", icon: <BookOpen className="w-4 h-4" /> },
+  { id: "Local Library Card", icon: <Library className="w-4 h-4" /> },
+];
 
 export default function StudentsPage() {
-  const [students, setStudents] = useState<any[]>([]);
-  const [isCreating, setIsCreating] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [user, setUser] = useState<any>(null);
-
-  // Form State
+  const supabase = createClient();
+  const [user, setUser] = useState<{ id: string } | null>(null);
+  
+  // Student Form State
   const [nickname, setNickname] = useState("");
   const [grade, setGrade] = useState("");
   const [focusDuration, setFocusDuration] = useState("");
   const [stateResidence, setStateResidence] = useState("");
-  const [mathMastery, setMathMastery] = useState("");
-  const [readingMastery, setReadingMastery] = useState("");
-  const [scienceMastery, setScienceMastery] = useState("");
-  const [currentCurriculum, setCurrentCurriculum] = useState("");
-
-const commonCurricula = [
-  "None / Eclectic", "Abeka", "The Good and the Beautiful", 
-  "Time4Learning", "Master Books", "BJU Press", 
-  "Ambleside Online", "Saxon Math", "Singapore Math"
-];
-
-  const router = useRouter();
-  const supabase = createClient();
+  const [zipCode, setZipCode] = useState(""); // 📍 Physical Location
+  
+  // Household Backpack State
+  const [activeSubscriptions, setActiveSubscriptions] = useState<string[]>([]);
+  const [isSavingBackpack, setIsSavingBackpack] = useState(false);
 
   useEffect(() => {
-    const fetchStudents = async () => {
+    const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
 
       if (user) {
-        const { data } = await supabase
-          .from("children_profiles")
-          .select("*")
-          .eq("parent_id", user.id)
-          .order("created_at", { ascending: false });
-        
-        if (data) setStudents(data);
+        // Fetch Parent Profile (Digital Backpack)
+        const { data: parentData } = await supabase
+          .from("parent_profiles")
+          .select("subscriptions")
+          .eq("id", user.id)
+          .single();
+          
+        if (parentData?.subscriptions) {
+          setActiveSubscriptions(parentData.subscriptions);
+        }
       }
     };
-    fetchStudents();
-  }, []);
+    loadData();
+  }, [supabase]);
 
-  const handleCreateStudent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    setIsLoading(true);
-    
+  // --- HANDLERS ---
 
-    try {
-      const { data, error } = await supabase
-        .from("children_profiles")
-        .insert({
-          parent_id: user.id,
-          nickname,
-          grade,
-          focus_duration: focusDuration,
-          state_residence: stateResidence,
-          math_mastery_level: mathMastery,
-          reading_mastery_level: readingMastery,
-          science_mastery_level: scienceMastery,
-          current_curriculum: currentCurriculum // <-- Add this
-        })
-        .select();
+  const handleToggleSubscription = (subId: string) => {
+    setActiveSubscriptions((prev) => 
+      prev.includes(subId) ? prev.filter(id => id !== subId) : [...prev, subId]
+    );
+  };
 
-      if (error) throw error;
+  const handleSaveBackpack = async () => {
+    setIsSavingBackpack(true);
+    const { error } = await supabase
+      .from("parent_profiles")
+      .update({ subscriptions: activeSubscriptions })
+      .eq("id", user?.id);
 
-      toast.success("Student profile created successfully!");
-      if (data) setStudents([data[0], ...students]);
-      
-      // Reset form
-      setIsCreating(false);
+    setIsSavingBackpack(false);
+    if (error) toast.error("Failed to save backpack.");
+    else toast.success("Digital Backpack updated!");
+  };
+
+  const handleCreateStudent = async () => {
+    if (!nickname || !grade || !focusDuration || !stateResidence || !zipCode) {
+      toast.error("Please fill out all required fields.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("children_profiles")
+      .insert({
+        parent_id: user?.id,
+        nickname,
+        grade,
+        focus_duration: focusDuration,
+        state_residence: stateResidence,
+        zip_code: zipCode, // 📍 Saves to DB
+      });
+
+    if (error) toast.error("Error creating profile.");
+    else {
+      toast.success("Student added successfully!");
       setNickname("");
       setGrade("");
       setFocusDuration("");
       setStateResidence("");
-      setMathMastery("");
-      setReadingMastery("");
-      setScienceMastery("");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to create profile.");
-    } finally {
-      setIsLoading(false);
+      setZipCode("");
     }
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center py-12 px-6 bg-slate-50 space-y-8">
+    <div className="max-w-4xl mx-auto p-6 space-y-10">
       
-      {/* HEADER */}
-      <div className="w-full max-w-4xl flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <div className="flex items-center gap-4">
-          <Button onClick={() => router.push("/dashboard")} variant="ghost" className="text-slate-500 hover:text-slate-800 px-2">
-            <ArrowLeft className="w-5 h-5 mr-1" /> Back
+      {/* 🎒 THE DIGITAL BACKPACK CARD */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800">
+              <Backpack className="text-teal-600" /> Household Digital Backpack
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Select what you already own. Our AI will prioritize these to save you money!
+            </p>
+          </div>
+          <Button onClick={handleSaveBackpack} disabled={isSavingBackpack} className="bg-teal-600 hover:bg-teal-700">
+            {isSavingBackpack ? "Saving..." : "Save Backpack"}
           </Button>
-          <h1 className="text-2xl font-extrabold text-slate-800">Student Profiles</h1>
         </div>
-        {!isCreating && (
-          <Button onClick={() => setIsCreating(true)} className="bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm">
-            <Plus className="w-4 h-4 mr-2" /> Add Student
-          </Button>
-        )}
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-4">
+          {SUBSCRIPTION_OPTIONS.map((sub) => {
+            const isActive = activeSubscriptions.includes(sub.id);
+            return (
+              <button
+                key={sub.id}
+                onClick={() => handleToggleSubscription(sub.id)}
+                className={`flex items-center gap-2 p-3 rounded-xl border text-sm font-medium transition-all ${
+                  isActive 
+                    ? "bg-teal-50 border-teal-500 text-teal-800 shadow-sm" 
+                    : "bg-slate-50 border-slate-200 text-slate-600 hover:border-teal-300"
+                }`}
+              >
+                {sub.icon} {sub.id}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* CREATE STUDENT FORM */}
-      {isCreating && (
-        <Card className="w-full max-w-4xl shadow-lg border-0 border-t-4 border-t-teal-500 animate-in fade-in slide-in-from-top-4">
-          <CardHeader>
-            <CardTitle className="text-2xl text-slate-800">Create New Profile</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreateStudent} className="space-y-8">
+      {/* 🧑‍🎓 ADD STUDENT CARD */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <h2 className="text-xl font-bold text-slate-800 mb-6">Add New Student</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* BASIC INFO */}
+          <div>
+            <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2">
+              <User className="w-4 h-4 text-blue-600"/> Student Nickname
+            </label>
+            <Input 
+              placeholder="e.g. Leo" 
+              value={nickname} 
+              onChange={(e) => setNickname(e.target.value)} 
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2">
+              <BookOpen className="w-4 h-4 text-emerald-600"/> Grade Level
+            </label>
+            <select 
+              value={grade} 
+              onChange={(e) => setGrade(e.target.value)}
+              className="w-full flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="" disabled>Select Grade...</option>
+              <option value="Pre-K">Pre-K</option>
+              <option value="Kindergarten">Kindergarten</option>
+              <option value="1st Grade">1st Grade</option>
+              <option value="2nd Grade">2nd Grade</option>
+              <option value="3rd Grade">3rd Grade</option>
+              <option value="4th Grade">4th Grade</option>
+              <option value="5th Grade">5th Grade</option>
+              <option value="Middle School">Middle School</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2">
+              <Clock className="w-4 h-4 text-amber-500"/> Focus Duration
+            </label>
+            <select 
+              value={focusDuration} 
+              onChange={(e) => setFocusDuration(e.target.value)}
+              className="w-full flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="" disabled>Select Attention Span...</option>
+              <option value="10 mins">10 Minutes (Short bursts)</option>
+              <option value="20 mins">20 Minutes (Standard)</option>
+              <option value="45 mins">45 Minutes (Deep dive)</option>
+            </select>
+          </div>
+          
+          <div className="hidden md:block"></div> {/* Spacer for grid alignment */}
+
+          {/* THE ROADSCHOOLING SPLIT */}
+          <div className="space-y-4 md:col-span-2 border-t border-slate-100 pt-4 mt-2">
+            <h3 className="text-sm font-extrabold text-slate-400 uppercase tracking-wider">Location & Standards</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
-              {/* CORE INFO */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-xl border border-slate-200">
-                <div>
-                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2"><User className="w-4 h-4 text-teal-600"/> Nickname / First Name</label>
-                  <Input required placeholder="e.g. Leo" value={nickname} onChange={(e) => setNickname(e.target.value)} className="bg-white" />
-                </div>
-                <div>
-                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2"><BookOpen className="w-4 h-4 text-indigo-600"/> Official Grade Level</label>
-                  <Input required placeholder="e.g. 3rd Grade" value={grade} onChange={(e) => setGrade(e.target.value)} className="bg-white" />
-                </div>
-                <div>
-                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2"><Clock className="w-4 h-4 text-orange-600"/> Max Focus Duration</label>
-                  <Input required placeholder="e.g. 20 mins" value={focusDuration} onChange={(e) => setFocusDuration(e.target.value)} className="bg-white" />
-                </div>
-                <div>
-                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2"><MapPin className="w-4 h-4 text-rose-600"/> State of Residence</label>
-                  <Input placeholder="e.g. Texas (For standards alignment)" value={stateResidence} onChange={(e) => setStateResidence(e.target.value)} className="bg-white" />
-                </div>
-                <div>
-                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2"><BookOpen className="w-4 h-4 text-indigo-600"/> Core Curriculum Used</label>
-                  <select 
-                    value={currentCurriculum} 
-                    onChange={(e) => setCurrentCurriculum(e.target.value)} 
-                    className="w-full p-2.5 rounded-md border border-slate-300 bg-white"
-                  >
-                    <option value="">Select Curriculum...</option>
-                    {commonCurricula.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
+              <div>
+                <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2">
+                  <GraduationCap className="w-4 h-4 text-indigo-600"/> Legal State of Residence
+                </label>
+                <Input 
+                  placeholder="e.g. Texas" 
+                  value={stateResidence} 
+                  onChange={(e) => setStateResidence(e.target.value)} 
+                />
+                <p className="text-xs text-slate-500 mt-1">Used strictly for educational standards alignment.</p>
               </div>
 
-              {/* PROGRESSIVE MASTERY SECTION */}
-              <div className="space-y-6">
-                <h3 className="font-extrabold text-slate-800 text-lg border-b pb-2">Progressive Mastery Tracking</h3>
-                <p className="text-sm text-slate-500">Tell the AI exactly what your child has mastered and what they are currently struggling with to prevent lesson regression.</p>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2"><Calculator className="w-4 h-4 text-blue-600"/> Math Mastery</label>
-                    <Textarea 
-                      placeholder="e.g., Mastered 2-digit addition. Currently struggling with borrowing/carrying numbers." 
-                      value={mathMastery} 
-                      onChange={(e) => setMathMastery(e.target.value)} 
-                      className="bg-slate-50 min-h-[80px]" 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2"><BookOpen className="w-4 h-4 text-emerald-600"/> Reading & Writing Mastery</label>
-                    <Textarea 
-                      placeholder="e.g., Reads at a 4th-grade level. Hates physically writing but excels at verbal storytelling." 
-                      value={readingMastery} 
-                      onChange={(e) => setReadingMastery(e.target.value)} 
-                      className="bg-slate-50 min-h-[80px]" 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2"><FlaskConical className="w-4 h-4 text-purple-600"/> Science / Other Interests</label>
-                    <Textarea 
-                      placeholder="e.g., Obsessed with marine biology and space. Dislikes geology." 
-                      value={scienceMastery} 
-                      onChange={(e) => setScienceMastery(e.target.value)} 
-                      className="bg-slate-50 min-h-[80px]" 
-                    />
-                  </div>
-                </div>
+              <div>
+                <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-2">
+                  <MapPin className="w-4 h-4 text-rose-600"/> Current Physical Zip Code
+                </label>
+                <Input 
+                  placeholder="e.g. 40245" 
+                  value={zipCode} 
+                  onChange={(e) => setZipCode(e.target.value)} 
+                />
+                <p className="text-xs text-slate-500 mt-1">Used to find physical field trips near your current location.</p>
               </div>
-
-              <div className="flex gap-4 pt-4 border-t border-slate-100">
-                <Button type="button" variant="outline" onClick={() => setIsCreating(false)} className="w-full">Cancel</Button>
-                <Button type="submit" disabled={isLoading} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold">
-                  {isLoading ? "Saving..." : "Save Profile"}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* STUDENT LIST */}
-      {!isCreating && (
-        <div className="w-full max-w-4xl space-y-4">
-          {students.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-xl border border-slate-200 shadow-sm">
-              <User className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-slate-800">No Profiles Yet</h3>
-              <p className="text-slate-500 mt-2">Create a profile to generate tailored lesson plans.</p>
+              
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {students.map((student) => (
-                <Card key={student.id} className="shadow-sm hover:shadow-md transition-shadow border-slate-200">
-                  <CardHeader className="bg-slate-50 border-b border-slate-100 pb-4">
-                    <CardTitle className="flex justify-between items-center text-xl text-slate-800">
-                      {student.nickname}
-                      <span className="text-xs font-bold bg-teal-100 text-teal-800 px-3 py-1 rounded-full">
-                        {student.grade}
-                      </span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-4 space-y-3">
-                    <div className="text-sm flex justify-between border-b border-slate-50 pb-2">
-                      <span className="text-slate-500 font-semibold">Focus Limit:</span>
-                      <span className="font-bold text-slate-800">{student.focus_duration}</span>
-                    </div>
-                    {student.state_residence && (
-                      <div className="text-sm flex justify-between border-b border-slate-50 pb-2">
-                        <span className="text-slate-500 font-semibold">State Align:</span>
-                        <span className="font-bold text-slate-800">{student.state_residence}</span>
-                      </div>
-                    )}
-                    {(student.math_mastery_level || student.reading_mastery_level) && (
-                      <div className="mt-4 pt-2 border-t border-slate-100">
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Mastery Notes Included</p>
-                        <div className="flex gap-2">
-                          {student.math_mastery_level && <span className="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded font-bold border border-blue-100">Math</span>}
-                          {student.reading_mastery_level && <span className="bg-emerald-50 text-emerald-700 text-xs px-2 py-1 rounded font-bold border border-emerald-100">Reading</span>}
-                          {student.science_mastery_level && <span className="bg-purple-50 text-purple-700 text-xs px-2 py-1 rounded font-bold border border-purple-100">Science</span>}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+          </div>
         </div>
-      )}
-    </main>
+
+        <Button onClick={handleCreateStudent} className="w-full mt-8 bg-slate-900 hover:bg-slate-800 text-white">
+          Create Student Profile
+        </Button>
+      </div>
+
+    </div>
   );
 }

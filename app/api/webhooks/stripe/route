@@ -1,0 +1,88 @@
+import { NextResponse } from "next/server";
+import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js"; // Note: We use the admin client here for background tasks
+
+// 1. Initialize Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2023-10-16", // Use the latest API version or your account's version
+});
+
+// 2. Initialize Supabase Admin (Bypasses RLS to update balances securely)
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // VERY IMPORTANT: Use the service role key, not the anon key!
+);
+
+// 3. Define the product mappings (How many sparks each product gives)
+// You will get these Price IDs from your Stripe Dashboard after creating the products
+const SPARK_PACKAGES: Record<string, number> = {
+  "price_123_starter": 8,   // $12/mo plan
+  "price_456_master": 25,  // $22/mo plan
+};
+
+export async function POST(req: Request) {
+  const payload = await req.text();
+  const signature = req.headers.get("stripe-signature");
+
+  let event: Stripe.Event;
+
+  try {
+    // 4. Verify the event actually came from Stripe (Security check)
+    event = stripe.webhooks.constructEvent(
+      payload,
+      signature!,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+  } catch (err: any) {
+    console.error("Webhook signature verification failed:", err.message);
+    return NextResponse.json({ error: err.message }, { status: 400 });
+  }
+
+  // 5. Handle the successful payment event
+  if (event.type === "invoice.payment_succeeded") {
+    const invoice = event.data.object as Stripe.Invoice;
+    
+    // We need to know who this payment belongs to. 
+    // When you create the checkout session later, you will pass the user's Supabase ID in the metadata or client_reference_id
+    const customerEmail = invoice.customer_email;
+    const priceId = invoice.lines.data[0]?.price?.id;
+    
+    if (priceId && SPARK_PACKAGES[priceId]) {
+      const sparksToAdd = SPARK_PACKAGES[priceId];
+
+      try {
+        // Step A: Find the user by their email
+        const { data: userData, error: userError } = await supabaseAdmin
+          .from("auth.users") // Note: query your public users/profiles table if you map emails there
+          .select("id")
+          .eq("email", customerEmail)
+          .single();
+
+        if (userData?.id) {
+          // Step B: Fetch their current balance
+          const { data: parentData } = await supabaseAdmin
+            .from("parent_profiles")
+            .select("sparks_balance")
+            .eq("id", userData.id)
+            .single();
+
+          const currentBalance = parentData?.sparks_balance || 0;
+
+          // Step C: Add the new Sparks!
+          await supabaseAdmin
+            .from("parent_profiles")
+            .update({ sparks_balance: currentBalance + sparksToAdd })
+            .eq("id", userData.id);
+            
+          console.log(`✅ Added ${sparksToAdd} sparks to user ${userData.id}`);
+        }
+      } catch (dbError) {
+        console.error("Database error while updating sparks:", dbError);
+        // We still return 200 so Stripe knows we received it, but we log the error to fix manually.
+      }
+    }
+  }
+
+  // Return a 200 so Stripe stops retrying the webhook
+  return NextResponse.json({ received: true }, { status: 200 });
+}
