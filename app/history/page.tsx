@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client"; // Updated to match standard client import
+import { createClient } from "@/lib/supabase"; // Updated to match standard client import
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Clock, FileText, User, ChevronDown, ChevronUp } from "lucide-react";
