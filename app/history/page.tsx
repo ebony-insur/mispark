@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import Image from "next/image";
 import { 
   ArrowLeft, Clock, FileText, User, ChevronDown, ChevronUp, Printer, 
   Star, Image as ImageIcon, UploadCloud, BookHeart, Gamepad2, PlaySquare, 
-  FlaskConical, CheckCircle2
+  FlaskConical, CheckCircle2, Trash2, ExternalLink
 } from "lucide-react";
 
 // --- TYPESCRIPT INTERFACES --- //
@@ -39,6 +40,7 @@ interface SavedPlan {
   plan_data: PlanData;
   rating?: number;
   feedback_notes?: string;
+  portfolio_image_url?: string;
 }
 
 export default function HistoryPage() {
@@ -85,7 +87,6 @@ export default function HistoryPage() {
 
       if (planData) {
         setPlans(planData as SavedPlan[]);
-        // Hydrate local state for UI responsiveness
         const initialRatings: Record<string, number> = {};
         const initialNotes: Record<string, string> = {};
         planData.forEach(p => {
@@ -115,30 +116,92 @@ export default function HistoryPage() {
     const notes = notesState[planId] || "";
 
     try {
-      // NOTE: You will need to add 'rating' (int) and 'feedback_notes' (text) columns to your lesson_plans table!
       const { error } = await supabase
         .from("lesson_plans")
         .update({ rating, feedback_notes: notes })
         .eq("id", planId);
 
       if (error) throw error;
-      toast.success("Feedback saved! This helps the AI improve future plans.");
+      toast.success("Feedback saved! This helps us improve future plans.");
+      
+      // Update local state to reflect save
+      setPlans(plans.map(p => p.id === planId ? { ...p, rating, feedback_notes: notes } : p));
     } catch (err: any) {
-      console.warn("Feedback save error (Check DB columns):", err);
-      // Failsafe UI feedback if DB columns aren't added yet
-      toast.success("Feedback recorded locally!"); 
+      console.warn("Feedback save error:", err);
+      toast.error("Failed to save feedback."); 
     } finally {
       setIsSavingFeedback(false);
     }
   };
 
-  const handlePortfolioUpload = (e: React.ChangeEvent<HTMLInputElement>, planId: string) => {
+  const handlePortfolioUpload = async (e: React.ChangeEvent<HTMLInputElement>, plan: SavedPlan) => {
     const file = e.target.files?.[0];
-    if (file) {
-      toast.success(`Photo "${file.name}" attached to portfolio!`, {
-        description: "Upload mechanics will be wired to Supabase Storage in Phase 6."
-      });
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File is too large. Please keep images under 5MB.");
+      return;
     }
+
+    toast.loading("Uploading to portfolio...", { id: "upload" });
+
+    try {
+      // 1. Create a unique file path: parent_id/plan_id-timestamp.ext
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${plan.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${plan.parent_id}/${fileName}`;
+
+      // 2. Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("student_portfolios")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // 3. Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("student_portfolios")
+        .getPublicUrl(filePath);
+
+      // 4. Save URL to the database
+      const { error: dbError } = await supabase
+        .from("lesson_plans")
+        .update({ portfolio_image_url: publicUrl })
+        .eq("id", plan.id);
+
+      if (dbError) throw dbError;
+
+      // 5. Update UI
+      setPlans(plans.map(p => p.id === plan.id ? { ...p, portfolio_image_url: publicUrl } : p));
+      toast.success("Photo added to portfolio!", { id: "upload" });
+
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Failed to upload photo.", { id: "upload" });
+    }
+  };
+
+  const handleRemovePhoto = async (planId: string) => {
+    try {
+      // We are just removing the link from the DB to keep it simple for the user.
+      const { error } = await supabase
+        .from("lesson_plans")
+        .update({ portfolio_image_url: null })
+        .eq("id", planId);
+        
+      if (error) throw error;
+      
+      setPlans(plans.map(p => p.id === planId ? { ...p, portfolio_image_url: undefined } : p));
+      toast.success("Photo removed from portfolio.");
+    } catch (err) {
+      toast.error("Failed to remove photo.");
+    }
+  };
+
+  const generateBookSearchLink = (title: string, store: string) => {
+    const encodedTitle = encodeURIComponent(title);
+    if (store === "thriftbooks") return `https://www.thriftbooks.com/browse/?b.search=${encodedTitle}#b.s=mostPopular-desc&b.p=1&b.pp=30&b.oos`;
+    return `https://bookshop.org/search?keywords=${encodedTitle}`;
   };
 
   return (
@@ -184,9 +247,8 @@ export default function HistoryPage() {
                 </div>
                 <div className="flex items-center gap-4 text-slate-400">
                   <div className="flex text-amber-400 mr-2">
-                    {/* Mini Star Rating Display */}
                     {[1,2,3,4,5].map(star => (
-                      <Star key={star} className={`w-3 h-3 ${(ratingState[plan.id] || 0) >= star ? "fill-amber-400" : "text-slate-200"}`} />
+                      <Star key={star} className={`w-3 h-3 ${(ratingState[plan.id] || plan.rating || 0) >= star ? "fill-amber-400" : "text-slate-200"}`} />
                     ))}
                   </div>
                   {expandedId === plan.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -243,9 +305,8 @@ export default function HistoryPage() {
                       </div>
                     )}
                   </div>
-                  {/* --- END PLAN RENDER --- */}
 
-                  {/* PORTFOLIO & FEEDBACK SECTION (Hidden in Print) */}
+                  {/* PORTFOLIO & FEEDBACK SECTION */}
                   <div className="grid md:grid-cols-2 gap-6 pt-8 border-t-2 border-slate-200 print:hidden">
                     
                     {/* FEEDBACK COLUMN */}
@@ -291,26 +352,42 @@ export default function HistoryPage() {
                     </div>
 
                     {/* PORTFOLIO COLUMN */}
-                    <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-200 shadow-sm flex flex-col">
+                    <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-200 shadow-sm flex flex-col h-full">
                       <h4 className="font-black text-emerald-900 text-lg mb-1 flex items-center gap-2">
-                        <ImageIcon className="w-5 h-5" /> Add to Portfolio
+                        <ImageIcon className="w-5 h-5" /> Student Portfolio
                       </h4>
-                      <p className="text-sm text-emerald-700 mb-4 font-medium">Upload photos of completed worksheets, art projects, or experiments to build their end-of-year portfolio.</p>
+                      <p className="text-sm text-emerald-700 mb-4 font-medium">Upload photos of completed worksheets or experiments to build their end-of-year portfolio.</p>
                       
-                      <div 
-                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }} 
-                        onDragLeave={() => setIsDragging(false)} 
-                        onDrop={(e) => { e.preventDefault(); setIsDragging(false); handlePortfolioUpload({ target: { files: e.dataTransfer.files } } as any, plan.id); }} 
-                        onClick={() => fileInputRef.current?.click()} 
-                        className={`flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
-                          isDragging ? "border-emerald-500 bg-emerald-100/50 scale-[1.02]" : "border-emerald-300 bg-white hover:border-emerald-500 hover:bg-emerald-50/50"
-                        }`}
-                      >
-                        <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={(e) => handlePortfolioUpload(e, plan.id)} />
-                        <UploadCloud className={`w-10 h-10 mb-3 transition-colors ${isDragging ? "text-emerald-600" : "text-emerald-400"}`} />
-                        <p className="font-bold text-emerald-900">Click to Upload Photo</p>
-                        <p className="text-xs font-medium text-emerald-600 mt-1">or drag and drop here</p>
-                      </div>
+                      {plan.portfolio_image_url ? (
+                        <div className="relative group rounded-xl overflow-hidden border-2 border-emerald-300 flex-1 min-h-[200px]">
+                          <Image 
+                            src={plan.portfolio_image_url} 
+                            alt="Student Portfolio" 
+                            fill 
+                            className="object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Button variant="destructive" onClick={() => handleRemovePhoto(plan.id)} className="font-bold">
+                              <Trash2 className="w-4 h-4 mr-2" /> Remove Photo
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div 
+                          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }} 
+                          onDragLeave={() => setIsDragging(false)} 
+                          onDrop={(e) => { e.preventDefault(); setIsDragging(false); handlePortfolioUpload({ target: { files: e.dataTransfer.files } } as any, plan); }} 
+                          onClick={() => fileInputRef.current?.click()} 
+                          className={`flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all min-h-[200px] ${
+                            isDragging ? "border-emerald-500 bg-emerald-100/50 scale-[1.02]" : "border-emerald-300 bg-white hover:border-emerald-500 hover:bg-emerald-50/50"
+                          }`}
+                        >
+                          <input type="file" accept="image/jpeg, image/png, image/webp" className="hidden" ref={fileInputRef} onChange={(e) => handlePortfolioUpload(e, plan)} />
+                          <UploadCloud className={`w-10 h-10 mb-3 transition-colors ${isDragging ? "text-emerald-600" : "text-emerald-400"}`} />
+                          <p className="font-bold text-emerald-900">Click to Upload Photo</p>
+                          <p className="text-xs font-medium text-emerald-600 mt-1">or drag and drop (Max 5MB)</p>
+                        </div>
+                      )}
                     </div>
 
                   </div>
