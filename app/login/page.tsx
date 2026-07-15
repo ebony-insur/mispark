@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase"; // Adjust this import to match yo
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { CheckCircle2, XCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -14,6 +14,7 @@ export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordWarning, setShowPasswordWarning] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // Added toggle state
   
   const router = useRouter();
   const supabase = createClient();
@@ -96,16 +97,32 @@ export default function Login() {
                 </Button>
               )}
             </div>
-            <Input 
-              type="password" 
-              value={password} 
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setShowPasswordWarning(false); // Hide warning once they start typing again
-              }} 
-              required 
-              className={`mt-1 ${showPasswordWarning ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-            />
+            
+            {/* Password Input with Reveal Toggle */}
+            <div className="relative mt-1">
+              <Input 
+                type={showPassword ? "text" : "password"} 
+                value={password} 
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setShowPasswordWarning(false); // Hide warning once they start typing again
+                }} 
+                required 
+                className={`pr-10 ${showPasswordWarning ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                title={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </button>
+            </div>
           </div>
 
           {/* PASSWORD CRITERIA BOX - Only shows on Sign Up or if they triggered the warning */}
