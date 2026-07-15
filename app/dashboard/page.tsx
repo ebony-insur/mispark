@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import { type User } from "@supabase/supabase-js"; // 📍 ADDED: Official Supabase User type
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,7 +42,6 @@ interface GeneratedData {
 }
 
 // 🔗 Replace this with your actual Stripe Payment Link later
-// Paste your actual Stripe link here
 const STRIPE_CHECKOUT_URL = "https://buy.stripe.com/test_aB1cD2...";
 
 export default function Dashboard() {
@@ -51,7 +51,10 @@ export default function Dashboard() {
   const [isDragging, setIsDragging] = useState(false);
   
   const [generatedData, setGeneratedData] = useState<GeneratedData | null>(null);
-  const [user, setUser] = useState<Record<string, unknown> | null>(null);
+  
+  // 📍 FIXED: Using the strict User type instead of Record<string, unknown>
+  const [user, setUser] = useState<User | null>(null); 
+  
   const [isGuest, setIsGuest] = useState(true);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
@@ -59,7 +62,7 @@ export default function Dashboard() {
   // --- HOUSEHOLD & BILLING DATA STATE --- //
   const [activeSubscriptions, setActiveSubscriptions] = useState<string[]>([]);
   const [currentZipCode, setCurrentZipCode] = useState<string>("");
-  const [sparksBalance, setSparksBalance] = useState<number>(0); // 📍 NEW: Track Sparks
+  const [sparksBalance, setSparksBalance] = useState<number>(0);
 
   const [printMode, setPrintMode] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,7 +90,7 @@ export default function Dashboard() {
           
         if (parentProfile) {
           setActiveSubscriptions(parentProfile.subscriptions || []);
-          setSparksBalance(parentProfile.sparks_balance || 0); // 📍 Set balance in UI
+          setSparksBalance(parentProfile.sparks_balance || 0);
         }
 
         // Fetch Children Profiles
@@ -157,7 +160,6 @@ export default function Dashboard() {
   };
 
   const handleIgnite = async () => {
-    // 📍 THE PAYWALL CHECK
     if (!isGuest && sparksBalance <= 0) {
       toast.error("You are out of Sparks! Please upgrade to continue.");
       return;
@@ -186,12 +188,10 @@ export default function Dashboard() {
         setGeneratedData(data.data);
         
         if (!isGuest && user) {
-          // 📍 1. DEDUCT A SPARK IN THE DATABASE
           const newBalance = sparksBalance - 1;
           await supabase.from("parent_profiles").update({ sparks_balance: newBalance }).eq("id", user.id);
-          setSparksBalance(newBalance); // Update local state immediately
+          setSparksBalance(newBalance); 
 
-          // 📍 2. SAVE THE LESSON PLAN
           const { error: saveError } = await supabase.from('lesson_plans').insert({
             parent_id: user.id,
             student_id: selectedStudentId || null,
@@ -221,7 +221,6 @@ export default function Dashboard() {
             <Button onClick={() => router.push("/login?signup=true")} className="bg-orange-500 hover:bg-orange-600 text-white font-bold">Sign Up to Save</Button>
           ) : (
             <>
-              {/* 📍 DISPLAY CURRENT SPARKS IN HEADER */}
               <div className="flex items-center gap-1 bg-amber-50 text-amber-800 px-4 py-2 rounded-lg border border-amber-200 font-bold text-sm mr-2">
                 <Zap className="w-4 h-4 fill-amber-500 text-amber-500" /> {sparksBalance} Sparks
               </div>
@@ -280,7 +279,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* 📍 THE GATEKEEPER BUTTON LOGIC */}
+          {/* THE GATEKEEPER BUTTON LOGIC */}
           {!isGuest && sparksBalance <= 0 ? (
             <a 
               href={`${STRIPE_CHECKOUT_URL}?prefilled_email=${user?.email}`}
@@ -362,7 +361,6 @@ export default function Dashboard() {
                           <p className="text-sm text-slate-600 mt-2 mb-4 italic">&quot;{book.prompt}&quot;</p>
                         </div>
                         
-                        {/* THE AUTO-LINKER BUTTONS */}
                         <div className="flex gap-2 mt-auto pt-4 border-t border-slate-200 print:hidden">
                           <a 
                             href={generateBookSearchLink(book.title, "thriftbooks")}
