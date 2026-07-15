@@ -5,7 +5,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// TypeScript Interface for the incoming request payload
 interface GenerateRequestPayload {
   lessonText: string;
   studentProfile?: {
@@ -15,7 +14,7 @@ interface GenerateRequestPayload {
     reading_mastery_level?: string;
     state_residence?: string;
     zip_code?: string;
-    interests?: string; // 📍 Added to catch the new "Anything else" field we will build
+    interests?: string; 
     sensory_needs?: string; 
   };
   subscriptions?: string[];
@@ -24,7 +23,6 @@ interface GenerateRequestPayload {
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as GenerateRequestPayload;
-    
     const { lessonText, studentProfile, subscriptions } = body;
 
     // Set up safe fallbacks
@@ -39,33 +37,32 @@ export async function POST(req: Request) {
       ? subscriptions.join(", ") 
       : "None listed. Rely on free or public resources.";
 
-    // 📍 THE MASTER EDUCATOR PROMPT OVERHAUL
-    const systemPrompt = `You are miSpark, a master homeschool educator and curriculum designer with advanced degrees in education. You do not give generic, surface-level advice. You create highly engaging, age-appropriate, pedagogically sound, and non-obvious lesson plans. Your tone is that of an expert consulting with a parent—professional, insightful, and deeply practical.
+    const systemPrompt = `You are MiSpark, a master homeschool educator and curriculum designer with advanced degrees in education. You do not give generic, surface-level advice. You create highly engaging, age-appropriate, pedagogically sound, and non-obvious lesson plans. Your tone is that of an expert consulting with a parent—professional, insightful, and deeply practical.
 
     CRITICAL INSTRUCTIONS & EXCLUSIONS:
-    1. NOVELTY & DEPTH: Do not rely on cliché examples (e.g., if the topic is 'Earth Science', do not just say 'make a baking soda volcano'). Provide highly specific, unique, and memorable angles. 
-    2. PROGRESSIVE MASTERY & FOCUS: Align content perfectly to a ${grade} level student. You MUST strictly tailor the length of activities to fit the student's stated 'focus_duration' of ${focusDuration}.
-    3. SPECIAL CONSIDERATIONS: Seamlessly weave the student's interests (${specialInterests}) and sensory needs (${sensoryNeeds}) into the activities.
-    
-    4. ASSESSED FOUNDATION (State Standards): Using the state of residence (${stateResidence}), explain the targeted educational standards in plain, conversational English. Avoid bureaucratic jargon, but be academically precise.
+    1. MULTIDISCIPLINARY SYNTHESIS & STRESS TESTS: The user may provide highly disjointed, multi-subject topics across different learning levels (e.g., historical topics mixed with math and science). You MUST gracefully handle this by breaking down the days or subjects into structured components without skipping any topic mentioned. Do not break the JSON schema structure under any circumstance.
+    2. NOVELTY & DEPTH: Do not rely on cliché examples. Provide highly specific, unique, and memorable angles. 
+    3. PROGRESSIVE MASTERY & FOCUS: Align content perfectly to a ${grade} level student. You MUST strictly tailor the length of activities to fit the student's stated 'focus_duration' of ${focusDuration}.
+    4. SPECIAL CONSIDERATIONS: Seamlessly weave the student's interests (${specialInterests}) and sensory needs (${sensoryNeeds}) into the activities.
+    5. ASSESSED FOUNDATION (State Standards): Using the state of residence (${stateResidence}), explain the targeted educational standards in plain, conversational English. Avoid bureaucratic jargon, but be academically precise.
 
     // 📍 THE ROADSCHOOLING RULE (Hyper-Local Geolocation)
-    5. LET'S EXPLORE (Illuminations): You MUST use the provided physical zip code (${zipCode}) to recommend ACTUAL real-world locations (museums, historical sites, parks) within a 30-mile radius. 
+    6. LET'S EXPLORE (Illuminations): You MUST use the provided physical zip code (${zipCode}) to recommend ACTUAL real-world locations (museums, historical sites, parks) within a 30-mile radius. 
        - Write your response as actionable bullet points. 
        - You MUST include a specific mini-scavenger hunt or observational task for the location using the Who, What, When, Where, and How framework.
        - Connect the field trip directly to the 'Hands-On Learning' experiments.
 
     // 🎒 THE DIGITAL BACKPACK RULE (Maximize Investment)
-    6. LOOK & LEARN (Media): The parent currently subscribes to: [${activeSubsList}]. 
+    7. LOOK & LEARN (Media): The parent currently subscribes to: [${activeSubsList}]. 
        - You MUST prioritize finding high-quality documentaries or shows on THESE specific platforms first. Only suggest outside platforms if absolutely necessary (like free YouTube resources).
 
-    7. LET'S TALK (Kindling): Provide EXACTLY three (3) deep-thinking, open-ended questions related to the topic. Do not provide 2, do not provide 4. Exactly 3.
+    8. LET'S TALK (Kindling): Provide EXACTLY three (3) deep-thinking, open-ended questions related to the topic. Do not provide 2, do not provide 4. Exactly 3.
 
-    8. HANDS-ON LEARNING: Provide 3 activities ("Around the House", "Out and About", "Big Ideas"). Restrict required supplies to common household items. NEVER leave these blank.
+    9. HANDS-ON LEARNING: Provide 3 activities ("Around the House", "Out and About", "Big Ideas"). Restrict required supplies to common household items. NEVER leave these blank.
     
-    9. RECOMMENDED READING: Provide exactly 3 Fiction and 3 Non-Fiction books perfectly targeted to ${grade} reading level.
+    10. RECOMMENDED READING: Provide exactly 3 Fiction and 3 Non-Fiction books perfectly targeted to ${grade} reading level.
     
-    10. WORKSHEETS: Provide questions ONLY. Do NOT leave blank spaces or underscores for answers.`;
+    11. WORKSHEETS: Provide questions ONLY. Do NOT leave blank spaces or underscores for answers.`;
 
     const jsonSchema = {
       type: "object",
@@ -178,30 +175,27 @@ export async function POST(req: Request) {
     };
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      // 📍 FIXED: Upgraded to flagship model for brilliant results
+      model: "gpt-4o",
       messages: [
         { 
           role: "system", 
-          content: `${systemPrompt}\n\nYou MUST use exactly this JSON schema to format your response:\n${JSON.stringify(jsonSchema)}\n\nIMPORTANT: NEVER return empty arrays. If you cannot find a perfect match, synthesize a highly creative, viable alternative.` 
+          content: `${systemPrompt}\n\nYou MUST use exactly this JSON schema to format your response:\n${JSON.stringify(jsonSchema)}\n\nIMPORTANT: NEVER return empty arrays. If topics span multiple subjects, distribute them evenly across the week.` 
         },
         { 
           role: "user", 
-          // Injecting a timestamp seed to force the AI to rethink if given the exact same prompt twice
           content: `Seed: ${Date.now()}\n\nHere is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}` 
         }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.85, // Bumped up slightly to encourage more creative, non-generic ideas
+      temperature: 0.8,
     });
 
     const generatedText = completion.choices[0].message.content;
-    if (!generatedText) throw new Error("No content generated from OpenAI.");
+    if (!generatedText) throw new Error("No content generated.");
 
     const parsedData = JSON.parse(generatedText);
 
-    // 📍 THE SPARK FAILSAFE
-    // If the AI hallucinates and returns empty arrays for core sections, throw an error.
-    // This returns a 500 status to the dashboard, which aborts the Spark deduction!
     if (
       !parsedData.assessedFoundation || 
       !parsedData.letsPlay || parsedData.letsPlay.length === 0 ||
@@ -209,7 +203,7 @@ export async function POST(req: Request) {
       !parsedData.letsExplore || parsedData.letsExplore.length === 0 ||
       !parsedData.letsTalk || parsedData.letsTalk.length < 3
     ) {
-      throw new Error("AI returned an incomplete dataset.");
+      throw new Error("Incomplete dataset generated.");
     }
 
     return NextResponse.json({ data: parsedData }, { status: 200 });
@@ -217,8 +211,8 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("Error in generate API:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to generate schedule." }, 
-      { status: 500 } // Dashboard catches this 500 and prevents Spark deduction
+      { error: error instanceof Error ? error.message : "Failed to process request." }, 
+      { status: 500 } 
     );
   }
 }

@@ -11,12 +11,11 @@ import { toast } from "sonner";
 import Image from "next/image";
 import { generateBookSearchLink } from "@/lib/utils";
 import { 
-  Printer, Upload, AlertCircle, BookOpen, PenTool, FileText, 
-  Lock, Calculator, FlaskConical, Globe, Palette, Music, Lightbulb, 
-  Gamepad2, PlaySquare, BookHeart, ExternalLink, Zap, User as UserIcon, ChevronDown, LogOut
+  Printer, Upload, AlertCircle, BookOpen, FileText, 
+  Lock, FlaskConical, Lightbulb, Gamepad2, PlaySquare, 
+  BookHeart, ExternalLink, Zap, User as UserIcon, ChevronDown, LogOut, Loader2, Plus
 } from "lucide-react";
 
-// --- TYPESCRIPT INTERFACES --- //
 interface Student {
   id: string;
   nickname: string;
@@ -55,15 +54,13 @@ export default function Dashboard() {
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
 
-  // UI State
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
-
-  // --- HOUSEHOLD & BILLING DATA STATE --- //
   const [activeSubscriptions, setActiveSubscriptions] = useState<string[]>([]);
   const [currentZipCode, setCurrentZipCode] = useState<string>("");
   const [sparksBalance, setSparksBalance] = useState<number>(0);
-
+  const [subscriptionTier, setSubscriptionTier] = useState<string>("Free Trial");
   const [printMode, setPrintMode] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const supabase = createClient();
@@ -81,13 +78,14 @@ export default function Dashboard() {
       if (user) {
         const { data: parentProfile } = await supabase
           .from("parent_profiles")
-          .select("subscriptions, sparks_balance")
+          .select("subscriptions, sparks_balance, subscription_tier")
           .eq("id", user.id)
           .single();
           
         if (parentProfile) {
           setActiveSubscriptions(parentProfile.subscriptions || []);
           setSparksBalance(parentProfile.sparks_balance || 0);
+          if (parentProfile.subscription_tier) setSubscriptionTier(parentProfile.subscription_tier);
         }
 
         const { data: studentData } = await supabase
@@ -161,16 +159,42 @@ export default function Dashboard() {
   };
 
   const handleIgnite = async () => {
-    if (!isGuest && sparksBalance <= 0) {
-      toast.error("You are out of Sparks! Please upgrade to continue.");
-      return;
+    // 📍 ENFORCING PLAN TIERS
+    if (!isGuest) {
+      if (subscriptionTier === "Family Unlimited") {
+        // 📍 RULE 2: ENFORCE 5 PLANS/DAY FOR UNLIMITED
+        const todayStr = new Date().toISOString().split('T')[0];
+        const { count, error: countError } = await supabase
+          .from("lesson_plans")
+          .select("*", { count: "exact", head: true })
+          .eq("student_id", selectedStudentId)
+          .gte("created_at", `${todayStr}T00:00:00Z`);
+
+        if (countError) console.error(countError);
+        
+        if (count !== null && count >= 5) {
+          const currentKid = students.find(s => s.id === selectedStudentId);
+          toast.error("Daily spark limit reached", {
+            description: `${currentKid?.nickname || "This student"} has reached the fair-use limit of 5 plans today. Come back tomorrow!`
+          });
+          return;
+        }
+      } else {
+        // 📍 DEFAULT FALLBACK RULE FOR SOLO SCHOLAR OR LEGACY ACCOUNTS
+        if (sparksBalance <= 0) {
+          toast.error("Out of Sparks", {
+            description: "You have used all available sparks. Please purchase more or upgrade your plan."
+          });
+          return;
+        }
+      }
     }
 
     if (!lessonText || isUnderLimit || isOverLimit) return;
     setIsLoading(true); setGeneratedData(null);
     
     const studentProfile = isGuest 
-      ? { grade: "3rd Grade", focus_duration: "20 mins", state_residence: "General US", zip_code: "None provided" } 
+      ? { grade: "3rd Grade", focus_duration: "20 mins", state_residence: "General US", zip_code: "12345", interests: "General Education", sensory_needs: "None" } 
       : students.find(s => s.id === selectedStudentId);
     
     try {
@@ -189,9 +213,12 @@ export default function Dashboard() {
         setGeneratedData(data.data);
         
         if (!isGuest && user) {
-          const newBalance = sparksBalance - 1;
-          await supabase.from("parent_profiles").update({ sparks_balance: newBalance }).eq("id", user.id);
-          setSparksBalance(newBalance); 
+          // Only deduct balance if the parent is tracking by single sparks
+          if (subscriptionTier !== "Family Unlimited") {
+            const newBalance = sparksBalance - 1;
+            await supabase.from("parent_profiles").update({ sparks_balance: newBalance }).eq("id", user.id);
+            setSparksBalance(newBalance); 
+          }
 
           const { error: saveError } = await supabase.from('lesson_plans').insert({
             parent_id: user.id,
@@ -223,16 +250,14 @@ export default function Dashboard() {
             <Button onClick={() => router.push("/login?signup=true")} className="bg-orange-500 hover:bg-orange-600 text-white font-bold">Sign Up to Save</Button>
           ) : (
             <>
-              {/* 📍 CLICKABLE SPARK ROUTING */}
               <button 
                 onClick={() => router.push("/billing")} 
                 className="flex items-center gap-1 bg-amber-50 text-amber-800 px-4 py-2 rounded-lg border border-amber-200 font-bold text-sm hover:bg-amber-100 transition-colors cursor-pointer"
                 title="Click to manage billing"
               >
-                <Zap className="w-4 h-4 fill-amber-500 text-amber-500" /> {sparksBalance} Sparks
+                <Zap className="w-4 h-4 fill-amber-500 text-amber-500" /> {subscriptionTier === "Family Unlimited" ? "Unlimited" : `${sparksBalance} Sparks`}
               </button>
 
-              {/* 📍 ACCOUNT DROPDOWN */}
               <div className="relative">
                 <button 
                   onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} 
@@ -251,7 +276,7 @@ export default function Dashboard() {
                       <BookOpen className="w-4 h-4" /> My History
                     </button>
                     <button onClick={() => router.push("/billing")} className="w-full text-left px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-teal-600 flex items-center gap-2">
-                      <Zap className="w-4 h-4" /> Billing & Sparks
+                      <Zap className="w-4 h-4" /> Billing &amp; Sparks
                     </button>
                     <div className="h-px bg-slate-100 my-1"></div>
                     <button onClick={handleSignOut} className="w-full text-left px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2">
@@ -268,7 +293,7 @@ export default function Dashboard() {
       {/* INPUT CARD */}
       <Card className="w-full max-w-4xl shadow-lg border-0 print:hidden">
         <CardHeader className="text-center pb-2">
-          <CardTitle className="text-4xl font-black tracking-tight text-slate-800">Ignite Your Curriculum</CardTitle>
+          <CardTitle className="text-4xl font-black tracking-tight text-slate-800">Ignite Curiosity</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           
@@ -279,14 +304,27 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="space-y-2 bg-slate-50 p-5 rounded-2xl border border-slate-200">
-              <label className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">Target Student Profile</label>
-              <select 
-                value={selectedStudentId} 
-                onChange={(e) => handleStudentChange(e.target.value)} 
-                className="w-full p-4 rounded-xl border-2 border-slate-200 bg-white font-bold text-slate-800 focus:border-teal-500 focus:ring-0 transition-colors shadow-sm"
-              >
-                {students.map(s => <option key={s.id} value={s.id}>{s.nickname} (Grade: {s.grade})</option>)}
-              </select>
+              <label className="text-sm font-extrabold text-slate-700 uppercase tracking-wider">Student</label>
+              <div className="flex gap-2">
+                <select 
+                  value={selectedStudentId} 
+                  onChange={(e) => handleStudentChange(e.target.value)} 
+                  className="w-full p-4 rounded-xl border-2 border-slate-200 bg-white font-bold text-slate-800 focus:border-teal-500 focus:ring-0 transition-colors shadow-sm"
+                >
+                  {students.length === 0 ? (
+                    <option value="" disabled>No students found. Add one!</option>
+                  ) : (
+                    students.map(s => <option key={s.id} value={s.id}>{s.nickname} (Grade: {s.grade})</option>)
+                  )}
+                </select>
+                <Button 
+                  onClick={() => router.push("/dashboard/students")} 
+                  className="h-auto px-4 bg-slate-800 hover:bg-slate-900 text-white rounded-xl shadow-sm"
+                  title="Add Student"
+                >
+                  <Plus className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
           )}
 
@@ -307,15 +345,14 @@ export default function Dashboard() {
             />
             <div className="flex justify-between items-center text-xs mt-2 text-slate-500 font-bold">
               <span className={isUnderLimit || isOverLimit ? "text-red-500" : ""}>
-                {isUnderLimit && "Please enter at least 15 words to give the AI context."}
+                {isUnderLimit && "Please enter at least 15 words to give us context."}
                 {isOverLimit && "Word limit exceeded. Please shorten to 750 words."}
               </span>
               <span>{currentWordCount} / 750 words</span>
             </div>
           </div>
 
-          {/* 📍 THE HOMEPAGE-STYLE IGNITE BUTTON */}
-          {!isGuest && sparksBalance <= 0 ? (
+          {!isGuest && subscriptionTier !== "Family Unlimited" && sparksBalance <= 0 ? (
             <a 
               href={`${STRIPE_CHECKOUT_URL}?prefilled_email=${user?.email}`}
               target="_blank"
@@ -327,16 +364,16 @@ export default function Dashboard() {
           ) : (
             <Button 
               onClick={handleIgnite} 
-              disabled={isLoading || isUnderLimit || isOverLimit || isUploadingPdf} 
+              disabled={isLoading || isUnderLimit || isOverLimit || isUploadingPdf || (!isGuest && students.length === 0)} 
               className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-black text-2xl py-8 shadow-xl rounded-2xl border-b-4 border-orange-700 active:border-b-0 active:translate-y-1 transition-all disabled:opacity-70 disabled:transform-none disabled:border-b-4"
             >
               {isLoading ? (
                 <span className="flex items-center gap-3">
-                  <Image src="/loading-spark.svg" alt="Loading..." width={28} height={28} className="animate-spin" /> Igniting Curriculum...
+                  <Loader2 className="w-6 h-6 animate-spin" /> Igniting Curriculum...
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  Ignite Plan ✨ <span className="text-base font-bold bg-white/20 px-3 py-1 rounded-full ml-2">({isGuest ? "Free Trial" : "Costs 1 Spark"})</span>
+                  Ignite Curiosity ✨ 
                 </span>
               )}
             </Button>
@@ -352,7 +389,6 @@ export default function Dashboard() {
              <Button onClick={() => setPrintMode("all")} className="bg-slate-800 text-white font-bold rounded-xl"><Printer className="w-4 h-4 mr-2"/> Print Full Plan</Button>
           </div>
 
-          {/* CORE FRAMEWORK & FOUNDATION (Visible to All) */}
           <div className={printMode && printMode !== 'all' && printMode !== 'foundation' ? 'print:hidden' : 'print:block'}>
             <Card className="border-t-4 border-t-blue-500 bg-white rounded-2xl shadow-sm overflow-hidden">
               <CardHeader className="flex flex-row justify-between items-center bg-slate-50/50 print:p-4">
@@ -376,7 +412,6 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* RECOMMENDED READING (Free Tier) */}
           {generatedData.readingList && (
             <div className={printMode && printMode !== 'all' && printMode !== 'reading' ? 'print:hidden' : 'print:block'}>
               <Card className="border-t-4 border-t-rose-500 bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -422,7 +457,6 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* LET'S PLAY (Visible to All) */}
           <div className={printMode && printMode !== 'all' && printMode !== 'games' ? 'print:hidden' : 'print:block'}>
             <Card className="border-t-4 border-t-emerald-500 bg-white rounded-2xl shadow-sm overflow-hidden">
               <CardHeader className="flex flex-row justify-between items-center bg-slate-50/50 print:p-4">
@@ -441,11 +475,9 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* PREMIUM CONTENT BLOCK */}
           <div className="relative">
             <div className={isGuest ? "blur-md grayscale opacity-40 select-none pointer-events-none space-y-8" : "space-y-8"}>
               
-              {/* LOOK & LEARN */}
               <div className={printMode && printMode !== 'all' && printMode !== 'media' ? 'print:hidden' : 'print:block'}>
                 <Card className="border-t-4 border-t-red-500 rounded-2xl shadow-sm overflow-hidden">
                   <CardHeader className="flex flex-row justify-between items-center bg-slate-50/50">
@@ -472,7 +504,6 @@ export default function Dashboard() {
                 </Card>
               </div>
 
-              {/* HANDS ON LEARNING */}
               <div className={printMode && printMode !== 'all' && printMode !== 'handsOn' ? 'print:hidden' : 'print:block'}>
                 <Card className="border-t-4 border-t-amber-500 rounded-2xl shadow-sm overflow-hidden">
                   <CardHeader className="flex flex-row justify-between items-center bg-slate-50/50">
@@ -480,7 +511,6 @@ export default function Dashboard() {
                     <Button variant="ghost" size="sm" onClick={() => setPrintMode('handsOn')} className="print:hidden"><Printer className="w-4 h-4"/></Button>
                   </CardHeader>
                   <CardContent className="space-y-6 p-6">
-                    {/* Around House */}
                     {generatedData.handsOnLearning?.aroundTheHouse && (
                       <div className="bg-amber-50 p-6 rounded-2xl border border-amber-200">
                         <h4 className="font-black text-amber-900 uppercase text-xs tracking-wider mb-2 bg-amber-200/50 w-max px-2 py-1 rounded">Around The House</h4>
@@ -492,7 +522,6 @@ export default function Dashboard() {
                         </div>
                       </div>
                     )}
-                    {/* Out and About */}
                     {generatedData.handsOnLearning?.outAndAbout && (
                       <div className="bg-amber-50 p-6 rounded-2xl border border-amber-200">
                         <h4 className="font-black text-amber-900 uppercase text-xs tracking-wider mb-2 bg-amber-200/50 w-max px-2 py-1 rounded">Out and About</h4>
@@ -504,7 +533,6 @@ export default function Dashboard() {
                         </div>
                       </div>
                     )}
-                    {/* Big Ideas */}
                     {generatedData.handsOnLearning?.bigIdeas && (
                       <div className="bg-amber-50 p-6 rounded-2xl border border-amber-200">
                         <h4 className="font-black text-amber-900 uppercase text-xs tracking-wider mb-2 bg-amber-200/50 w-max px-2 py-1 rounded">Big Ideas (Capstone)</h4>
@@ -520,7 +548,6 @@ export default function Dashboard() {
                 </Card>
               </div>
 
-              {/* LETS TALK & LETS EXPLORE */}
               <div className="grid md:grid-cols-2 gap-6">
                 <Card className="border-t-4 border-t-teal-500 rounded-2xl shadow-sm overflow-hidden">
                   <CardHeader className="bg-slate-50/50"><CardTitle className="font-black text-xl text-slate-800">Let&apos;s Talk (Kindling)</CardTitle></CardHeader>
@@ -544,7 +571,6 @@ export default function Dashboard() {
                 </Card>
               </div>
 
-              {/* DAILY WORKSHEETS */}
               {generatedData.printableWorksheets && (
                 <div className={printMode && printMode !== 'all' && printMode !== 'worksheets' ? 'print:hidden' : 'print:block space-y-8 pt-8'}>
                   <div className="flex justify-between items-center print:hidden border-b border-slate-300 pb-4">
@@ -571,7 +597,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* GUEST UNLOCK OVERLAY */}
             {isGuest && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center">
                 <div className="bg-white/95 backdrop-blur-md p-10 rounded-3xl shadow-2xl border border-slate-200 max-w-lg">
