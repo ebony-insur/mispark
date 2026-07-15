@@ -5,7 +5,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// 1. ADDED: TypeScript Interface for the incoming request payload
+// TypeScript Interface for the incoming request payload
 interface GenerateRequestPayload {
   lessonText: string;
   studentProfile?: {
@@ -15,57 +15,58 @@ interface GenerateRequestPayload {
     reading_mastery_level?: string;
     state_residence?: string;
     zip_code?: string;
+    interests?: string; // 📍 Added to catch the new "Anything else" field we will build
+    sensory_needs?: string; 
   };
   subscriptions?: string[];
 }
 
 export async function POST(req: Request) {
   try {
-    // 2. ADDED: Tell TypeScript exactly what shape the JSON body is
     const body = (await req.json()) as GenerateRequestPayload;
     
-    // Safely destructure
     const { lessonText, studentProfile, subscriptions } = body;
 
-    // Set up safe fallbacks so variables are never undefined
+    // Set up safe fallbacks
     const focusDuration = studentProfile?.focus_duration || "20 mins";
     const stateResidence = studentProfile?.state_residence || "General US";
     const zipCode = studentProfile?.zip_code || "None provided";
+    const grade = studentProfile?.grade || "Elementary";
+    const specialInterests = studentProfile?.interests || "None specified";
+    const sensoryNeeds = studentProfile?.sensory_needs || "None specified";
 
-    // Format the subscriptions array into a readable string for the AI
     const activeSubsList = subscriptions && subscriptions.length > 0 
       ? subscriptions.join(", ") 
       : "None listed. Rely on free or public resources.";
 
-    const systemPrompt = `You are miSpark, a personable, highly-skilled homeschool co-teacher and personal assistant. Your tone is encouraging, concise, time-saving, and empathetic to a busy parent. Your job is to transform a provided syllabus into a tailored, dynamic adventure.
+    // 📍 THE MASTER EDUCATOR PROMPT OVERHAUL
+    const systemPrompt = `You are miSpark, a master homeschool educator and curriculum designer with advanced degrees in education. You do not give generic, surface-level advice. You create highly engaging, age-appropriate, pedagogically sound, and non-obvious lesson plans. Your tone is that of an expert consulting with a parent—professional, insightful, and deeply practical.
 
     CRITICAL INSTRUCTIONS & EXCLUSIONS:
-    1. PROGRESSIVE MASTERY & FOCUS: Align content to the student's level. You MUST strictly tailor the length of activities to fit the student's stated 'focus_duration' of ${focusDuration} minutes.
-    2. ASSESSED FOUNDATION (State Standards): Using the provided state of residence (${stateResidence}), explain the targeted educational standards in plain, conversational English. Avoid bureaucratic jargon.
+    1. NOVELTY & DEPTH: Do not rely on cliché examples (e.g., if the topic is 'Earth Science', do not just say 'make a baking soda volcano'). Provide highly specific, unique, and memorable angles. 
+    2. PROGRESSIVE MASTERY & FOCUS: Align content perfectly to a ${grade} level student. You MUST strictly tailor the length of activities to fit the student's stated 'focus_duration' of ${focusDuration}.
+    3. SPECIAL CONSIDERATIONS: Seamlessly weave the student's interests (${specialInterests}) and sensory needs (${sensoryNeeds}) into the activities.
+    
+    4. ASSESSED FOUNDATION (State Standards): Using the state of residence (${stateResidence}), explain the targeted educational standards in plain, conversational English. Avoid bureaucratic jargon, but be academically precise.
 
     // 📍 THE ROADSCHOOLING RULE (Hyper-Local Geolocation)
-    3. LET'S EXPLORE (Illuminations): Provide specific, real-world field trip locations. 
-       - You MUST use the provided physical zip code (${zipCode}) to recommend ACTUAL museums, historical sites, or local parks within a 30-mile radius.
-       - DO NOT suggest generic locations like "a local park." Name the exact venue.
+    5. LET'S EXPLORE (Illuminations): You MUST use the provided physical zip code (${zipCode}) to recommend ACTUAL real-world locations (museums, historical sites, parks) within a 30-mile radius. 
+       - Write your response as actionable bullet points. 
+       - You MUST include a specific mini-scavenger hunt or observational task for the location using the Who, What, When, Where, and How framework.
+       - Connect the field trip directly to the 'Hands-On Learning' experiments.
 
     // 🎒 THE DIGITAL BACKPACK RULE (Maximize Investment)
-    4. LOOK & LEARN (Media): The parent currently subscribes to: [${activeSubsList}]. 
-       - You MUST prioritize finding high-quality documentaries, shows, or educational media on THESE specific platforms first. 
-       - Only suggest outside platforms if absolutely necessary, and note if they are free (like YouTube).
+    6. LOOK & LEARN (Media): The parent currently subscribes to: [${activeSubsList}]. 
+       - You MUST prioritize finding high-quality documentaries or shows on THESE specific platforms first. Only suggest outside platforms if absolutely necessary (like free YouTube resources).
 
-    // ✨ THE 1-SPARK SPARKLE RULE (Resource Expansion)
-    5. RESOURCE EXPANSION: Identify exactly ONE world-class external resource (e.g., a specific KiwiCo crate, a highly relevant board game, or an exceptional documentary on a platform they DON'T have). 
-       - It must be a perfect, mind-blowing match for the topic. 
-       - Explain exactly WHY it is worth going out of their way to buy or subscribe to.
+    7. LET'S TALK (Kindling): Provide EXACTLY three (3) deep-thinking, open-ended questions related to the topic. Do not provide 2, do not provide 4. Exactly 3.
 
-    6. HANDS-ON LEARNING (Catalysts): Provide 3 activities ("Around the House", "Out and About", "Big Ideas").
-       - SUPPLY RULE: Restrict required supplies to common household or basic craft items. No obscure materials.
+    8. HANDS-ON LEARNING: Provide 3 activities ("Around the House", "Out and About", "Big Ideas"). Restrict required supplies to common household items. NEVER leave these blank.
     
-    7. RECOMMENDED READING (Free Tier): Provide 3 Fiction and 3 Non-Fiction books.
+    9. RECOMMENDED READING: Provide exactly 3 Fiction and 3 Non-Fiction books perfectly targeted to ${grade} reading level.
     
-    8. WORKSHEETS: Provide questions ONLY. Do NOT leave blank spaces for answers.`;
+    10. WORKSHEETS: Provide questions ONLY. Do NOT leave blank spaces or underscores for answers.`;
 
-    // 3. FIXED: Completely rebuilt the schema to perfectly match the Dashboard UI Types
     const jsonSchema = {
       type: "object",
       properties: {
@@ -154,8 +155,8 @@ export async function POST(req: Request) {
             }
           }
         },
-        letsTalk: { type: "array", items: { type: "string" } },
-        letsExplore: { type: "array", items: { type: "string" } },
+        letsTalk: { type: "array", items: { type: "string", description: "Exactly 3 deep questions." } },
+        letsExplore: { type: "array", items: { type: "string", description: "Specific location, scavenger hunt instructions, and experiment alignments." } },
         printableWorksheets: {
           type: "array",
           items: {
@@ -168,14 +169,6 @@ export async function POST(req: Request) {
             },
             required: ["day", "estimatedDuration", "worksheetTitle", "questions"]
           }
-        },
-        resourceExpansion: {
-          type: "object",
-          properties: {
-            title: { type: "string" },
-            whyItsWorthIt: { type: "string" }
-          },
-          required: ["title", "whyItsWorthIt"]
         }
       },
       required: [
@@ -189,28 +182,43 @@ export async function POST(req: Request) {
       messages: [
         { 
           role: "system", 
-          content: `${systemPrompt}\n\nYou MUST use exactly this JSON schema to format your response:\n${JSON.stringify(jsonSchema)}` 
+          content: `${systemPrompt}\n\nYou MUST use exactly this JSON schema to format your response:\n${JSON.stringify(jsonSchema)}\n\nIMPORTANT: NEVER return empty arrays. If you cannot find a perfect match, synthesize a highly creative, viable alternative.` 
         },
         { 
           role: "user", 
-          content: `Here is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}` 
+          // Injecting a timestamp seed to force the AI to rethink if given the exact same prompt twice
+          content: `Seed: ${Date.now()}\n\nHere is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}` 
         }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.7,
+      temperature: 0.85, // Bumped up slightly to encourage more creative, non-generic ideas
     });
 
     const generatedText = completion.choices[0].message.content;
     if (!generatedText) throw new Error("No content generated from OpenAI.");
 
-    return NextResponse.json({ data: JSON.parse(generatedText) }, { status: 200 });
+    const parsedData = JSON.parse(generatedText);
+
+    // 📍 THE SPARK FAILSAFE
+    // If the AI hallucinates and returns empty arrays for core sections, throw an error.
+    // This returns a 500 status to the dashboard, which aborts the Spark deduction!
+    if (
+      !parsedData.assessedFoundation || 
+      !parsedData.letsPlay || parsedData.letsPlay.length === 0 ||
+      !parsedData.lookAndLearn || parsedData.lookAndLearn.length === 0 ||
+      !parsedData.letsExplore || parsedData.letsExplore.length === 0 ||
+      !parsedData.letsTalk || parsedData.letsTalk.length < 3
+    ) {
+      throw new Error("AI returned an incomplete dataset.");
+    }
+
+    return NextResponse.json({ data: parsedData }, { status: 200 });
     
-  // 4. FIXED: Removed "any" and added proper Error instance checking
   } catch (error) {
     console.error("Error in generate API:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to generate schedule." }, 
-      { status: 500 }
+      { status: 500 } // Dashboard catches this 500 and prevents Spark deduction
     );
   }
 }
