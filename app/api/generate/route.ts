@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
@@ -25,7 +26,6 @@ export async function POST(req: Request) {
     const body = (await req.json()) as GenerateRequestPayload;
     const { lessonText, studentProfile, subscriptions } = body;
 
-    // Set up safe fallbacks
     const focusDuration = studentProfile?.focus_duration || "20 mins";
     const stateResidence = studentProfile?.state_residence || "General US";
     const zipCode = studentProfile?.zip_code || "None provided";
@@ -37,47 +37,31 @@ export async function POST(req: Request) {
       ? subscriptions.join(", ") 
       : "None listed. Rely on free or public resources.";
 
-    const systemPrompt = `You are MiSpark, a master homeschool educator and curriculum designer with advanced degrees in education. You do not give generic, surface-level advice. You create highly engaging, age-appropriate, pedagogically sound, and non-obvious lesson plans. Your tone is that of an expert consulting with a parent—professional, insightful, and deeply practical.
+    const systemPrompt = `You are MiSpark, a master homeschool educator. You design flexible, highly engaging, and non-obvious lesson plans.
 
     CRITICAL INSTRUCTIONS & EXCLUSIONS:
-    1. MULTIDISCIPLINARY SYNTHESIS & STRESS TESTS: The user may provide highly disjointed, multi-subject topics across different learning levels (e.g., historical topics mixed with math and science). You MUST gracefully handle this by breaking down the days or subjects into structured components without skipping any topic mentioned. Do not break the JSON schema structure under any circumstance.
-    2. NOVELTY & DEPTH: Do not rely on cliché examples. Provide highly specific, unique, and memorable angles. 
-    3. PROGRESSIVE MASTERY & FOCUS: Align content perfectly to a ${grade} level student. You MUST strictly tailor the length of activities to fit the student's stated 'focus_duration' of ${focusDuration}.
-    4. SPECIAL CONSIDERATIONS: Seamlessly weave the student's interests (${specialInterests}) and sensory needs (${sensoryNeeds}) into the activities.
-    5. ASSESSED FOUNDATION (State Standards): Using the state of residence (${stateResidence}), explain the targeted educational standards in plain, conversational English. Avoid bureaucratic jargon, but be academically precise.
-
-    // 📍 THE ROADSCHOOLING RULE (Hyper-Local Geolocation)
-    6. LET'S EXPLORE (Illuminations): You MUST use the provided physical zip code (${zipCode}) to recommend ACTUAL real-world locations (museums, historical sites, parks) within a 30-mile radius. 
-       - Write your response as actionable bullet points. 
-       - You MUST include a specific mini-scavenger hunt or observational task for the location using the Who, What, When, Where, and How framework.
-       - Connect the field trip directly to the 'Hands-On Learning' experiments.
-
-    // 🎒 THE DIGITAL BACKPACK RULE (Maximize Investment)
-    7. LOOK & LEARN (Media): The parent currently subscribes to: [${activeSubsList}]. 
-       - You MUST prioritize finding high-quality documentaries or shows on THESE specific platforms first. Only suggest outside platforms if absolutely necessary (like free YouTube resources).
-
-    8. LET'S TALK (Kindling): Provide EXACTLY three (3) deep-thinking, open-ended questions related to the topic. Do not provide 2, do not provide 4. Exactly 3.
-
-    9. HANDS-ON LEARNING: Provide 3 activities ("Around the House", "Out and About", "Big Ideas"). Restrict required supplies to common household items. NEVER leave these blank.
+    1. FLEXIBILITY OVER SCHEDULES: Homeschoolers hate strict schedules. Do NOT assign any tasks, worksheets, or standards to specific "days of the week". Everything is fluid.
+    2. APPLICABLE STANDARDS: Look at the parent's provided text. Map their topics to the closest applicable ${stateResidence} state standard for a ${grade} student. If the parent's topic is clearly above or below grade level, gently note that in the explanation. Only pull standards applicable to what they entered.
+    3. TACTILE & VISUAL LEARNING: Suggest physical manipulatives (e.g., abacus, base-10 blocks, globes, clay, measuring cups) that physically represent the concepts being taught.
+    4. LOCAL FIELD TRIPS (Zip Code ${zipCode}): You MUST use your spatial knowledge to name a REAL, physical museum, park, historical site, or local business near this zip code. Do not suggest generic ideas. Name the actual place.
+    5. NO FAKE URLS: Do NOT generate URLs for media or books. Provide the exact title and platform so the parent can search it.
+    6. END OF WEEK REVIEW: Instead of daily worksheets, generate exactly ONE comprehensive "End of Week Review" consisting of deep-thinking questions.
     
-    10. RECOMMENDED READING: Provide exactly 3 Fiction and 3 Non-Fiction books perfectly targeted to ${grade} reading level.
-    
-    11. WORKSHEETS: Provide questions ONLY. Do NOT leave blank spaces or underscores for answers.`;
+    You MUST output valid JSON matching the schema provided.`;
 
     const jsonSchema = {
       type: "object",
       properties: {
-        assessedFoundation: { type: "string", description: "Conversational explanation of state standards." },
+        assessedFoundation: { type: "string", description: "Conversational explanation of applicable state standards." },
         outlinedStandards: {
           type: "array",
           items: {
             type: "object",
             properties: {
-              day: { type: "string" },
               subject: { type: "string" },
-              topic: { type: "string" }
+              topic: { type: "string", description: "The standard being met." }
             },
-            required: ["day", "subject", "topic"]
+            required: ["subject", "topic"]
           }
         },
         readingList: {
@@ -92,12 +76,23 @@ export async function POST(req: Request) {
             required: ["type", "title", "prompt"]
           }
         },
+        tactileResources: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              item: { type: "string", description: "e.g., Base-10 blocks, globe, clay" },
+              howToUse: { type: "string", description: "How to use this physically in the lesson." }
+            },
+            required: ["item", "howToUse"]
+          }
+        },
         letsPlay: {
           type: "array",
           items: {
             type: "object",
             properties: {
-              gameName: { type: "string" },
+              gameName: { type: "string", description: "Board game or physical game." },
               modality: { type: "string" },
               skillsReinforced: { type: "string" },
               description: { type: "string" }
@@ -133,58 +128,43 @@ export async function POST(req: Request) {
             outAndAbout: {
               type: "object",
               properties: {
-                title: { type: "string" },
+                title: { type: "string", description: "Must name a REAL local place near the zip code." },
                 supplies: { type: "array", items: { type: "string" } },
-                instructions: { type: "string" },
-                extendedConversation: { type: "string" }
-              },
-              required: ["title", "supplies", "instructions", "extendedConversation"]
-            },
-            bigIdeas: {
-              type: "object",
-              properties: {
-                title: { type: "string" },
-                supplies: { type: "array", items: { type: "string" } },
-                instructions: { type: "string" },
+                instructions: { type: "string", description: "Scavenger hunt or activity at the location." },
                 extendedConversation: { type: "string" }
               },
               required: ["title", "supplies", "instructions", "extendedConversation"]
             }
-          }
+          },
+          required: ["aroundTheHouse", "outAndAbout"]
         },
-        letsTalk: { type: "array", items: { type: "string", description: "Exactly 3 deep questions." } },
-        letsExplore: { type: "array", items: { type: "string", description: "Specific location, scavenger hunt instructions, and experiment alignments." } },
-        printableWorksheets: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              day: { type: "string" },
-              estimatedDuration: { type: "string" },
-              worksheetTitle: { type: "string" },
-              questions: { type: "array", items: { type: "string" } }
-            },
-            required: ["day", "estimatedDuration", "worksheetTitle", "questions"]
-          }
+        letsTalk: { type: "array", items: { type: "string" } },
+        endOfWeekReview: {
+          type: "object",
+          properties: {
+            estimatedDuration: { type: "string" },
+            worksheetTitle: { type: "string" },
+            questions: { type: "array", items: { type: "string" } }
+          },
+          required: ["estimatedDuration", "worksheetTitle", "questions"]
         }
       },
       required: [
-        "assessedFoundation", "outlinedStandards", "readingList", "letsPlay", 
-        "lookAndLearn", "handsOnLearning", "letsTalk", "letsExplore", "printableWorksheets"
+        "assessedFoundation", "outlinedStandards", "readingList", "tactileResources", "letsPlay", 
+        "lookAndLearn", "handsOnLearning", "letsTalk", "endOfWeekReview"
       ]
     };
 
     const completion = await openai.chat.completions.create({
-      // 📍 FIXED: Upgraded to flagship model for brilliant results
       model: "gpt-4o",
       messages: [
         { 
           role: "system", 
-          content: `${systemPrompt}\n\nYou MUST use exactly this JSON schema to format your response:\n${JSON.stringify(jsonSchema)}\n\nIMPORTANT: NEVER return empty arrays. If topics span multiple subjects, distribute them evenly across the week.` 
+          content: `${systemPrompt}\n\nYou MUST use exactly this JSON schema:\n${JSON.stringify(jsonSchema)}\n\nIMPORTANT: Never use the word "Day 1" or assign schedules.` 
         },
         { 
           role: "user", 
-          content: `Seed: ${Date.now()}\n\nHere is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}` 
+          content: `Here is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}` 
         }
       ],
       response_format: { type: "json_object" },
@@ -195,24 +175,10 @@ export async function POST(req: Request) {
     if (!generatedText) throw new Error("No content generated.");
 
     const parsedData = JSON.parse(generatedText);
-
-    if (
-      !parsedData.assessedFoundation || 
-      !parsedData.letsPlay || parsedData.letsPlay.length === 0 ||
-      !parsedData.lookAndLearn || parsedData.lookAndLearn.length === 0 ||
-      !parsedData.letsExplore || parsedData.letsExplore.length === 0 ||
-      !parsedData.letsTalk || parsedData.letsTalk.length < 3
-    ) {
-      throw new Error("Incomplete dataset generated.");
-    }
-
     return NextResponse.json({ data: parsedData }, { status: 200 });
     
   } catch (error) {
     console.error("Error in generate API:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to process request." }, 
-      { status: 500 } 
-    );
+    return NextResponse.json({ error: "Failed to process request." }, { status: 500 });
   }
 }
