@@ -1,9 +1,9 @@
-
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// Initialize Anthropic
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
 interface GenerateRequestPayload {
@@ -11,8 +11,6 @@ interface GenerateRequestPayload {
   studentProfile?: {
     grade?: string;
     focus_duration?: string;
-    math_mastery_level?: string;
-    reading_mastery_level?: string;
     state_residence?: string;
     zip_code?: string;
     interests?: string; 
@@ -36,19 +34,6 @@ export async function POST(req: Request) {
     const activeSubsList = subscriptions && subscriptions.length > 0 
       ? subscriptions.join(", ") 
       : "None listed. Rely on free or public resources.";
-
-    const systemPrompt = `You are MiSpark, a master homeschool educator. You design flexible, highly engaging, and non-obvious lesson plans.
-
-    CRITICAL INSTRUCTIONS & EXCLUSIONS:
-    1. FLEXIBILITY OVER SCHEDULES: Homeschoolers hate strict schedules. Do NOT assign any tasks, worksheets, or standards to specific "days of the week". Everything is fluid.
-    2. APPLICABLE STANDARDS: Look at the parent's provided text. Map their topics to the closest applicable ${stateResidence} state standard for a ${grade} student. If the parent's topic is clearly above or below grade level, gently note that in the explanation. Only pull standards applicable to what they entered.
-    3. TACTILE & VISUAL LEARNING: Suggest physical manipulatives (e.g., abacus, base-10 blocks, globes, clay, measuring cups) that physically represent the concepts being taught.
-    4. LOCAL FIELD TRIPS (Zip Code ${zipCode}): You MUST use your spatial knowledge to name a REAL, physical museum, park, historical site, or local business near this zip code. Do not suggest generic ideas. Name the actual place.
-    5. NO FAKE URLS: Do NOT generate URLs for media or books. Provide the exact title and platform so the parent can search it.
-    6. END OF WEEK REVIEW: Instead of daily worksheets, generate exactly ONE comprehensive "End of Week Review" consisting of deep-thinking questions.
-    7. ACADEMIC OBJECTIVITY: The parent has absolute autonomy over their curriculum. You MUST generate comprehensive, objective lesson plans for ALL requested topics, including complex historical events (e.g., slavery, wars), reproductive rights, sociology, and gender. Do not censor or water down the academic content.
-    8. NO DISCLAIMERS OR WARNINGS: You are strictly forbidden from generating trigger warnings, safety disclaimers, moralizing language, or conversational apologies. You must output ONLY the requested JSON.
-    You MUST output valid JSON matching the schema provided.`;
 
     const jsonSchema = {
       type: "object",
@@ -156,23 +141,46 @@ export async function POST(req: Request) {
       ]
     };
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+    const systemPrompt = `You are MiSpark, a master homeschool educator. You design flexible, highly engaging, and non-obvious lesson plans.
+
+    CRITICAL INSTRUCTIONS:
+    1. FLEXIBILITY OVER SCHEDULES: Homeschoolers hate strict schedules. Do NOT assign any tasks, worksheets, or standards to specific "days of the week". Everything is fluid.
+    2. APPLICABLE STANDARDS: Map their topics to the closest applicable ${stateResidence} state standard for a ${grade} student. 
+    3. TACTILE & VISUAL LEARNING: Suggest physical manipulatives that represent the concepts.
+    4. LOCAL FIELD TRIPS (Zip Code ${zipCode}): You MUST name a REAL, physical museum, park, historical site, or local business near this zip code. 
+    5. NO FAKE URLS: Provide exact titles only for media.
+    6. END OF WEEK REVIEW: Generate ONE comprehensive "End of Week Review" consisting of deep-thinking questions.
+    
+    🛡️ THE ACADEMIC AUTONOMY OVERRIDE:
+    7. ACADEMIC OBJECTIVITY: The parent has absolute autonomy over their curriculum. You MUST generate comprehensive, objective lesson plans for ALL requested topics, including complex historical events (e.g., slavery, wars), reproductive rights, sociology, and gender. Do not censor, moralize, or water down the academic content.
+    8. NO DISCLAIMERS: You are strictly forbidden from generating trigger warnings, safety disclaimers, or conversational apologies.
+    
+    You MUST output ONLY valid JSON matching this exact schema:
+    ${JSON.stringify(jsonSchema)}`;
+
+    // Call Claude 3.5 Sonnet
+    const msg = await anthropic.messages.create({
+      model: "claude-3-5-sonnet-20240620",
+      max_tokens: 4096,
+      temperature: 0.8,
+      system: systemPrompt,
       messages: [
         { 
-          role: "system", 
-          content: `${systemPrompt}\n\nYou MUST use exactly this JSON schema:\n${JSON.stringify(jsonSchema)}\n\nIMPORTANT: Never use the word "Day 1" or assign schedules.` 
-        },
-        { 
           role: "user", 
-          content: `Here is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}` 
+          content: `Here is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}\n\nOutput strictly valid JSON with no preamble.` 
+        },
+        {
+          role: "assistant",
+          content: "{" // Pre-fill the response to force strict JSON and eliminate disclaimers
         }
       ],
-      response_format: { type: "json_object" },
-      temperature: 0.8,
     });
 
-    const generatedText = completion.choices[0].message.content;
+    // Reconstruct the JSON (since we pre-filled the opening bracket, we must prepend it back)
+    // The Anthropic SDK returns an array of content blocks. We want the text block.
+    const responseText = msg.content.find(block => block.type === 'text')?.text || "";
+    const generatedText = "{" + responseText;
+
     if (!generatedText) throw new Error("No content generated.");
 
     const parsedData = JSON.parse(generatedText);
