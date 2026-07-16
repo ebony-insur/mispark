@@ -158,24 +158,20 @@ export async function POST(req: Request) {
     You MUST output ONLY valid JSON matching this exact schema:
     ${JSON.stringify(jsonSchema)}`;
 
-    // Call Claude 3.5 Sonnet
+
+    // Call Claude 3.5 Sonnet (Updated to current API model ID)
     const msg = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20240620",
+      model: "claude-sonnet-5", 
       max_tokens: 4096,
       temperature: 0.8,
       system: systemPrompt,
       messages: [
         { 
           role: "user", 
-          content: `Here is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}\n\nOutput strictly valid JSON with no preamble.` 
-        },
-        {
-          role: "assistant",
-          content: "{" // Pre-fill the response to force strict JSON and eliminate disclaimers
+          content: `Here is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}\n\nOutput strictly valid JSON with no preamble or conversational text.` 
         }
       ],
     });
-
     // Reconstruct the JSON (since we pre-filled the opening bracket, we must prepend it back)
     // The Anthropic SDK returns an array of content blocks. We want the text block.
     const responseText = msg.content.find(block => block.type === 'text')?.text || "";
