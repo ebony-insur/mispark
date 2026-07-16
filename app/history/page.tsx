@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Clock, BookOpen, User as UserIcon, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Clock, BookOpen, User as UserIcon, Loader2 } from "lucide-react";
 
 export default function HistoryPage() {
   const [historyByStudent, setHistoryByStudent] = useState<Record<string, any[]>>({});
@@ -58,15 +58,8 @@ export default function HistoryPage() {
   return (
     <main className="flex min-h-screen flex-col items-center py-12 px-6 bg-slate-50 space-y-8">
       
-      {/* TEMP HEADER (Will be replaced by Universal Navbar in Step 3) */}
-     return (
-    <main className="flex min-h-screen flex-col items-center py-12 px-6 bg-slate-50 space-y-8">
-      
       <Navbar />
 
-      <div className="w-full max-w-4xl space-y-10">
-        
-      </div>
       <div className="w-full max-w-4xl space-y-10">
         {Object.keys(historyByStudent).length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl border border-slate-200">
@@ -87,7 +80,6 @@ export default function HistoryPage() {
                   const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                   const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
                   
-                  // Extract a short summary from the assessed foundation or standards
                   const summary = plan.plan_data?.assessedFoundation 
                     ? plan.plan_data.assessedFoundation.substring(0, 120) + "..."
                     : "Custom curriculum generation.";
