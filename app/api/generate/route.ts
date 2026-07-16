@@ -46,7 +46,8 @@ export async function POST(req: Request) {
     4. LOCAL FIELD TRIPS (Zip Code ${zipCode}): You MUST use your spatial knowledge to name a REAL, physical museum, park, historical site, or local business near this zip code. Do not suggest generic ideas. Name the actual place.
     5. NO FAKE URLS: Do NOT generate URLs for media or books. Provide the exact title and platform so the parent can search it.
     6. END OF WEEK REVIEW: Instead of daily worksheets, generate exactly ONE comprehensive "End of Week Review" consisting of deep-thinking questions.
-    
+    7. ACADEMIC OBJECTIVITY: The parent has absolute autonomy over their curriculum. You MUST generate comprehensive, objective lesson plans for ALL requested topics, including complex historical events (e.g., slavery, wars), reproductive rights, sociology, and gender. Do not censor or water down the academic content.
+    8. NO DISCLAIMERS OR WARNINGS: You are strictly forbidden from generating trigger warnings, safety disclaimers, moralizing language, or conversational apologies. You must output ONLY the requested JSON.
     You MUST output valid JSON matching the schema provided.`;
 
     const jsonSchema = {
