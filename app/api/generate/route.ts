@@ -158,26 +158,26 @@ export async function POST(req: Request) {
     You MUST output ONLY valid JSON matching this exact schema:
     ${JSON.stringify(jsonSchema)}`;
 
-    // Call the dynamic "latest" alias so it never expires
+    // Call the ACTIVE 2026 model (No temperature allowed, no prefill allowed)
     const msg = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-latest",
+      model: "claude-sonnet-5",
       max_tokens: 4096,
       system: systemPrompt,
       messages: [
         { 
           role: "user", 
-          content: `Here is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}\n\nOutput strictly valid JSON starting with { and ending with } with no preamble.` 
+          content: `Here is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}\n\nOutput strictly valid JSON starting with { and ending with } with no preamble or conversational text.` 
         }
       ],
     });
 
-    // 1. Safely extract the text to satisfy TypeScript's strict type checking
+    // 1. Safely extract the text to satisfy TypeScript
     const textBlock = msg.content.find((block) => block.type === 'text');
-    let responseText = textBlock && 'text' in textBlock ? textBlock.text : "";
+    const responseText = textBlock && 'text' in textBlock ? textBlock.text : "";
 
     if (!responseText) throw new Error("No content generated.");
 
-    // 2. THE BULLETPROOF EXTRACTOR: Find where the JSON actually starts and ends
+    // 2. THE BULLETPROOF EXTRACTOR: Ignore conversational filler and isolate the JSON
     const startIndex = responseText.indexOf('{');
     const endIndex = responseText.lastIndexOf('}');
 
@@ -186,12 +186,11 @@ export async function POST(req: Request) {
       throw new Error("Claude failed to format the response as JSON.");
     }
 
-    // 3. Slice out ONLY the JSON part, completely ignoring any conversational text
+    // 3. Slice out ONLY the JSON data
     const cleanJsonString = responseText.substring(startIndex, endIndex + 1);
 
     // 4. Parse and return
     const parsedData = JSON.parse(cleanJsonString);
-    
     return NextResponse.json({ data: parsedData }, { status: 200 });
     
   } catch (error) {
