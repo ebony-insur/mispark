@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import Navbar from "@/components/Navbar";
+import SiteHeader from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock, BookOpen, User as UserIcon, Loader2 } from "lucide-react";
@@ -58,7 +58,7 @@ export default function HistoryPage() {
   return (
     <main className="flex min-h-screen flex-col items-center py-12 px-6 bg-slate-50 space-y-8">
       
-      <Navbar />
+      <SiteHeader />
 
       <div className="w-full max-w-4xl space-y-10">
         {Object.keys(historyByStudent).length === 0 ? (

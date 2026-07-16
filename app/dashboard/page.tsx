@@ -14,7 +14,7 @@ import {
   BookHeart, ExternalLink, Zap, User as UserIcon, ChevronDown, 
   Loader2, Plus, Shapes, ChevronRight, ChevronsUpDown
 } from "lucide-react";
-import Navbar from "@/components/Navbar";
+import SiteHeader from "@/components/SiteHeader";
 
 // Helper functions for smart search links
 const generateSearchLink = (query: string, platform: "amazon-book" | "amazon-game" | "walmart" | "thriftbooks" | "bookshop" | "youtube") => {
@@ -193,7 +193,7 @@ export default function Dashboard() {
   return (
     <main className="flex min-h-screen flex-col items-center py-12 px-6 bg-slate-50 space-y-8 print:bg-white print:py-0 print:px-0">
       
-      <Navbar />
+      <SiteHeader />
 
       {/* INPUT AREA */}
       <div className="w-full max-w-5xl space-y-6 print:hidden">

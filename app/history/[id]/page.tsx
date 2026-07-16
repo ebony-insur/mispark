@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import Navbar from "@/components/Navbar";
-import PortfolioUploader from "@/components/PortfolioUploader";
+import SiteHeader from "@/components/SiteHeader";
+import PortfolioUploader from "@/components/EvidenceUploader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -118,7 +118,7 @@ export default function HistoryDetailPage() {
     <main className="flex min-h-screen flex-col items-center py-12 px-6 bg-slate-50 space-y-8 print:bg-white print:py-0 print:px-0">
       
       {/* Universal Navbar */}
-      <Navbar />
+      <SiteHeader />
 
       <div className="w-full max-w-5xl space-y-4 animate-in fade-in slide-in-from-bottom-8 pb-20 print:space-y-6">
         
