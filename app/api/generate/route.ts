@@ -159,11 +159,11 @@ export async function POST(req: Request) {
     ${JSON.stringify(jsonSchema)}`;
 
 
-    // Call Claude 3.5 Sonnet (Updated to current API model ID)
+// Call Claude Sonnet 5
     const msg = await anthropic.messages.create({
-      model: "claude-sonnet-5", 
+      model: "claude-sonnet-5",
       max_tokens: 4096,
-      temperature: 0.8,
+      // ❌ REMOVED temperature: 0.8 completely
       system: systemPrompt,
       messages: [
         { 
