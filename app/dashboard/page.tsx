@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import Image from "next/image";
 import { 
-  Printer, Upload, AlertCircle, BookOpen, FileText, 
-  Lock, FlaskConical, Lightbulb, Gamepad2, PlayCircle, 
+  Printer, Upload, BookOpen, FileText, 
+  FlaskConical, Lightbulb, Gamepad2, PlayCircle, 
   BookHeart, ExternalLink, Zap, User as UserIcon, ChevronDown, 
   Loader2, Plus, Shapes, ChevronRight, ChevronsUpDown
 } from "lucide-react";
+import Navbar from "@/components/Navbar";
 
 // Helper functions for smart search links
 const generateSearchLink = (query: string, platform: "amazon-book" | "amazon-game" | "walmart" | "thriftbooks" | "bookshop" | "youtube") => {
@@ -79,7 +79,6 @@ export default function Dashboard() {
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
 
-  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [activeSubscriptions, setActiveSubscriptions] = useState<string[]>([]);
   const [sparksBalance, setSparksBalance] = useState<number>(0);
   const [subscriptionTier, setSubscriptionTier] = useState<string>("Free Trial");
@@ -191,39 +190,10 @@ export default function Dashboard() {
     finally { setIsLoading(false); }
   };
 
-  const userFirstName = user?.email ? user.email.split('@')[0].charAt(0).toUpperCase() + user.email.split('@')[0].slice(1).toLowerCase() : "Parent";
-
   return (
     <main className="flex min-h-screen flex-col items-center py-12 px-6 bg-slate-50 space-y-8 print:bg-white print:py-0 print:px-0">
       
-      {/* HEADER (Will be moved to Navbar later) */}
-      <div className="w-full max-w-5xl flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200 print:hidden">
-        <Image src="/MiSpark.svg" alt="Logo" width={120} height={40} className="cursor-pointer" onClick={() => router.push("/")} />
-        <div className="flex gap-3 items-center">
-          {isGuest ? (
-            <Button onClick={() => router.push("/login?signup=true")} className="bg-orange-500 hover:bg-orange-600 text-white font-bold">Sign Up to Save</Button>
-          ) : (
-            <>
-              <button onClick={() => router.push("/billing")} className="flex items-center gap-1 bg-amber-50 text-amber-800 px-4 py-2 rounded-lg border border-amber-200 font-bold text-sm">
-                <Zap className="w-4 h-4 fill-amber-500 text-amber-500" /> {subscriptionTier === "Family Unlimited" ? "Unlimited" : `${sparksBalance} Sparks`}
-              </button>
-              <div className="relative">
-                <button onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} onBlur={() => setTimeout(() => setIsAccountMenuOpen(false), 200)} className="flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-lg font-bold text-slate-700">
-                  <UserIcon className="w-4 h-4" /> Hi, {userFirstName}! <ChevronDown className="w-4 h-4" />
-                </button>
-                {isAccountMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50">
-                    <button onClick={() => router.push("/dashboard/students")} className="w-full text-left px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">My Students</button>
-                    <button onClick={() => router.push("/history")} className="w-full text-left px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">My History</button>
-                    <button onClick={() => router.push("/billing")} className="w-full text-left px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">Manage Account</button>
-                    <button onClick={() => { supabase.auth.signOut(); router.push("/"); }} className="w-full text-left px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50">Sign Out</button>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+      <Navbar />
 
       {/* INPUT AREA */}
       <div className="w-full max-w-5xl space-y-6 print:hidden">
