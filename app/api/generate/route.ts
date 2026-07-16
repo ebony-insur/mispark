@@ -158,28 +158,35 @@ export async function POST(req: Request) {
     You MUST output ONLY valid JSON matching this exact schema:
     ${JSON.stringify(jsonSchema)}`;
 
-    // Call Claude Sonnet 5
+    // Call Claude 3.5 Sonnet (20241022) - the most stable version for this specific task
     const msg = await anthropic.messages.create({
-      model: "claude-sonnet-5",
+      model: "claude-3-5-sonnet-20241022",
       max_tokens: 4096,
+      temperature: 0.8,
       system: systemPrompt,
       messages: [
         { 
           role: "user", 
-          content: `Here is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}\n\nOutput strictly valid JSON with no preamble or conversational text.` 
+          content: `Here is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}\n\nOutput strictly valid JSON with no preamble.` 
+        },
+        {
+          role: "assistant",
+          content: "{" // The bulletproof pre-fill trick to guarantee JSON output
         }
       ],
     });
 
-    // 📍 THE FIX: Correctly extract and clean the JSON string
+    // 1. Extract the text directly from Claude's response
     let responseText = msg.content.find((block: any) => block.type === 'text')?.text || "";
 
     if (!responseText) throw new Error("No content generated.");
 
-    // Strip out any markdown tags Claude might have wrapped the JSON in
-    responseText = responseText.replace(/```json/gi, "").replace(/```/g, "").trim();
+    // 2. We pre-filled the "{", so we must prepend it back to the response
+    const generatedText = "{" + responseText;
 
-    const parsedData = JSON.parse(responseText);
+    // 3. Parse the clean JSON
+    const parsedData = JSON.parse(generatedText);
+    
     return NextResponse.json({ data: parsedData }, { status: 200 });
     
   } catch (error) {
