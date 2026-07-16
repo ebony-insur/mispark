@@ -3,7 +3,7 @@ import Stripe from "stripe";
 
 // Initialize Stripe with your secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-04-10", // Using a stable API version
+  apiVersion: "2026-06-24.dahlia", // Using a stable API version
 });
 
 export async function POST(req: Request) {
