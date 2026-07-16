@@ -158,12 +158,10 @@ export async function POST(req: Request) {
     You MUST output ONLY valid JSON matching this exact schema:
     ${JSON.stringify(jsonSchema)}`;
 
-
-// Call Claude Sonnet 5
+    // Call Claude Sonnet 5
     const msg = await anthropic.messages.create({
       model: "claude-sonnet-5",
       max_tokens: 4096,
-      // ❌ REMOVED temperature: 0.8 completely
       system: systemPrompt,
       messages: [
         { 
@@ -172,14 +170,16 @@ export async function POST(req: Request) {
         }
       ],
     });
-    // Reconstruct the JSON (since we pre-filled the opening bracket, we must prepend it back)
-    // The Anthropic SDK returns an array of content blocks. We want the text block.
-    const responseText = msg.content.find(block => block.type === 'text')?.text || "";
-    const generatedText = "{" + responseText;
 
-    if (!generatedText) throw new Error("No content generated.");
+    // 📍 THE FIX: Correctly extract and clean the JSON string
+    let responseText = msg.content.find((block: any) => block.type === 'text')?.text || "";
 
-    const parsedData = JSON.parse(generatedText);
+    if (!responseText) throw new Error("No content generated.");
+
+    // Strip out any markdown tags Claude might have wrapped the JSON in
+    responseText = responseText.replace(/```json/gi, "").replace(/```/g, "").trim();
+
+    const parsedData = JSON.parse(responseText);
     return NextResponse.json({ data: parsedData }, { status: 200 });
     
   } catch (error) {
