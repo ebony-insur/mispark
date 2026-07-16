@@ -158,35 +158,39 @@ export async function POST(req: Request) {
     You MUST output ONLY valid JSON matching this exact schema:
     ${JSON.stringify(jsonSchema)}`;
 
-    // Call Claude 3.5 Sonnet (20241022) - the most stable version for this specific task
+    // Call the dynamic "latest" alias so it never expires
     const msg = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20241022",
+      model: "claude-3-5-sonnet-latest",
       max_tokens: 4096,
-      temperature: 0.8,
       system: systemPrompt,
       messages: [
         { 
           role: "user", 
-          content: `Here is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}\n\nOutput strictly valid JSON with no preamble.` 
-        },
-        {
-          role: "assistant",
-          content: "{" // The bulletproof pre-fill trick to guarantee JSON output
+          content: `Here is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}\n\nOutput strictly valid JSON starting with { and ending with } with no preamble.` 
         }
       ],
     });
 
-   // 1. Safely extract the text to satisfy TypeScript's strict type checking
+    // 1. Safely extract the text to satisfy TypeScript's strict type checking
     const textBlock = msg.content.find((block) => block.type === 'text');
     let responseText = textBlock && 'text' in textBlock ? textBlock.text : "";
-    
+
     if (!responseText) throw new Error("No content generated.");
 
-    // 2. We pre-filled the "{", so we must prepend it back to the response
-    const generatedText = "{" + responseText;
+    // 2. THE BULLETPROOF EXTRACTOR: Find where the JSON actually starts and ends
+    const startIndex = responseText.indexOf('{');
+    const endIndex = responseText.lastIndexOf('}');
 
-    // 3. Parse the clean JSON
-    const parsedData = JSON.parse(generatedText);
+    if (startIndex === -1 || endIndex === -1) {
+      console.error("Raw Claude Output (No JSON found):", responseText);
+      throw new Error("Claude failed to format the response as JSON.");
+    }
+
+    // 3. Slice out ONLY the JSON part, completely ignoring any conversational text
+    const cleanJsonString = responseText.substring(startIndex, endIndex + 1);
+
+    // 4. Parse and return
+    const parsedData = JSON.parse(cleanJsonString);
     
     return NextResponse.json({ data: parsedData }, { status: 200 });
     
