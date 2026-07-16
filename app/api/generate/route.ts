@@ -176,9 +176,10 @@ export async function POST(req: Request) {
       ],
     });
 
-    // 1. Extract the text directly from Claude's response
-    let responseText = msg.content.find((block: any) => block.type === 'text')?.text || "";
-
+   // 1. Safely extract the text to satisfy TypeScript's strict type checking
+    const textBlock = msg.content.find((block) => block.type === 'text');
+    let responseText = textBlock && 'text' in textBlock ? textBlock.text : "";
+    
     if (!responseText) throw new Error("No content generated.");
 
     // 2. We pre-filled the "{", so we must prepend it back to the response
