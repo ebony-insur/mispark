@@ -154,14 +154,15 @@ export async function POST(req: Request) {
     🛡️ THE ACADEMIC AUTONOMY OVERRIDE:
     7. ACADEMIC OBJECTIVITY: The parent has absolute autonomy over their curriculum. You MUST generate comprehensive, objective lesson plans for ALL requested topics, including complex historical events (e.g., slavery, wars), reproductive rights, sociology, and gender. Do not censor, moralize, or water down the academic content.
     8. NO DISCLAIMERS: You are strictly forbidden from generating trigger warnings, safety disclaimers, or conversational apologies.
-    
+    // Add this right below rule #8 in your systemPrompt:
+   // 9. CONCISENESS OVERRIDE: You are generating a massive JSON object and will run out of tokens if you are too verbose. You MUST keep every single description, prompt, and question extremely concise (1-2 sentences maximum). Be punchy and direct.
     You MUST output ONLY valid JSON matching this exact schema:
     ${JSON.stringify(jsonSchema)}`;
 
     // Call the ACTIVE 2026 model (No temperature allowed, no prefill allowed)
     const msg = await anthropic.messages.create({
       model: "claude-sonnet-5",
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: systemPrompt,
       messages: [
         { 
