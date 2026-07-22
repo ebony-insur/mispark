@@ -105,19 +105,20 @@ export default function SiteHeader() {
                     onClick={() => router.push("/dashboard/students")} 
                     className="w-full text-left px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
                   >
-                    My Students
+                    My Learners
                   </button>
+                  {/* UPDATED TERMINOLOGY BELOW */}
                   <button 
                     onClick={() => router.push("/history")} 
                     className="w-full text-left px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
                   >
-                    My History
+                    Plan History
                   </button>
                   <button 
                     onClick={() => router.push("/portfolio")} 
                     className="w-full text-left px-4 py-3 text-sm font-black text-teal-700 hover:bg-teal-50"
                   >
-                    Print Portfolio
+                    Portfolios
                   </button>
                   <button 
                     onClick={() => router.push("/billing")} 

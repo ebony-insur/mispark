@@ -11,8 +11,8 @@ import { toast } from "sonner";
 import { 
   Printer, Upload, BookOpen, FileText, 
   FlaskConical, Lightbulb, Gamepad2, PlayCircle, 
-  BookHeart, ExternalLink, Zap, User as UserIcon, ChevronDown, 
-  Loader2, Plus, Shapes, ChevronRight, ChevronsUpDown
+  BookHeart, ExternalLink, Loader2, Plus, Shapes, 
+  ChevronRight, ChevronsUpDown
 } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 
@@ -202,38 +202,39 @@ export default function Dashboard() {
         {!isGuest && (
           <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 items-center justify-between">
             <div className="flex items-center gap-4 w-full">
-              <label className="text-sm font-extrabold text-slate-700 uppercase whitespace-nowrap">Teaching:</label>
+              <label className="text-sm font-extrabold text-slate-700 uppercase whitespace-nowrap">Learner:</label>
               <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold bg-slate-50">
-                {students.length === 0 ? <option value="" disabled>No students found. Add one!</option> : students.map(s => <option key={s.id} value={s.id}>{s.nickname} (Grade: {s.grade})</option>)}
+                {students.length === 0 ? <option value="" disabled>No learners found. Add one!</option> : students.map(s => <option key={s.id} value={s.id}>{s.nickname} (Grade: {s.grade})</option>)}
               </select>
               <Button onClick={() => router.push("/dashboard/students")} className="px-4 bg-slate-800 text-white rounded-xl"><Plus className="w-5 h-5" /></Button>
             </div>
           </div>
         )}
 
-        {/* Side-by-Side Inputs */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Drag and Drop */}
+        {/* Side-by-Side Inputs (1/3 and 2/3 Split) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* Drag and Drop - 1/3 Width */}
           <div 
             onDragOver={(e) => {e.preventDefault(); setIsDragging(true)}} 
             onDragLeave={() => setIsDragging(false)} 
             onDrop={(e) => {e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if(f) processPdf(f)}} 
             onClick={() => fileInputRef.current?.click()} 
-            className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer min-h-[250px] transition-colors ${isDragging ? "border-teal-500 bg-teal-50" : "border-slate-300 bg-white hover:bg-slate-50"}`}
+            className={`md:col-span-1 border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer min-h-[125px] transition-colors ${isDragging ? "border-teal-500 bg-teal-50" : "border-slate-300 bg-white hover:bg-slate-50"}`}
           >
             <input type="file" accept=".pdf, .png, .jpg, .docx, .txt" className="hidden" ref={fileInputRef} onChange={(e) => {const f = e.target.files?.[0]; if(f) processPdf(f)}} />
-            <Upload className="w-12 h-12 mb-4 text-slate-400" />
-            <p className="font-extrabold text-xl text-slate-700 mb-2">Drag &amp; Drop Syllabus</p>
-            <p className="text-sm text-slate-500 font-medium max-w-[200px]">Upload a PDF or image to extract weekly topics automatically.</p>
+            <Upload className="w-8 h-8 mb-2 text-slate-400" />
+            <p className="font-extrabold text-lg text-slate-700 leading-tight mb-1">Upload PDF</p>
+            <p className="text-xs text-slate-500 font-medium">Extract topics instantly</p>
           </div>
 
-          {/* Text Area */}
-          <div className="flex flex-col bg-white p-2 rounded-2xl border-2 border-slate-200 shadow-sm">
+          {/* Text Area - 2/3 Width */}
+          <div className="md:col-span-2 flex flex-col bg-white p-2 rounded-2xl border-2 border-slate-200 shadow-sm">
             <Textarea 
               placeholder="Or type/paste weekly topics, math concepts, or history subjects here..." 
               value={lessonText} 
               onChange={(e) => setLessonText(e.target.value)} 
-              className="flex-1 min-h-[200px] p-4 rounded-xl border-0 focus-visible:ring-0 text-lg resize-none" 
+              className="flex-1 min-h-[125px] p-4 rounded-xl border-0 focus-visible:ring-0 text-base resize-none" 
             />
             <div className="flex justify-between items-center px-4 py-2 bg-slate-50 rounded-xl mt-2 text-xs text-slate-500 font-bold border border-slate-100">
               <span className={isUnderLimit || isOverLimit ? "text-red-500" : ""}>{isUnderLimit && "Min 15 words required."}{isOverLimit && "Max 750 words."}</span>
@@ -243,7 +244,7 @@ export default function Dashboard() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-4">
+        <div className="flex gap-6">
           <Button 
             onClick={() => setLessonText("")} 
             variant="outline"
@@ -410,4 +411,3 @@ export default function Dashboard() {
     </main>
   );
 }
-//Force Updates

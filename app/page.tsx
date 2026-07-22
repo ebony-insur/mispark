@@ -1,204 +1,186 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
-import { 
-  Sparkles, GraduationCap, CheckCircle2, ShieldCheck, ArrowRight, 
-  ChevronDown, Users, CreditCard, FolderClock, LogOut 
-} from "lucide-react";
 import Image from "next/image";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Sparkles, Clock, Target, FileCheck, HeartHandshake, ChevronRight, CheckCircle2 } from "lucide-react";
+import SiteHeader from "@/components/SiteHeader";
 
-export default function LandingPage() {
+export default function Home() {
   const router = useRouter();
-  const supabase = createClient();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setIsAuthenticated(!!user);
-    };
-    checkAuth();
-  }, []);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setIsAuthenticated(false);
-    setIsAccountMenuOpen(false);
-    toast.success("Signed out successfully.");
-  };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
-      {/* GLOBAL HEADER */}
-      <header className="w-full max-w-7xl mx-auto flex justify-between items-center px-6 py-2 md:py-3 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 rounded-b-xl shadow-sm">
-        
-        {/* ENLARGED CUSTOM LOGO IN NAVBAR */}
-        <div className="cursor-pointer shrink-0 transition-transform hover:scale-105 flex items-center" onClick={() => router.push("/")}>
-          <Image 
-            src="/MiSpark.svg" 
-            alt="MiSpark Logo" 
-            width={240} 
-            height={70} 
-            priority 
-            className="w-auto h-12 md:h-16 object-contain"
-          />
-        </div>
-        
-        <div className="flex items-center gap-4">
-          {isAuthenticated === null ? (
-            <div className="w-20 h-8 bg-slate-200 animate-pulse rounded-md" />
-          ) : isAuthenticated ? (
-            // LOGGED IN NAVIGATION
-            <>
-              <div className="relative">
-                <Button 
-                  onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} 
-                  variant="ghost" 
-                  className="text-slate-600 font-semibold flex items-center gap-1 hover:bg-slate-100"
-                >
-                  My Account <ChevronDown className="w-4 h-4 ml-1 text-slate-400" />
-                </Button>
-
-                {/* DROPDOWN MENU */}
-                {isAccountMenuOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setIsAccountMenuOpen(false)}></div>
-                    
-                    <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <button onClick={() => router.push('/dashboard/students')} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 text-sm font-medium text-slate-700 transition-colors">
-                        <Users className="w-4 h-4 text-teal-600" /> Student Profiles
-                      </button>
-                      <button onClick={() => router.push('/dashboard/billing')} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 text-sm font-medium text-slate-700 transition-colors">
-                        <CreditCard className="w-4 h-4 text-indigo-600" /> Payment & Plans
-                      </button>
-                      <button onClick={() => router.push('/history')} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 text-sm font-medium text-slate-700 transition-colors">
-                        <FolderClock className="w-4 h-4 text-orange-600" /> Previous Plans
-                      </button>
-                      <hr className="my-2 border-slate-100" />
-                      <button onClick={handleSignOut} className="w-full text-left px-4 py-2.5 hover:bg-red-50 flex items-center gap-3 text-sm font-bold text-red-600 transition-colors">
-                        <LogOut className="w-4 h-4" /> Sign Out
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-              
-              <Button onClick={() => router.push("/dashboard")} className="bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm transition-colors">
-                Create Plan <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </>
-          ) : (
-            // PUBLIC NAVIGATION
-            <>
-              <Button onClick={() => router.push("/login")} variant="ghost" className="text-slate-600 font-semibold hover:bg-slate-100 hidden sm:flex">
-                Login
-              </Button>
-              {/* FIXED: Now routes to Dashboard instead of Login */}
-              <Button onClick={() => router.push("/dashboard")} className="bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm transition-colors">
-                Create Plan <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </>
-          )}
-        </div>
-      </header>
+    <main className="flex min-h-screen flex-col items-center bg-slate-50 overflow-x-hidden">
+      
+      <div className="w-full px-6 pt-6 flex justify-center">
+        <SiteHeader />
+      </div>
 
       {/* HERO SECTION */}
-      <main className="flex-1 max-w-7xl mx-auto px-6 py-12 md:py-16 flex flex-col justify-center space-y-16">
+      <section className="w-full max-w-6xl px-6 pt-12 pb-24 text-center flex flex-col items-center animate-in fade-in slide-in-from-bottom-8">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-100 text-teal-800 font-bold text-sm mb-8 border border-teal-200">
+          <Sparkles className="w-4 h-4" /> Stop planning. Start teaching.
+        </div>
         
-        {/* TOP SPLIT: Text Left, Image Right */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          
-          {/* LEFT COLUMN: Text & Buttons */}
-          <div className="space-y-8 text-center lg:text-left flex flex-col items-center lg:items-start">
-            
-            {/* LOGO AND TAGLINE WRAPPER */}
-            <div className="w-full flex flex-col items-center justify-center space-y-4">
-              <Image 
-                src="/MiSpark.svg" 
-                alt="MiSpark" 
-                width={400} 
-                height={120} 
-                priority 
-                className="w-auto h-20 md:h-28 lg:h-32 object-contain"
-              />
+        <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-tight max-w-4xl mb-6">
+          You bring the topics. <br/>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-rose-500">
+            We build the plan.
+          </span>
+        </h1>
+        
+        <p className="text-xl md:text-2xl text-slate-600 font-medium max-w-2xl mb-10 leading-relaxed">
+          Upload your syllabus or type a few topics, and MiSpark instantly generates a flexible, state-aligned curriculum tailored exactly to your learner's needs.
+        </p>
 
-              <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-800 text-sm font-extrabold px-4 py-1.5 rounded-full border border-orange-200 shadow-sm animate-bounce">
-                <Sparkles className="w-4 h-4" /> Built to Support Curious Learners
-              </div>
-            </div>
-            
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight max-w-2xl">
-              Turn Any Topic Into A <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-orange-500">Tailored Dynamic Adventure</span>
-            </h1>
-            
-            <p className="text-lg text-slate-600 max-w-xl font-medium leading-relaxed">
-              Upload your state syllabus or weekly targets. MiSpark immediately builds curated game nights, precise reading lists, audio discovery logs, and duration-calibrated worksheets matching your child's exact profile.
-            </p>
+        <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
+          <Button 
+            onClick={() => router.push("/login?signup=true")} 
+            className="h-16 px-8 text-xl bg-teal-600 hover:bg-teal-700 text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
+          >
+            Start Your Free Trial <ChevronRight className="w-6 h-6 ml-2" />
+          </Button>
+          <Button 
+            onClick={() => router.push("/dashboard")} 
+            variant="outline"
+            className="h-16 px-8 text-xl border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-100"
+          >
+            View Live Demo
+          </Button>
+        </div>
+      </section>
 
-            {/* ALWAYS CENTERED BUTTON WRAPPER */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 w-full justify-center">
-              {/* FIXED: Now routes unconditionally to Dashboard so guests can use the free tools */}
-              <Button 
-                onClick={() => router.push("/dashboard")} 
-                className="w-full sm:w-auto bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-black text-xl py-8 px-12 rounded-xl shadow-lg transition-transform hover:scale-[1.02]"
-              >
-                Create Plan ✨
-              </Button>
+      {/* VALUE PROP DIVIDER */}
+      <div className="w-full bg-slate-900 py-12 px-6">
+        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          {[
+            { label: "Hours Saved Weekly", value: "10+" },
+            { label: "State Standards", value: "Aligned" },
+            { label: "Portfolio Creation", value: "Instant" },
+            { label: "Learner Engagement", value: "Curated" },
+          ].map((stat, i) => (
+            <div key={i} className="flex flex-col items-center">
+              <span className="text-3xl md:text-4xl font-black text-white mb-2">{stat.value}</span>
+              <span className="text-slate-400 font-bold text-sm uppercase tracking-wider">{stat.label}</span>
             </div>
+          ))}
+        </div>
+      </div>
+
+      {/* THE 4 PILLARS OF MEMBERSHIP */}
+      <section className="w-full max-w-6xl px-6 py-24 space-y-32">
+        
+        {/* Pillar 1: State Aligned */}
+        <div className="flex flex-col md:flex-row items-center gap-12">
+          <div className="flex-1 space-y-6">
+            <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center">
+              <Target className="w-8 h-8 text-blue-600" />
+            </div>
+            <h2 className="text-4xl font-black text-slate-900 leading-tight">Never guess if you are hitting the standards.</h2>
+            <p className="text-xl text-slate-600 font-medium">We map every activity directly to your specific state's educational requirements. Have absolute peace of mind knowing your curriculum is fully compliant.</p>
+            <ul className="space-y-3 text-slate-700 font-bold">
+              <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-blue-500"/> Core foundation mapping</li>
+              <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-blue-500"/> Subject-specific standard breakdowns</li>
+            </ul>
           </div>
-
-          {/* RIGHT COLUMN: Custom Graphic */}
-          <div className="flex justify-center lg:justify-end w-full relative">
-            <Image 
-              src="/heroside.svg" 
-              alt="MiSpark Dynamic Learning" 
-              width={800} 
-              height={800} 
-              priority 
-              className="w-full max-w-xl lg:max-w-2xl h-auto object-contain drop-shadow-xl"
-            />
+          <div className="flex-1 w-full bg-white rounded-3xl p-4 shadow-xl border border-slate-200">
+            {/* SCREENSHOT PLACEHOLDER 1 */}
+            <div className="aspect-video bg-slate-100 rounded-2xl border border-slate-200 flex items-center justify-center overflow-hidden relative">
+              <span className="text-slate-400 font-bold absolute z-0">Screenshot: Applicable Standards Section</span>
+              <Image src="/screenshots/state-aligned.png" alt="State Standards" fill className="object-cover relative z-10" />
+            </div>
           </div>
         </div>
 
-        {/* BOTTOM: TRUST ACCREDITATION BADGES (UPDATED VERBIAGE) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8 border-t border-slate-200">
-          
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4 text-left hover:border-teal-300 transition-colors">
-            <GraduationCap className="w-10 h-10 text-teal-500 shrink-0" />
-            <div>
-              <h3 className="font-extrabold text-slate-800 text-lg">State Standards Aligned</h3>
-              <p className="text-sm text-slate-500 mt-1 leading-relaxed">Automatically aligns your dynamic curriculum to your specific state's educational standards.</p>
+        {/* Pillar 2: Learner Aligned */}
+        <div className="flex flex-col md:flex-row-reverse items-center gap-12">
+          <div className="flex-1 space-y-6">
+            <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center">
+              <Sparkles className="w-8 h-8 text-orange-600" />
+            </div>
+            <h2 className="text-4xl font-black text-slate-900 leading-tight">Every child is different. Their plan should be too.</h2>
+            <p className="text-xl text-slate-600 font-medium">Lessons are automatically scaled to your learner's specific grade level, attention span, interests, and sensory needs. No more fighting through generic workbooks.</p>
+            <ul className="space-y-3 text-slate-700 font-bold">
+              <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-orange-500"/> Tactile & visual tool recommendations</li>
+              <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-orange-500"/> Video, reading, and hands-on modalities</li>
+            </ul>
+          </div>
+          <div className="flex-1 w-full bg-white rounded-3xl p-4 shadow-xl border border-slate-200">
+            {/* SCREENSHOT PLACEHOLDER 2 */}
+            <div className="aspect-video bg-slate-100 rounded-2xl border border-slate-200 flex items-center justify-center overflow-hidden relative">
+              <span className="text-slate-400 font-bold absolute z-0">Screenshot: Learner Profile / Let's Play Section</span>
+              <Image src="/screenshots/learner-plans.png" alt="Learner Aligned" fill className="object-cover relative z-10" />
             </div>
           </div>
-          
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4 text-left hover:border-orange-300 transition-colors">
-            <CheckCircle2 className="w-10 h-10 text-orange-500 shrink-0" />
-            <div>
-              <h3 className="font-extrabold text-slate-800 text-lg">Custom Curated Content</h3>
-              <p className="text-sm text-slate-500 mt-1 leading-relaxed">Every lesson and activity is dynamically tailored to your child's unique needs and personal interests.</p>
-            </div>
-          </div>
-          
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4 text-left hover:border-indigo-300 transition-colors">
-            <ShieldCheck className="w-10 h-10 text-indigo-500 shrink-0" />
-            <div>
-              <h3 className="font-extrabold text-slate-800 text-lg">End-of-Year Portfolios</h3>
-              <p className="text-sm text-slate-500 mt-1 leading-relaxed">Easily upload and track completed tasks to effortlessly build your end-of-year review portfolios.</p>
-            </div>
-          </div>
-
         </div>
-      </main>
+
+        {/* Pillar 3: Portfolios */}
+        <div className="flex flex-col md:flex-row items-center gap-12">
+          <div className="flex-1 space-y-6">
+            <div className="w-16 h-16 bg-teal-100 rounded-2xl flex items-center justify-center">
+              <FileCheck className="w-8 h-8 text-teal-600" />
+            </div>
+            <h2 className="text-4xl font-black text-slate-900 leading-tight">Save time reviewing progress with easy-to-use portfolios.</h2>
+            <p className="text-xl text-slate-600 font-medium">Snap a picture of their work, tap a star rating, and we automatically build a fully compliant, beautifully formatted state report for you to print at the end of the year.</p>
+            <ul className="space-y-3 text-slate-700 font-bold">
+              <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-teal-500"/> Instant printable compliance reports</li>
+              <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-teal-500"/> Secure evidence & image storage</li>
+            </ul>
+          </div>
+          <div className="flex-1 w-full bg-white rounded-3xl p-4 shadow-xl border border-slate-200">
+            {/* SCREENSHOT PLACEHOLDER 3 */}
+            <div className="aspect-video bg-slate-100 rounded-2xl border border-slate-200 flex items-center justify-center overflow-hidden relative">
+              <span className="text-slate-400 font-bold absolute z-0">Screenshot: The Print Portfolio Page</span>
+              <Image src="/screenshots/portfolio-view.png" alt="Automated Portfolios" fill className="object-cover relative z-10" />
+            </div>
+          </div>
+        </div>
+
+        {/* Pillar 4: Curated by Feedback */}
+        <div className="flex flex-col md:flex-row-reverse items-center gap-12">
+          <div className="flex-1 space-y-6">
+            <div className="w-16 h-16 bg-rose-100 rounded-2xl flex items-center justify-center">
+              <HeartHandshake className="w-8 h-8 text-rose-600" />
+            </div>
+            <h2 className="text-4xl font-black text-slate-900 leading-tight">An engine that learns what your child loves.</h2>
+            <p className="text-xl text-slate-600 font-medium">Rate how much your learner enjoyed an activity. Our AI feedback loop ensures that every recommended book, game, and video is a hit moving forward.</p>
+          </div>
+          <div className="flex-1 w-full bg-white rounded-3xl p-4 shadow-xl border border-slate-200">
+            {/* SCREENSHOT PLACEHOLDER 4 */}
+            <div className="aspect-video bg-slate-100 rounded-2xl border border-slate-200 flex items-center justify-center overflow-hidden relative">
+              <span className="text-slate-400 font-bold absolute z-0">Screenshot: Dual Rating Hearts & Stars</span>
+              <Image src="/screenshots/feedback-loop.png" alt="Curated by Feedback" fill className="object-cover relative z-10" />
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      {/* BOTTOM CTA */}
+      <section className="w-full bg-teal-900 py-24 px-6 text-center">
+        <h2 className="text-4xl md:text-5xl font-black text-white mb-6">Ready to get your weekends back?</h2>
+        <p className="text-xl text-teal-100 font-medium mb-10 max-w-2xl mx-auto">Join the families using MiSpark to turn hours of curriculum planning into minutes of joyful learning.</p>
+        <Button 
+          onClick={() => router.push("/login?signup=true")} 
+          className="h-16 px-10 text-xl bg-orange-500 hover:bg-orange-600 text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
+        >
+          Start Your Free Trial ✨
+        </Button>
+      </section>
 
       {/* FOOTER */}
-      <footer className="w-full bg-white border-t border-slate-200 py-6 text-center text-xs font-bold text-slate-400">
-        © {new Date().getFullYear()} MiSpark. All Rights Reserved.
+      <footer className="w-full bg-slate-900 py-8 px-6 text-center border-t border-slate-800">
+        <div className="flex justify-center gap-6 mb-4">
+          <button onClick={() => router.push("/help")} className="text-slate-400 hover:text-white font-medium text-sm transition-colors">
+            Help & Best Practices
+          </button>
+          <a href="mailto:support@mispark.com" className="text-slate-400 hover:text-white font-medium text-sm transition-colors">
+            Contact Support
+          </a>
+        </div>
+        <p className="text-slate-600 text-sm font-medium">© {new Date().getFullYear()} MiSpark. All rights reserved.</p>
       </footer>
-    </div>
+
+    </main>
   );
 }
