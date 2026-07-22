@@ -16,17 +16,30 @@ import {
 } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 
-// Helper functions for smart search links
+// Helper functions for smart search links WITH AFFILIATE TAGS
 const generateSearchLink = (query: string, platform: "amazon-book" | "amazon-game" | "walmart" | "thriftbooks" | "bookshop" | "youtube") => {
   const encoded = encodeURIComponent(query);
+  
+  // TODO: Replace these with your actual affiliate IDs once you sign up
+  const AMAZON_TAG = "insursuccess-20"; 
+  const WALMART_ID = "YOUR_WALMART_AFFILIATE_ID";
+  
   switch(platform) {
-    case "amazon-book": return `https://www.amazon.com/s?k=${encoded}+book`;
-    case "amazon-game": return `https://www.amazon.com/s?k=${encoded}+game+toy`;
-    case "walmart": return `https://www.walmart.com/search?q=${encoded}`;
-    case "thriftbooks": return `https://www.thriftbooks.com/browse/?b.search=${encoded}#b.s=mostPopular-desc&b.p=1&b.pp=30&b.oos`;
-    case "bookshop": return `https://bookshop.org/search?keywords=${encoded}`;
-    case "youtube": return `https://www.youtube.com/results?search_query=${encoded}`;
-    default: return "#";
+    case "amazon-book": 
+      return `https://www.amazon.com/s?k=${encoded}+book&tag=${AMAZON_TAG}`;
+    case "amazon-game": 
+      return `https://www.amazon.com/s?k=${encoded}+game+toy&tag=${AMAZON_TAG}`;
+    case "walmart": 
+      // Walmart uses a different routing system for affiliates, usually through Impact Radius
+      return `https://www.walmart.com/search?q=${encoded}&affillinktype=10&veh=aff`;
+    case "thriftbooks": 
+      return `https://www.thriftbooks.com/browse/?b.search=${encoded}#b.s=mostPopular-desc&b.p=1&b.pp=30&b.oos`;
+    case "bookshop": 
+      return `https://bookshop.org/search?keywords=${encoded}`;
+    case "youtube": 
+      return `https://www.youtube.com/results?search_query=${encoded}`;
+    default: 
+      return "#";
   }
 };
 
