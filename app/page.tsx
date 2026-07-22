@@ -168,9 +168,14 @@ export default function Home() {
         </Button>
       </section>
 
-      {/* FOOTER */}
+{/* FOOTER */}
       <footer className="w-full bg-slate-900 py-8 px-6 text-center border-t border-slate-800">
         <div className="flex justify-center gap-6 mb-4">
+          {/* ADD THIS NEW BUTTON */}
+          <button onClick={() => router.push("/features")} className="text-slate-400 hover:text-white font-medium text-sm transition-colors">
+            Features
+          </button>
+          
           <button onClick={() => router.push("/help")} className="text-slate-400 hover:text-white font-medium text-sm transition-colors">
             Help & Best Practices
           </button>
