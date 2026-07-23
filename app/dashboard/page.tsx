@@ -364,7 +364,7 @@ export default function Dashboard() {
                 {generatedData.readingList.map((book: any, idx: number) => (
                   <div key={idx} className="p-5 rounded-xl border border-slate-200 flex flex-col justify-between">
                     <div>
-                      <span className="text-xs font-black uppercase text-indigo-500 block bg-indigo-50 w-max px-2 py-1 rounded mb-2">{book.type}</span>
+                      <span className="text-xs font-black uppercase text-indigo-500 block bg-indigo-50 inline-block max-w-full px-2 py-1 rounded mb-2">{book.type}</span>
                       <h3 className="font-black text-slate-800 text-lg leading-tight">{book.title}</h3>
                       <p className="text-sm text-slate-600 mt-2 mb-4 font-medium">&quot;{book.prompt}&quot;</p>
                     </div>
@@ -395,7 +395,7 @@ export default function Dashboard() {
                   <div key={idx} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div>
                       <h4 className="font-black text-emerald-800 text-lg">{game.gameName}</h4>
-                      <p className="text-xs font-bold text-emerald-600 mb-2 uppercase bg-emerald-50 w-max px-2 py-1 rounded mt-2">{game.modality} | {game.skillsReinforced}</p>
+                      <p className="text-xs font-bold text-emerald-600 mb-2 uppercase bg-emerald-50 inline-block max-w-full px-2 py-1 rounded mt-2">{game.modality} | {game.skillsReinforced}</p>
                       <p className="text-sm text-slate-600 font-medium">{game.description}</p>
                     </div>
                     {game.isBuyable && (
@@ -428,7 +428,7 @@ export default function Dashboard() {
           {generatedData.outAndAbout && (
             <CollapsibleSection title="Local Field Trip" icon={<MapPin className="w-6 h-6 text-teal-600"/>} colorClass="border-t-teal-500" forceOpen={allExpanded}>
               <div className="bg-teal-50 p-6 rounded-2xl border border-teal-200">
-                <h4 className="font-black text-teal-900 uppercase text-xs mb-2 bg-teal-200/50 w-max px-2 py-1 rounded">Near You</h4>
+                <h4 className="font-black text-teal-900 uppercase text-xs mb-2 bg-teal-200/50 inline-block max-w-full px-2 py-1 rounded">Near You</h4>
                 <p className="font-black text-xl mb-3 text-teal-950">{generatedData.outAndAbout.title}</p>
                 <p className="text-base text-teal-950 font-medium mb-4 leading-relaxed">{generatedData.outAndAbout.instructions}</p>
                 <p className="text-sm text-teal-800 font-bold mt-2">Bring: <span className="font-medium">{generatedData.outAndAbout.supplies.join(", ")}</span></p>
