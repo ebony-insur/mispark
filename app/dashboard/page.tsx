@@ -12,7 +12,7 @@ import {
   Printer, Upload, FileText, FlaskConical, Lightbulb, 
   Gamepad2, PlayCircle, BookHeart, ExternalLink, Loader2, 
   Plus, Shapes, ChevronRight, ChevronsUpDown, XCircle, 
-  Sparkles, MapPin, MessageCircle
+  Sparkles, MapPin, MessageCircle, Lock, Settings
 } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 
@@ -135,6 +135,7 @@ export default function Dashboard() {
     setIsLoading(true); setGeneratedData(null); setAllExpanded(true);
     abortControllerRef.current = new AbortController();
     
+    // For guests, we feed a generic profile to the AI
     const studentProfile = isGuest 
       ? { grade: "3rd Grade", focus_duration: "20 mins", state_residence: "General US", zip_code: "12345" } 
       : students.find(s => s.id === selectedStudentId);
@@ -252,10 +253,72 @@ export default function Dashboard() {
             </Button>
           </div>
 
+          {/* GUEST VISUAL PREVIEW OF LEARNER PROFILE */}
+          {isGuest && (
+            <div className="bg-white border-2 border-indigo-200 rounded-3xl p-6 md:p-8 shadow-md mb-8 flex flex-col md:flex-row items-center gap-8 print:hidden">
+              <div className="flex-1 space-y-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 font-bold text-xs uppercase tracking-wider">
+                  <Lock className="w-4 h-4" /> Member Feature
+                </div>
+                <h3 className="text-3xl font-black text-slate-900 leading-tight">Unlock the Customization Engine</h3>
+                <p className="text-slate-600 font-medium text-lg">
+                  This demo generated a generic lesson plan. When you create a free account, you configure a <span className="font-bold text-indigo-600">Learner Profile</span>. Our AI uses these settings to instantly curate books, games, and state standards tailored exactly to your child.
+                </p>
+                <Button onClick={() => router.push("/login?signup=true")} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-6 rounded-xl text-lg mt-2">
+                  Create Free Account
+                </Button>
+              </div>
+              
+              {/* CSS-based Mock Learner Profile Card */}
+              <div className="flex-1 w-full bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-inner relative overflow-hidden">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                      <Settings className="w-6 h-6 text-indigo-600" />
+                    </div>
+                    <div>
+                      <p className="font-black text-slate-800 text-lg">Learner Profile</p>
+                      <p className="text-xs text-slate-500 font-bold uppercase">Settings Preview</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100">
+                    <span className="text-slate-500 font-bold text-sm">State Standards</span>
+                    <span className="text-slate-800 font-black text-sm bg-slate-100 px-2 py-1 rounded">Texas (TEKS)</span>
+                  </div>
+                  <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100">
+                    <span className="text-slate-500 font-bold text-sm">Focus Duration</span>
+                    <span className="text-slate-800 font-black text-sm bg-slate-100 px-2 py-1 rounded">15 Minutes</span>
+                  </div>
+                  <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100">
+                    <span className="text-slate-500 font-bold text-sm">Interests</span>
+                    <span className="text-slate-800 font-black text-sm bg-slate-100 px-2 py-1 rounded">Dinosaurs, Space</span>
+                  </div>
+                  <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100">
+                    <span className="text-slate-500 font-bold text-sm">Sensory Needs</span>
+                    <span className="text-slate-800 font-black text-sm bg-slate-100 px-2 py-1 rounded">Tactile / Hands-on</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <CollapsibleSection title="Applicable Standards" icon={<Lightbulb className="w-6 h-6 text-blue-600"/>} colorClass="border-t-blue-500" forceOpen={allExpanded}>
             <p className="text-slate-700 leading-relaxed font-medium bg-blue-50/50 p-5 rounded-xl border border-blue-100 text-lg">
               {generatedData.assessedFoundation}
             </p>
+            
+            {/* GUEST UPSELL INJECTION */}
+            {isGuest && (
+              <div className="mt-4 p-4 bg-indigo-50 border border-indigo-100 rounded-xl flex items-start gap-3 print:hidden">
+                <Sparkles className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
+                <p className="text-sm text-indigo-900 font-medium leading-relaxed">
+                  <span className="font-bold">Member Benefit:</span> Full members map this directly to their specific state's requirements (e.g., Texas TEKS, Florida B.E.S.T.) for stress-free compliance and evaluator reporting.
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               {generatedData.outlinedStandards?.map((std: any, idx: number) => (
                 <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-200">
@@ -266,7 +329,6 @@ export default function Dashboard() {
             </div>
           </CollapsibleSection>
 
-          {/* NEW: Buyable Tools for Amazon */}
           {generatedData.buyableTools && generatedData.buyableTools.length > 0 && (
             <CollapsibleSection title="Tactile & Visual Tools" icon={<Shapes className="w-6 h-6 text-purple-600"/>} colorClass="border-t-purple-500" forceOpen={allExpanded}>
               <div className="grid md:grid-cols-2 gap-4">
@@ -289,6 +351,15 @@ export default function Dashboard() {
 
           {generatedData.readingList && generatedData.readingList.length > 0 && (
             <CollapsibleSection title="Recommended Reading" icon={<BookHeart className="w-6 h-6 text-rose-600"/>} colorClass="border-t-rose-500" forceOpen={allExpanded}>
+              {/* GUEST UPSELL INJECTION */}
+              {isGuest && (
+                <div className="mb-4 p-4 bg-indigo-50 border border-indigo-100 rounded-xl flex items-start gap-3 print:hidden">
+                  <Sparkles className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
+                  <p className="text-sm text-indigo-900 font-medium leading-relaxed">
+                    <span className="font-bold">Member Benefit:</span> This generic list was generated for a 3rd grader. As a member, our AI considers your child's exact reading level and specific interests (like space or horses) to curate books they will actually want to read.
+                  </p>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {generatedData.readingList.map((book: any, idx: number) => (
                   <div key={idx} className="p-5 rounded-xl border border-slate-200 flex flex-col justify-between">
@@ -308,9 +379,17 @@ export default function Dashboard() {
             </CollapsibleSection>
           )}
 
-          {/* UPDATED: Let's Play with conditional Buyable link */}
           {generatedData.letsPlay && generatedData.letsPlay.length > 0 && (
             <CollapsibleSection title="Let's Play" icon={<Gamepad2 className="w-6 h-6 text-emerald-600"/>} colorClass="border-t-emerald-500" forceOpen={allExpanded}>
+              {/* GUEST UPSELL INJECTION */}
+              {isGuest && (
+                <div className="mb-4 p-4 bg-indigo-50 border border-indigo-100 rounded-xl flex items-start gap-3 print:hidden">
+                  <Sparkles className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
+                  <p className="text-sm text-indigo-900 font-medium leading-relaxed">
+                    <span className="font-bold">Member Benefit:</span> Activities are perfectly scaled to match your learner's focus duration and sensory needs. Plus, use our Hearts & Stars rating system to teach the AI which games your child loves most!
+                  </p>
+                </div>
+              )}
               <div className="grid md:grid-cols-2 gap-4">
                 {generatedData.letsPlay.map((game: any, idx: number) => (
                   <div key={idx} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
@@ -332,7 +411,6 @@ export default function Dashboard() {
             </CollapsibleSection>
           )}
 
-          {/* NEW: Household Experiments */}
           {generatedData.householdExperiments && generatedData.householdExperiments.length > 0 && (
             <CollapsibleSection title="Hands-On Experiments" icon={<FlaskConical className="w-6 h-6 text-amber-600"/>} colorClass="border-t-amber-500" forceOpen={allExpanded}>
               <div className="space-y-4">
@@ -347,7 +425,6 @@ export default function Dashboard() {
             </CollapsibleSection>
           )}
 
-          {/* Zip Code Local Field Trip */}
           {generatedData.outAndAbout && (
             <CollapsibleSection title="Local Field Trip" icon={<MapPin className="w-6 h-6 text-teal-600"/>} colorClass="border-t-teal-500" forceOpen={allExpanded}>
               <div className="bg-teal-50 p-6 rounded-2xl border border-teal-200">
