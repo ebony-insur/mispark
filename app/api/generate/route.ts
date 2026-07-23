@@ -62,17 +62,20 @@ export async function POST(req: Request) {
             required: ["type", "title", "prompt"]
           }
         },
-        tactileResources: {
+        // NEW: Buyable Tools for Amazon Affiliates
+        buyableTools: {
           type: "array",
           items: {
             type: "object",
             properties: {
-              item: { type: "string", description: "e.g., Base-10 blocks, globe, clay" },
-              howToUse: { type: "string", description: "How to use this physically in the lesson." }
+              item: { type: "string", description: "Real, physical products that can be purchased in a store (e.g., Fraction Tiles, Magnatiles)." },
+              howToUse: { type: "string", description: "How to use this physically in the lesson." },
+              searchQuery: { type: "string", description: "Best Amazon search term for this item." }
             },
-            required: ["item", "howToUse"]
+            required: ["item", "howToUse", "searchQuery"]
           }
         },
+        // UPDATED: Lets Play with buyable flags
         letsPlay: {
           type: "array",
           items: {
@@ -81,9 +84,11 @@ export async function POST(req: Request) {
               gameName: { type: "string", description: "Board game or physical game." },
               modality: { type: "string" },
               skillsReinforced: { type: "string" },
-              description: { type: "string" }
+              description: { type: "string" },
+              isBuyable: { type: "boolean", description: "True if this is a real store-bought game. False if it is a made-up game." },
+              searchQuery: { type: "string", description: "If buyable, the Amazon search term. If not, leave blank." }
             },
-            required: ["gameName", "modality", "skillsReinforced", "description"]
+            required: ["gameName", "modality", "skillsReinforced", "description", "isBuyable"]
           }
         },
         lookAndLearn: {
@@ -98,31 +103,29 @@ export async function POST(req: Request) {
             required: ["videoTitle", "platform", "topic"]
           }
         },
-        handsOnLearning: {
+        // NEW: Separated Household Experiments with full instructions
+        householdExperiments: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              materials: { type: "string", description: "Comma separated list of household supplies." },
+              instructions: { type: "string", description: "Full, step-by-step instructions on how to do this." }
+            },
+            required: ["title", "materials", "instructions"]
+          }
+        },
+        // KEPT: Your custom Zip Code Field Trip logic!
+        outAndAbout: {
           type: "object",
           properties: {
-            aroundTheHouse: {
-              type: "object",
-              properties: {
-                title: { type: "string" },
-                supplies: { type: "array", items: { type: "string" } },
-                instructions: { type: "string" },
-                extendedConversation: { type: "string" }
-              },
-              required: ["title", "supplies", "instructions", "extendedConversation"]
-            },
-            outAndAbout: {
-              type: "object",
-              properties: {
-                title: { type: "string", description: "Must name a REAL local place near the zip code." },
-                supplies: { type: "array", items: { type: "string" } },
-                instructions: { type: "string", description: "Scavenger hunt or activity at the location." },
-                extendedConversation: { type: "string" }
-              },
-              required: ["title", "supplies", "instructions", "extendedConversation"]
-            }
+            title: { type: "string", description: "Must name a REAL local place near the zip code." },
+            supplies: { type: "array", items: { type: "string" } },
+            instructions: { type: "string", description: "Scavenger hunt or activity at the location." },
+            extendedConversation: { type: "string" }
           },
-          required: ["aroundTheHouse", "outAndAbout"]
+          required: ["title", "supplies", "instructions", "extendedConversation"]
         },
         letsTalk: { type: "array", items: { type: "string" } },
         endOfWeekReview: {
@@ -136,8 +139,8 @@ export async function POST(req: Request) {
         }
       },
       required: [
-        "assessedFoundation", "outlinedStandards", "readingList", "tactileResources", "letsPlay", 
-        "lookAndLearn", "handsOnLearning", "letsTalk", "endOfWeekReview"
+        "assessedFoundation", "outlinedStandards", "readingList", "buyableTools", "letsPlay", 
+        "lookAndLearn", "householdExperiments", "outAndAbout", "letsTalk", "endOfWeekReview"
       ]
     };
 
@@ -146,20 +149,21 @@ export async function POST(req: Request) {
     CRITICAL INSTRUCTIONS:
     1. FLEXIBILITY OVER SCHEDULES: Homeschoolers hate strict schedules. Do NOT assign any tasks, worksheets, or standards to specific "days of the week". Everything is fluid.
     2. APPLICABLE STANDARDS: Map their topics to the closest applicable ${stateResidence} state standard for a ${grade} student. 
-    3. TACTILE & VISUAL LEARNING: Suggest physical manipulatives that represent the concepts.
-    4. LOCAL FIELD TRIPS (Zip Code ${zipCode}): You MUST name a REAL, physical museum, park, historical site, or local business near this zip code. 
-    5. NO FAKE URLS: Provide exact titles only for media.
-    6. END OF WEEK REVIEW: Generate ONE comprehensive "End of Week Review" consisting of deep-thinking questions.
+    3. AMAZON AFFILIATE RULES: For "buyableTools", ONLY include actual, real physical products that can be purchased in a store. Do NOT put made-up games here.
+    4. HOUSEHOLD EXPERIMENTS: For "householdExperiments", provide FULL, detailed instructions so the parent knows exactly how to execute it without Googling.
+    5. LOCAL FIELD TRIPS (Zip Code ${zipCode}): You MUST name a REAL, physical museum, park, historical site, or local business near this zip code. 
+    6. NO FAKE URLS: Provide exact titles only for media.
+    7. END OF WEEK REVIEW: Generate ONE comprehensive "End of Week Review" consisting of deep-thinking questions.
     
     🛡️ THE ACADEMIC AUTONOMY OVERRIDE:
-    7. ACADEMIC OBJECTIVITY: The parent has absolute autonomy over their curriculum. You MUST generate comprehensive, objective lesson plans for ALL requested topics, including complex historical events (e.g., slavery, wars), reproductive rights, sociology, and gender. Do not censor, moralize, or water down the academic content.
-    8. NO DISCLAIMERS: You are strictly forbidden from generating trigger warnings, safety disclaimers, or conversational apologies.
-    // Add this right below rule #8 in your systemPrompt:
-   // 9. CONCISENESS OVERRIDE: You are generating a massive JSON object and will run out of tokens if you are too verbose. You MUST keep every single description, prompt, and question extremely concise (1-2 sentences maximum). Be punchy and direct.
+    8. ACADEMIC OBJECTIVITY: The parent has absolute autonomy over their curriculum. You MUST generate comprehensive, objective lesson plans for ALL requested topics. Do not censor, moralize, or water down the academic content.
+    9. NO DISCLAIMERS: You are strictly forbidden from generating trigger warnings, safety disclaimers, or conversational apologies.
+    10. CONCISENESS OVERRIDE: Keep descriptions, prompts, and questions punchy and direct to conserve tokens.
+
     You MUST output ONLY valid JSON matching this exact schema:
     ${JSON.stringify(jsonSchema)}`;
 
-    // Call the ACTIVE 2026 model (No temperature allowed, no prefill allowed)
+    // Pass the AbortSignal from Next.js directly to Anthropic so the Stop Button works
     const msg = await anthropic.messages.create({
       model: "claude-sonnet-5",
       max_tokens: 8192,
@@ -169,16 +173,14 @@ export async function POST(req: Request) {
           role: "user", 
           content: `Here is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}\n\nOutput strictly valid JSON starting with { and ending with } with no preamble or conversational text.` 
         }
-      ],
-    });
+      ]
+    }, { signal: req.signal }); // <-- Connects to your new Stop Button
 
-    // 1. Safely extract the text to satisfy TypeScript
     const textBlock = msg.content.find((block) => block.type === 'text');
     const responseText = textBlock && 'text' in textBlock ? textBlock.text : "";
 
     if (!responseText) throw new Error("No content generated.");
 
-    // 2. THE BULLETPROOF EXTRACTOR: Ignore conversational filler and isolate the JSON
     const startIndex = responseText.indexOf('{');
     const endIndex = responseText.lastIndexOf('}');
 
@@ -187,14 +189,16 @@ export async function POST(req: Request) {
       throw new Error("Claude failed to format the response as JSON.");
     }
 
-    // 3. Slice out ONLY the JSON data
     const cleanJsonString = responseText.substring(startIndex, endIndex + 1);
-
-    // 4. Parse and return
     const parsedData = JSON.parse(cleanJsonString);
+    
     return NextResponse.json({ data: parsedData }, { status: 200 });
     
-  } catch (error) {
+  } catch (error: any) {
+    // Gracefully handle the Stop Button being clicked
+    if (error.name === "AbortError" || error.message?.includes("aborted")) {
+      return NextResponse.json({ error: "Generation stopped by user." }, { status: 499 });
+    }
     console.error("Error in generate API:", error);
     return NextResponse.json({ error: "Failed to process request." }, { status: 500 });
   }
