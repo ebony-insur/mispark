@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
+// Updated apiVersion to match the latest Stripe SDK types
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-06-20",
+  apiVersion: "2026-06-24.dahlia",
 });
 
 export async function POST(req: Request) {
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
       customer_email: email,
       line_items: [
         {
-          // TODO: You will replace this with your actual Stripe Price ID
+          // TODO: Replace this with your actual Stripe Price ID
           price: "price_YOUR_STRIPE_PRICE_ID", 
           quantity: 1,
         },
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/dashboard?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/dashboard?canceled=true`,
       metadata: {
-        userId: userId, // We pass the Supabase user ID so we can upgrade them later
+        userId: userId, 
       },
     });
 
