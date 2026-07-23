@@ -79,16 +79,24 @@ export default function Dashboard() {
   const isUnderLimit = currentWordCount > 0 && currentWordCount < 15;
   const isOverLimit = currentWordCount > 750;
 
-  useEffect(() => {
+useEffect(() => {
     const fetchUserAndData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
       setIsGuest(!user);
       if (user) {
-        const { data: studentData } = await supabase.from("children_profiles").select("*").eq("parent_id", user.id).order("created_at", { ascending: false });
+        const { data: studentData } = await supabase.from("children_profiles")
+          .select("*")
+          .eq("parent_id", user.id)
+          .order("created_at", { ascending: false });
+          
         if (studentData && studentData.length > 0) {
           setStudents(studentData);
           setSelectedStudentId(studentData[0].id);
+        } else {
+          // NEW LOGIC: If they are logged in but have 0 students, they are brand new!
+          // Redirect them to the onboarding guide.
+          window.location.href = "/onboarding";
         }
       }
     };

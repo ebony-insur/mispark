@@ -71,11 +71,12 @@ function AuthForm() {
           toast.success("Success! Please check your email for the confirmation link.");
           setEmail(""); setPassword(""); setConfirmPassword("");
         }
-      } else {
+} else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back!");
-        router.push("/dashboard");
+        // Force a hard reload to ensure Supabase auth cookies are perfectly synced
+        window.location.href = "/dashboard";
       }
     } catch (error: any) {
       // Better error messages for login
