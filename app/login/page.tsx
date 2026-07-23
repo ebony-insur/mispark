@@ -62,12 +62,11 @@ function AuthForm() {
           options: { emailRedirectTo: `${window.location.origin}/auth/callback` }
         });
         if (error) throw error;
-
-        // The Supabase Email Enumeration Trick:
-        // If identities is empty, the user already exists.
+        
+        // Check if user already exists (Supabase enumeration trick)
         if (data.user && data.user.identities && data.user.identities.length === 0) {
-          toast.error("An account with this email already exists. Please sign in instead.");
-          setIsSignUp(false);
+          toast.error("An account with this email already exists. Please log in instead.");
+          setIsSignUp(false); // Auto-switch them to the login screen
         } else {
           toast.success("Success! Please check your email for the confirmation link.");
           setEmail(""); setPassword(""); setConfirmPassword("");
@@ -79,7 +78,7 @@ function AuthForm() {
         router.push("/dashboard");
       }
     } catch (error: any) {
-      // Provide friendlier error messages for common login issues
+      // Better error messages for login
       if (error.message?.includes("Invalid login")) {
         toast.error("Incorrect email or password. Please try again.");
       } else {
@@ -103,13 +102,13 @@ function AuthForm() {
         {isSignUp ? "Start generating customized lesson plans today." : "Log in to view your plans and portfolios."}
       </p>
 
-      {/* GOOGLE BUTTON */}
+      {/* NEW GOOGLE BUTTON */}
       <Button 
         type="button"
         onClick={handleGoogleLogin}
         disabled={isGoogleLoading || isLoading}
         variant="outline"
-        className="w-full h-14 rounded-xl border-2 border-slate-200 font-bold text-slate-700 hover:bg-slate-50 mb-6 flex items-center justify-center gap-3 transition-colors"
+        className="w-full h-14 rounded-xl border-2 border-slate-200 font-bold text-slate-700 hover:bg-slate-50 flex items-center justify-center gap-3 transition-colors mb-6"
       >
         {isGoogleLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
           <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -124,8 +123,9 @@ function AuthForm() {
 
       <div className="relative flex items-center justify-center mb-6">
         <div className="absolute border-t border-slate-200 w-full"></div>
-        <span className="bg-white px-4 text-xs font-bold text-slate-400 uppercase relative z-10">or continue with email</span>
+        <span className="bg-white px-4 text-xs font-bold text-slate-400 uppercase relative z-10">Or use email</span>
       </div>
+      {/* END NEW GOOGLE BUTTON */}
 
       <form onSubmit={handleAuth} className="space-y-5">
         <div>
