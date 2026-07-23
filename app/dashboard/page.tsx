@@ -7,6 +7,7 @@ import { type User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { 
   Printer, Upload, FileText, FlaskConical, Lightbulb, 
@@ -19,7 +20,7 @@ import SiteHeader from "@/components/SiteHeader";
 // Affiliate Search Link Generator
 const generateSearchLink = (query: string, platform: "amazon-book" | "amazon-game" | "walmart" | "thriftbooks" | "bookshop" | "youtube") => {
   const encoded = encodeURIComponent(query);
-  const AMAZON_TAG = "mispark0a-20"; // Your actual Amazon Affiliate tag
+  const AMAZON_TAG = "mispark0a-20"; 
   
   switch(platform) {
     case "amazon-book": return `https://www.amazon.com/s?k=${encoded}+book&tag=${AMAZON_TAG}`;
@@ -40,7 +41,6 @@ const LOADING_MESSAGES = [
   "Finalizing your curriculum..."
 ];
 
-// Reusable Collapsible Section Component
 const CollapsibleSection = ({ title, icon, children, colorClass, forceOpen }: any) => {
   const [isOpen, setIsOpen] = useState(true);
   useEffect(() => { setIsOpen(forceOpen); }, [forceOpen]);
@@ -70,6 +70,13 @@ export default function Dashboard() {
   const [allExpanded, setAllExpanded] = useState(true);
   const [printMode, setPrintMode] = useState<string | null>(null);
 
+  // New Account & Billing State
+  const [sparks, setSparks] = useState<number | null>(null);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
+  const [isRedeeming, setIsRedeeming] = useState(false);
+  const [isUpgrading, setIsUpgrading] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const router = useRouter();
@@ -79,12 +86,20 @@ export default function Dashboard() {
   const isUnderLimit = currentWordCount > 0 && currentWordCount < 15;
   const isOverLimit = currentWordCount > 750;
 
-useEffect(() => {
+  useEffect(() => {
     const fetchUserAndData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
       setIsGuest(!user);
       if (user) {
+        // Fetch User Profile for Sparks & Sub Status
+        const { data: profile } = await supabase.from("profiles").select("sparks_remaining, is_subscribed").eq("id", user.id).single();
+        if (profile) {
+          setSparks(profile.sparks_remaining);
+          setIsSubscribed(profile.is_subscribed);
+        }
+
+        // Fetch Students
         const { data: studentData } = await supabase.from("children_profiles")
           .select("*")
           .eq("parent_id", user.id)
@@ -94,8 +109,6 @@ useEffect(() => {
           setStudents(studentData);
           setSelectedStudentId(studentData[0].id);
         } else {
-          // NEW LOGIC: If they are logged in but have 0 students, they are brand new!
-          // Redirect them to the onboarding guide.
           window.location.href = "/onboarding";
         }
       }
@@ -115,7 +128,7 @@ useEffect(() => {
 
   useEffect(() => {
     if (printMode) {
-      setAllExpanded(true); // Ensure everything is open before printing
+      setAllExpanded(true);
       setTimeout(() => { window.print(); setPrintMode(null); }, 500);
     }
   }, [printMode]);
@@ -139,35 +152,95 @@ useEffect(() => {
     finally { setIsUploadingPdf(false); }
   };
 
+  const handleRedeem = async () => {
+    setIsRedeeming(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/redeem", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({ code: promoCode })
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        toast.success(data.message);
+        setSparks(6); // Visually update the UI
+        setPromoCode("");
+      } else {
+        toast.error(data.error || "Failed to apply promo.");
+      }
+    } catch (error) {
+      toast.error("An error occurred.");
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
+
+  const handleUpgrade = async () => {
+    setIsUpgrading(true);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user?.id, email: user?.email })
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      toast.error("Checkout failed to load. Please try again.");
+      setIsUpgrading(false);
+    }
+  };
+
   const handleIgnite = async () => {
     setIsLoading(true); setGeneratedData(null); setAllExpanded(true);
     abortControllerRef.current = new AbortController();
     
-    // For guests, we feed a generic profile to the AI
     const studentProfile = isGuest 
       ? { grade: "3rd Grade", focus_duration: "20 mins", state_residence: "General US", zip_code: "12345" } 
       : students.find(s => s.id === selectedStudentId);
     
     try {
+      // Pass the session token so the API knows who is requesting (and deducting)
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const res = await fetch("/api/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": session ? `Bearer ${session.access_token}` : ""
+        },
         body: JSON.stringify({ lessonText, studentProfile }),
         signal: abortControllerRef.current.signal
       });
       
       const data = await res.json();
+      
       if (res.ok && data.data) {
         setGeneratedData(data.data);
+        // Visually deduct a spark for free users
+        if (!isGuest && !isSubscribed && sparks !== null && sparks > 0) {
+          setSparks(sparks - 1);
+        }
       } else {
         throw new Error(data.error || "Failed to generate");
       }
     } catch (err: any) { 
-      if (err.name !== "AbortError") toast.error("Generation failed. Please try again."); 
+      if (err.name !== "AbortError") toast.error(err.message || "Generation failed."); 
     } finally { 
       setIsLoading(false); 
     }
   };
+
+  const outOfSparks = !isGuest && !isSubscribed && sparks !== null && sparks <= 0;
 
   return (
     <main className="flex min-h-screen flex-col items-center py-12 px-6 bg-slate-50 space-y-8 print:bg-white print:py-0 print:px-0">
@@ -191,16 +264,45 @@ useEffect(() => {
           </div>
         )}
 
-        {/* STUDENT SELECTOR */}
+        {/* ACCOUNT STATUS & STUDENT SELECTOR */}
         {!isGuest && (
-          <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 items-center justify-between">
-            <div className="flex items-center gap-4 w-full">
-              <label className="text-sm font-extrabold text-slate-700 uppercase whitespace-nowrap">Learner:</label>
-              <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)} className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold bg-slate-50">
-                {students.length === 0 ? <option value="" disabled>No learners found. Add one!</option> : students.map(s => <option key={s.id} value={s.id}>{s.nickname} (Grade: {s.grade})</option>)}
-              </select>
-              <Button onClick={() => router.push("/dashboard/students")} className="px-4 bg-slate-800 text-white rounded-xl"><Plus className="w-5 h-5" /></Button>
+          <div className="flex flex-col md:flex-row gap-4">
+            
+            {/* Student Selector */}
+            <div className="flex-1 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-center">
+              <label className="text-xs font-extrabold text-slate-500 uppercase mb-2">Current Learner</label>
+              <div className="flex items-center gap-3">
+                <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)} className="w-full p-2 rounded-xl border-2 border-slate-200 font-bold bg-slate-50 outline-none">
+                  {students.length === 0 ? <option value="" disabled>No learners found.</option> : students.map(s => <option key={s.id} value={s.id}>{s.nickname} (Grade: {s.grade})</option>)}
+                </select>
+                <Button onClick={() => router.push("/dashboard/students")} className="px-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700"><Plus className="w-5 h-5" /></Button>
+              </div>
             </div>
+
+            {/* Spark Count & Promo (Hidden if subscribed) */}
+            {!isSubscribed && sparks !== null && (
+              <div className="flex-1 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-center gap-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-extrabold text-slate-500 uppercase">Sparks Remaining</span>
+                  <span className={`text-lg font-black ${sparks > 0 ? 'text-orange-500' : 'text-red-500'}`}>{sparks}</span>
+                </div>
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="Enter Promo Code" 
+                    value={promoCode} 
+                    onChange={(e) => setPromoCode(e.target.value)} 
+                    className="h-9 text-sm font-medium border-slate-200" 
+                  />
+                  <Button 
+                    onClick={handleRedeem} 
+                    disabled={!promoCode || isRedeeming} 
+                    className="h-9 px-4 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white"
+                  >
+                    {isRedeeming ? <Loader2 className="w-4 h-4 animate-spin" /> : "Redeem"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -230,13 +332,17 @@ useEffect(() => {
           </div>
         )}
 
-        {/* ACTION BUTTONS */}
+        {/* ACTION BUTTONS (WITH PAYWALL) */}
         <div className="flex gap-6">
           <Button onClick={() => setLessonText("")} variant="outline" disabled={isLoading || lessonText.length === 0} className="w-1/3 py-8 rounded-2xl border-2 border-slate-200 text-slate-600 font-bold text-lg hover:bg-slate-100">
             Clear
           </Button>
           
-          {isLoading ? (
+          {outOfSparks ? (
+            <Button onClick={handleUpgrade} disabled={isUpgrading} className="w-2/3 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xl md:text-2xl py-8 rounded-2xl border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1 transition-all">
+              {isUpgrading ? <Loader2 className="w-6 h-6 animate-spin mr-2"/> : <><Lock className="w-6 h-6 mr-2" /> Upgrade to Continue</>}
+            </Button>
+          ) : isLoading ? (
             <Button onClick={handleStop} className="w-2/3 bg-red-500 hover:bg-red-600 text-white font-black text-xl md:text-2xl py-8 rounded-2xl border-b-4 border-red-700 active:border-b-0 active:translate-y-1">
               <XCircle className="w-6 h-6 mr-2" /> Stop Generation
             </Button>
@@ -317,7 +423,6 @@ useEffect(() => {
               {generatedData.assessedFoundation}
             </p>
             
-            {/* GUEST UPSELL INJECTION */}
             {isGuest && (
               <div className="mt-4 p-4 bg-indigo-50 border border-indigo-100 rounded-xl flex items-start gap-3 print:hidden">
                 <Sparkles className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
@@ -359,12 +464,11 @@ useEffect(() => {
 
           {generatedData.readingList && generatedData.readingList.length > 0 && (
             <CollapsibleSection title="Recommended Reading" icon={<BookHeart className="w-6 h-6 text-rose-600"/>} colorClass="border-t-rose-500" forceOpen={allExpanded}>
-              {/* GUEST UPSELL INJECTION */}
               {isGuest && (
                 <div className="mb-4 p-4 bg-indigo-50 border border-indigo-100 rounded-xl flex items-start gap-3 print:hidden">
                   <Sparkles className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
                   <p className="text-sm text-indigo-900 font-medium leading-relaxed">
-                    <span className="font-bold">Member Benefit:</span> This generic list was generated for a 3rd grader. As a member, our AI considers your child's exact reading level and specific interests (like space or horses) to curate books they will actually want to read.
+                    <span className="font-bold">Member Benefit:</span> This generic list was generated for a 3rd grader. As a member, our AI considers your child's exact reading level and specific interests to curate books they will actually want to read.
                   </p>
                 </div>
               )}
@@ -372,7 +476,7 @@ useEffect(() => {
                 {generatedData.readingList.map((book: any, idx: number) => (
                   <div key={idx} className="p-5 rounded-xl border border-slate-200 flex flex-col justify-between">
                     <div>
-                      <span className="text-xs font-black uppercase text-indigo-500 block bg-indigo-50 inline-block max-w-full px-2 py-1 rounded mb-2">{book.type}</span>
+                      <span className="text-xs font-black uppercase text-indigo-500 inline-block bg-indigo-50 px-2 py-1 rounded mb-2 max-w-full break-words">{book.type}</span>
                       <h3 className="font-black text-slate-800 text-lg leading-tight">{book.title}</h3>
                       <p className="text-sm text-slate-600 mt-2 mb-4 font-medium">&quot;{book.prompt}&quot;</p>
                     </div>
@@ -389,7 +493,6 @@ useEffect(() => {
 
           {generatedData.letsPlay && generatedData.letsPlay.length > 0 && (
             <CollapsibleSection title="Let's Play" icon={<Gamepad2 className="w-6 h-6 text-emerald-600"/>} colorClass="border-t-emerald-500" forceOpen={allExpanded}>
-              {/* GUEST UPSELL INJECTION */}
               {isGuest && (
                 <div className="mb-4 p-4 bg-indigo-50 border border-indigo-100 rounded-xl flex items-start gap-3 print:hidden">
                   <Sparkles className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
@@ -403,7 +506,9 @@ useEffect(() => {
                   <div key={idx} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div>
                       <h4 className="font-black text-emerald-800 text-lg">{game.gameName}</h4>
-                      <p className="text-xs font-bold text-emerald-600 mb-2 uppercase bg-emerald-50 inline-block max-w-full px-2 py-1 rounded mt-2">{game.modality} | {game.skillsReinforced}</p>
+                      <p className="text-xs font-bold text-emerald-600 mb-2 uppercase bg-emerald-50 inline-block px-2 py-1 rounded mt-2 max-w-full break-words">
+                        {game.modality} | {game.skillsReinforced}
+                      </p>
                       <p className="text-sm text-slate-600 font-medium">{game.description}</p>
                     </div>
                     {game.isBuyable && (
@@ -436,7 +541,7 @@ useEffect(() => {
           {generatedData.outAndAbout && (
             <CollapsibleSection title="Local Field Trip" icon={<MapPin className="w-6 h-6 text-teal-600"/>} colorClass="border-t-teal-500" forceOpen={allExpanded}>
               <div className="bg-teal-50 p-6 rounded-2xl border border-teal-200">
-                <h4 className="font-black text-teal-900 uppercase text-xs mb-2 bg-teal-200/50 inline-block max-w-full px-2 py-1 rounded">Near You</h4>
+                <h4 className="font-black text-teal-900 uppercase text-xs mb-2 bg-teal-200/50 inline-block px-2 py-1 rounded max-w-full break-words">Near You</h4>
                 <p className="font-black text-xl mb-3 text-teal-950">{generatedData.outAndAbout.title}</p>
                 <p className="text-base text-teal-950 font-medium mb-4 leading-relaxed">{generatedData.outAndAbout.instructions}</p>
                 <p className="text-sm text-teal-800 font-bold mt-2">Bring: <span className="font-medium">{generatedData.outAndAbout.supplies.join(", ")}</span></p>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { createClient } from "@supabase/supabase-js"; // <-- ADDED: Supabase client
 
 // Initialize Anthropic
 const anthropic = new Anthropic({
@@ -23,6 +24,37 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json()) as GenerateRequestPayload;
     const { lessonText, studentProfile, subscriptions } = body;
+
+    // --- NEW: SUPABASE AUTH & SPARK CHECK ---
+    const authHeader = req.headers.get("authorization");
+    let user = null;
+    let supabase = null;
+
+    if (authHeader) {
+      supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!, 
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, 
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const { data: authData } = await supabase.auth.getUser();
+      user = authData.user;
+    }
+
+    if (user && supabase) {
+      // Check their sparks
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('sparks_remaining, is_subscribed')
+        .eq('id', user.id)
+        .single();
+
+      if (profile && !profile.is_subscribed) {
+        if (profile.sparks_remaining <= 0) {
+          return NextResponse.json({ error: "Out of Sparks. Please upgrade to continue." }, { status: 403 });
+        }
+      }
+    }
+    // ----------------------------------------
 
     const focusDuration = studentProfile?.focus_duration || "20 mins";
     const stateResidence = studentProfile?.state_residence || "General US";
@@ -192,6 +224,15 @@ export async function POST(req: Request) {
     const cleanJsonString = responseText.substring(startIndex, endIndex + 1);
     const parsedData = JSON.parse(cleanJsonString);
     
+    // --- NEW: THE SPARK DEDUCTION ---
+    if (user && supabase) {
+      const { data: profile } = await supabase.from('profiles').select('sparks_remaining, is_subscribed').eq('id', user.id).single();
+      if (profile && !profile.is_subscribed && profile.sparks_remaining > 0) {
+        await supabase.from('profiles').update({ sparks_remaining: profile.sparks_remaining - 1 }).eq('id', user.id);
+      }
+    }
+    // --------------------------------
+
     return NextResponse.json({ data: parsedData }, { status: 200 });
     
   } catch (error: any) {
