@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, CheckCircle2, Sparkles, Target, FileCheck, HeartHandshake } from "lucide-react";
+import { Loader2, ArrowLeft, Target, FileCheck, HeartHandshake, Sparkles } from "lucide-react";
 import Image from "next/image";
 
 function AuthForm() {
@@ -25,6 +25,11 @@ function AuthForm() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (isSignUp && password.length < 6) {
+      toast.error("Password must be at least 6 characters.");
+      return;
+    }
+
     if (isSignUp && password !== confirmPassword) {
       toast.error("Passwords do not match!");
       return;
@@ -91,6 +96,13 @@ function AuthForm() {
             placeholder="••••••••"
             className="h-14 text-lg rounded-xl border-slate-200 focus-visible:ring-teal-500"
           />
+          {/* PASSWORD REQUIREMENTS - ONLY SHOWS ON SIGNUP */}
+          {isSignUp && (
+            <p className="text-xs text-slate-500 mt-2 font-medium flex items-center gap-1">
+              <span className={`w-1.5 h-1.5 rounded-full ${password.length >= 6 ? 'bg-teal-500' : 'bg-slate-300'}`}></span>
+              Must be at least 6 characters long
+            </p>
+          )}
         </div>
         
         {isSignUp && (
