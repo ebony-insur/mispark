@@ -8,7 +8,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error("Missing Supabase environment variables!");
 }
 
-// Export a helper function to create the client
+// 1. Create a variable to hold our single, reusable connection
+let supabaseInstance: ReturnType<typeof createSupabaseClient> | null = null;
+
+// 2. Update the helper function to only create the client ONCE
 export const createClient = () => {
-  return createSupabaseClient(supabaseUrl, supabaseAnonKey);
+  if (!supabaseInstance) {
+    // If it doesn't exist yet, create it
+    supabaseInstance = createSupabaseClient(supabaseUrl, supabaseAnonKey);
+  }
+  
+  // Return the existing connection
+  return supabaseInstance;
 };
