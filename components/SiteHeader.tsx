@@ -26,12 +26,12 @@ export default function SiteHeader() {
 
       if (user) {
         const { data } = await supabase
-          .from("parent_profiles")
-          .select("sparks_balance, subscription_tier")
+          .from("profiles")
+          .select("sparks_remaining, subscription_tier")
           .eq("id", user.id)
           .single();
         if (data) {
-          setSparksBalance(data.sparks_balance || 0);
+          setSparksBalance(data.sparks_remaining || 0);
           setSubscriptionTier(data.subscription_tier || "Free Trial");
         }
       }

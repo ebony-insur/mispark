@@ -80,15 +80,14 @@ export default function StudentsPage() {
     setUser(user);
 
     if (user) {
-      // FIX: Changed "parent_profiles" to "profiles" to match rest of database schema
       const { data: profileData } = await supabase
         .from("profiles")
         .select("subscriptions, subscription_tier")
         .eq("id", user.id)
         .single();
 
-        if ((profileData as any)?.subscriptions) setActiveSubscriptions((profileData as any).subscriptions);
-if ((profileData as any)?.subscription_tier) setSubscriptionTier((profileData as any).subscription_tier);
+      if ((profileData as any)?.subscriptions) setActiveSubscriptions((profileData as any).subscriptions);
+      if ((profileData as any)?.subscription_tier) setSubscriptionTier((profileData as any).subscription_tier);
 
       const { data: studentData } = await supabase
         .from("children_profiles")
@@ -112,11 +111,10 @@ if ((profileData as any)?.subscription_tier) setSubscriptionTier((profileData as
 
   const handleSaveBackpack = async () => {
     setIsSavingBackpack(true);
-    // FIX: Changed "parent_profiles" to "profiles"
-const { error } = await supabase
-  .from("profiles")
-  .update({ subscriptions: activeSubscriptions } as any)
-  .eq("id", user?.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ subscriptions: activeSubscriptions } as any)
+      .eq("id", user?.id);
 
     setIsSavingBackpack(false);
     if (error) toast.error("Failed to save backpack.");
@@ -184,18 +182,17 @@ const { error } = await supabase
     };
 
     let error;
-if (editingId) {
-  const { error: updateError } = await supabase
-    .from("children_profiles")
-    .update(payload as any)
-    .eq("id", editingId);
-  error = updateError;
-} else {
-  const { error: insertError } = await supabase
-    .from("children_profiles")
-    .insert(payload as any);
-  error = insertError;
-}
+    if (editingId) {
+      const { error: updateError } = await supabase
+        .from("children_profiles")
+        .update(payload as any)
+        .eq("id", editingId);
+      error = updateError;
+    } else {
+      const { error: insertError } = await supabase
+        .from("children_profiles")
+        .insert(payload as any);
+      error = insertError;
     }
 
     setIsSavingStudent(false);
