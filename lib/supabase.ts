@@ -1,22 +1,24 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
-// 1. Create a variable to hold our single, reusable connection
 let supabaseInstance: ReturnType<typeof createSupabaseClient> | null = null;
 
-// 2. Update the helper function to pull variables INSIDE the function
 export const createClient = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  // 1. Grab the URL from Vercel
+  let rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  
+  // 2. THE SLEDGEHAMMER: Forcefully rip "/rest/v1/" off the end if Vercel injected it
+  const cleanUrl = rawUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
+  
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error("Missing Supabase environment variables! URL:", supabaseUrl ? "Found" : "Missing", "Key:", supabaseAnonKey ? "Found" : "Missing");
+  if (!cleanUrl || !supabaseAnonKey) {
+    console.error("Missing Supabase variables! URL:", cleanUrl ? "Found" : "Missing", "Key:", supabaseAnonKey ? "Found" : "Missing");
   }
 
   if (!supabaseInstance) {
-    // If it doesn't exist yet, create it
-    supabaseInstance = createSupabaseClient(supabaseUrl, supabaseAnonKey);
+    // 3. Pass the CLEANED url to Supabase
+    supabaseInstance = createSupabaseClient(cleanUrl, supabaseAnonKey);
   }
   
-  // Return the existing connection
   return supabaseInstance;
 };
