@@ -61,11 +61,11 @@ export default function HistoryDetailPage() {
         return;
       }
 
-      // Fetch the specific lesson plan
+      // Fetch the specific lesson plan - FIX: Added 'as string' to params.id
       const { data: planData, error } = await supabase
         .from("lesson_plans")
         .select("*")
-        .eq("id", params.id)
+        .eq("id", params.id as string)
         .eq("parent_id", user.id)
         .single();
 
