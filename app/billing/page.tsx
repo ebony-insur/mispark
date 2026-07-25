@@ -31,15 +31,16 @@ export default function AccountPage() {
       setUserEmail(user.email || "");
 
       const { data } = await supabase
-        .from("parent_profiles")
-        .select("sparks_balance, subscription_tier")
+        .from("profiles")
+        .select("sparks_remaining, subscription_tier")
         .eq("id", user.id)
         .single();
         
-      if (data) {
-        setSparksBalance(data.sparks_balance || 0);
-        if (data.subscription_tier) setSubscriptionTier(data.subscription_tier);
-      }
+if (data) {
+  // Use 'sparks_remaining' and cast data as 'any' to satisfy TypeScript
+  setSparksBalance((data as any).sparks_remaining || 0);
+  if ((data as any).subscription_tier) setSubscriptionTier((data as any).subscription_tier);
+}
       setIsLoading(false);
     };
 
