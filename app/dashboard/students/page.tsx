@@ -80,11 +80,22 @@ export default function StudentsPage() {
     setUser(user);
 
     if (user) {
-      const { data: parentData } = await supabase.from("parent_profiles").select("subscriptions, subscription_tier").eq("id", user.id).single();
-      if (parentData?.subscriptions) setActiveSubscriptions(parentData.subscriptions);
-      if (parentData?.subscription_tier) setSubscriptionTier(parentData.subscription_tier);
+      // FIX: Changed "parent_profiles" to "profiles" to match rest of database schema
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("subscriptions, subscription_tier")
+        .eq("id", user.id)
+        .single();
 
-      const { data: studentData } = await supabase.from("children_profiles").select("*").eq("parent_id", user.id).order("created_at", { ascending: true });
+      if (profileData?.subscriptions) setActiveSubscriptions(profileData.subscriptions);
+      if (profileData?.subscription_tier) setSubscriptionTier(profileData.subscription_tier);
+
+      const { data: studentData } = await supabase
+        .from("children_profiles")
+        .select("*")
+        .eq("parent_id", user.id)
+        .order("created_at", { ascending: true });
+
       if (studentData) {
         setStudents(studentData);
         if (studentData.length === 0) setViewMode("form");
@@ -94,12 +105,19 @@ export default function StudentsPage() {
   };
 
   const handleToggleSubscription = (subId: string) => {
-    setActiveSubscriptions((prev) => prev.includes(subId) ? prev.filter(id => id !== subId) : [...prev, subId]);
+    setActiveSubscriptions((prev) => 
+      prev.includes(subId) ? prev.filter(id => id !== subId) : [...prev, subId]
+    );
   };
 
   const handleSaveBackpack = async () => {
     setIsSavingBackpack(true);
-    const { error } = await supabase.from("parent_profiles").update({ subscriptions: activeSubscriptions }).eq("id", user?.id);
+    // FIX: Changed "parent_profiles" to "profiles"
+    const { error } = await supabase
+      .from("profiles")
+      .update({ subscriptions: activeSubscriptions })
+      .eq("id", user?.id);
+
     setIsSavingBackpack(false);
     if (error) toast.error("Failed to save backpack.");
     else toast.success("Digital Backpack updated!");
@@ -123,12 +141,11 @@ export default function StudentsPage() {
   };
 
   const openFormForNew = () => {
-    // 📍 RULE 1: SOLO SCHOLAR PROFILES CHECK
     if (subscriptionTier === "Solo Scholar" && students.length >= 1) {
       toast.error("Solo Scholar limit reached", {
         description: "Your plan includes 1 student profile. Upgrade to Family Unlimited to add more kids!"
       });
-      router.push("/billing");
+      router.push("/dashboard");
       return;
     }
     setEditingId(null);
@@ -152,18 +169,31 @@ export default function StudentsPage() {
     setIsSavingStudent(true);
     
     const payload = {
-      parent_id: user?.id, nickname, grade, focus_duration: focusDuration, 
-      state_residence: stateResidence, zip_code: zipCode, math_mastery_level: mathMastery, 
-      reading_mastery_level: readingMastery, science_mastery_level: scienceMastery, 
-      learning_style: learningStyle, sensory_needs: sensoryNeeds, interests: interests
+      parent_id: user?.id, 
+      nickname, 
+      grade, 
+      focus_duration: focusDuration, 
+      state_residence: stateResidence, 
+      zip_code: zipCode, 
+      math_mastery_level: mathMastery, 
+      reading_mastery_level: readingMastery, 
+      science_mastery_level: scienceMastery, 
+      learning_style: learningStyle, 
+      sensory_needs: sensoryNeeds, 
+      interests: interests
     };
 
     let error;
     if (editingId) {
-      const { error: updateError } = await supabase.from("children_profiles").update(payload).eq("id", editingId);
+      const { error: updateError } = await supabase
+        .from("children_profiles")
+        .update(payload)
+        .eq("id", editingId);
       error = updateError;
     } else {
-      const { error: insertError } = await supabase.from("children_profiles").insert(payload);
+      const { error: insertError } = await supabase
+        .from("children_profiles")
+        .insert(payload);
       error = insertError;
     }
 
@@ -206,7 +236,7 @@ export default function StudentsPage() {
               </h2>
               <p className="text-sm text-slate-500 mt-1 font-medium">Select what you already own. We will prioritize these to save you money!</p>
             </div>
-            <Button onClick={handleSaveBackpack} disabled={isSavingBackpack} className="bg-teal-600 hover:bg-teal-700 font-bold shrink-0">
+            <Button onClick={handleSaveBackpack} disabled={isSavingBackpack} className="bg-teal-600 hover:bg-teal-700 font-bold shrink-0 text-white">
               {isSavingBackpack ? "Saving..." : "Save Backpack"}
             </Button>
           </div>
@@ -228,7 +258,7 @@ export default function StudentsPage() {
           </div>
         </div>
 
-        {/* --- ROSTER VIEW --- */}
+        {/* ROSTER VIEW */}
         {viewMode === "roster" && (
           <div className="space-y-4">
             <div className="flex justify-between items-center mb-6">
@@ -236,9 +266,8 @@ export default function StudentsPage() {
                 <Users className="text-blue-600 w-6 h-6" /> My Students
               </h2>
               
-              {/* 📍 UPGRADE CALLOUT SHORTCUT FOR SOLO SCHOLAR */}
               {subscriptionTier === "Solo Scholar" && students.length >= 1 ? (
-                <Button onClick={() => router.push("/billing")} className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-md hover:opacity-90">
+                <Button onClick={() => router.push("/dashboard")} className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-md hover:opacity-90">
                   <Lock className="w-4 h-4 mr-2" /> Upgrade to Add Kids
                 </Button>
               ) : (
@@ -270,7 +299,7 @@ export default function StudentsPage() {
           </div>
         )}
 
-        {/* --- FORM VIEW (ADD/EDIT) --- */}
+        {/* FORM VIEW (ADD/EDIT) */}
         {viewMode === "form" && (
           <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-4">
             <div className="flex justify-between items-center mb-8">
