@@ -80,7 +80,8 @@ export default function StudentsPage() {
     setUser(user);
 
     if (user) {
-      const { data: profileData } = await supabase
+      // FIX: Added (supabase as any) here
+      const { data: profileData } = await (supabase as any)
         .from("profiles")
         .select("subscriptions, subscription_tier")
         .eq("id", user.id)
@@ -89,7 +90,8 @@ export default function StudentsPage() {
       if ((profileData as any)?.subscriptions) setActiveSubscriptions((profileData as any).subscriptions);
       if ((profileData as any)?.subscription_tier) setSubscriptionTier((profileData as any).subscription_tier);
 
-      const { data: studentData } = await supabase
+      // FIX: Added (supabase as any) here
+      const { data: studentData } = await (supabase as any)
         .from("children_profiles")
         .select("*")
         .eq("parent_id", user.id)
@@ -111,10 +113,10 @@ export default function StudentsPage() {
 
   const handleSaveBackpack = async () => {
     setIsSavingBackpack(true);
-const { error } = await (supabase as any)
-  .from("profiles")
-  .update({ subscriptions: activeSubscriptions })
-  .eq("id", user?.id);
+    const { error } = await (supabase as any)
+      .from("profiles")
+      .update({ subscriptions: activeSubscriptions })
+      .eq("id", user?.id);
 
     setIsSavingBackpack(false);
     if (error) toast.error("Failed to save backpack.");
@@ -182,18 +184,18 @@ const { error } = await (supabase as any)
     };
 
     let error;
-if (editingId) {
-  const { error: updateError } = await (supabase as any)
-    .from("children_profiles")
-    .update(payload)
-    .eq("id", editingId);
-  error = updateError;
-} else {
-  const { error: insertError } = await (supabase as any)
-    .from("children_profiles")
-    .insert(payload);
-  error = insertError;
-}
+    if (editingId) {
+      const { error: updateError } = await (supabase as any)
+        .from("children_profiles")
+        .update(payload)
+        .eq("id", editingId);
+      error = updateError;
+    } else {
+      const { error: insertError } = await (supabase as any)
+        .from("children_profiles")
+        .insert(payload);
+      error = insertError;
+    }
 
     setIsSavingStudent(false);
 

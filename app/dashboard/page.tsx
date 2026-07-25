@@ -92,22 +92,28 @@ export default function Dashboard() {
       setUser(user);
       setIsGuest(!user);
       if (user) {
-        // Fetch User Profile for Sparks & Sub Status
-        const { data: profile } = await supabase.from("profiles").select("sparks_remaining, is_subscribed").eq("id", user.id).single();
-if (profile) {
-  setSparks((profile as any).sparks_remaining);
-  setIsSubscribed((profile as any).is_subscribed);
+        // Fetch User Profile for Sparks & Sub Status - FIX: (supabase as any)
+        const { data: profile } = await (supabase as any)
+          .from("profiles")
+          .select("sparks_remaining, is_subscribed")
+          .eq("id", user.id)
+          .single();
+          
+        if (profile) {
+          setSparks((profile as any).sparks_remaining);
+          setIsSubscribed((profile as any).is_subscribed);
         }
 
-        // Fetch Students
-        const { data: studentData } = await supabase.from("children_profiles")
+        // Fetch Students - FIX: (supabase as any)
+        const { data: studentData } = await (supabase as any)
+          .from("children_profiles")
           .select("*")
           .eq("parent_id", user.id)
           .order("created_at", { ascending: false });
           
         if (studentData && studentData.length > 0) {
           setStudents(studentData);
-          setSelectedStudentId((studentData[0]as any).id);
+          setSelectedStudentId((studentData[0] as any).id);
         } else {
           window.location.href = "/onboarding";
         }

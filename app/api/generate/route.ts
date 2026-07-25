@@ -41,15 +41,16 @@ export async function POST(req: Request) {
     }
 
     if (user && supabase) {
-      // Check their sparks
-      const { data: profile } = await supabase
+      // Check their sparks - FIX: (supabase as any)
+      const { data: profile } = await (supabase as any)
         .from('profiles')
         .select('sparks_remaining, is_subscribed')
         .eq('id', user.id)
         .single();
 
-      if (profile && !profile.is_subscribed) {
-        if (profile.sparks_remaining <= 0) {
+      // FIX: (profile as any)
+      if (profile && !(profile as any).is_subscribed) {
+        if ((profile as any).sparks_remaining <= 0) {
           return NextResponse.json({ error: "Out of Sparks. Please upgrade to continue." }, { status: 403 });
         }
       }
@@ -226,9 +227,12 @@ export async function POST(req: Request) {
     
     // --- NEW: THE SPARK DEDUCTION ---
     if (user && supabase) {
-      const { data: profile } = await supabase.from('profiles').select('sparks_remaining, is_subscribed').eq('id', user.id).single();
-      if (profile && !profile.is_subscribed && profile.sparks_remaining > 0) {
-        await supabase.from('profiles').update({ sparks_remaining: profile.sparks_remaining - 1 }).eq('id', user.id);
+      // FIX: (supabase as any)
+      const { data: profile } = await (supabase as any).from('profiles').select('sparks_remaining, is_subscribed').eq('id', user.id).single();
+      
+      // FIX: (profile as any)
+      if (profile && !(profile as any).is_subscribed && (profile as any).sparks_remaining > 0) {
+        await (supabase as any).from('profiles').update({ sparks_remaining: (profile as any).sparks_remaining - 1 }).eq('id', user.id);
       }
     }
     // --------------------------------

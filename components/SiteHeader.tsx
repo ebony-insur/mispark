@@ -25,14 +25,17 @@ export default function SiteHeader() {
       setIsGuest(!user);
 
       if (user) {
-        const { data } = await supabase
+        // PROACTIVE FIX: (supabase as any) to bypass strict typing on the new 'profiles' table
+        const { data } = await (supabase as any)
           .from("profiles")
           .select("sparks_remaining, subscription_tier")
           .eq("id", user.id)
           .single();
+          
         if (data) {
-          setSparksBalance(data.sparks_remaining || 0);
-          setSubscriptionTier(data.subscription_tier || "Free Trial");
+          // PROACTIVE FIX: (data as any) to allow reading the fields safely
+          setSparksBalance((data as any).sparks_remaining || 0);
+          setSubscriptionTier((data as any).subscription_tier || "Free Trial");
         }
       }
     };
