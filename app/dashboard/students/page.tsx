@@ -87,8 +87,8 @@ export default function StudentsPage() {
         .eq("id", user.id)
         .single();
 
-      if (profileData?.subscriptions) setActiveSubscriptions(profileData.subscriptions);
-      if (profileData?.subscription_tier) setSubscriptionTier(profileData.subscription_tier);
+        if ((profileData as any)?.subscriptions) setActiveSubscriptions((profileData as any).subscriptions);
+if ((profileData as any)?.subscription_tier) setSubscriptionTier((profileData as any).subscription_tier);
 
       const { data: studentData } = await supabase
         .from("children_profiles")
