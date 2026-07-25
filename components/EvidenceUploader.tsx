@@ -47,7 +47,7 @@ export default function EvidenceUploader({ studentId, lessonPlanId, standardText
       }
 
       // Save to Database (Now including enjoyment_rating)
-      const { error } = await supabase.from("portfolio_artifacts").insert({
+    const { error } = await (supabase as any).from("portfolio_artifacts").insert({
         student_id: studentId,
         lesson_plan_id: lessonPlanId,
         standard_text: standardText,
