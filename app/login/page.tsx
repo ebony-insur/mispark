@@ -47,6 +47,8 @@ function AuthForm() {
         
         if (error) throw error;
 
+        // SUPABASE EXISTING USER CHECK: 
+        // If identities array is empty, the email is already registered.
         if (data?.user && data.user.identities && data.user.identities.length === 0) {
           toast.error("An account with this email already exists. Please log in.");
           setIsLoading(false);
@@ -54,11 +56,13 @@ function AuthForm() {
         }
 
         toast.success("Success! Please check your email for the confirmation link.");
+        // Optional: clear form
         setEmail(""); setPassword(""); setConfirmPassword("");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back!");
+        // Force a hard reload to ensure Supabase auth cookies are perfectly synced
         window.location.href = "/dashboard";
       }
     } catch (error: any) {
@@ -70,19 +74,6 @@ function AuthForm() {
 
   return (
     <div className="w-full max-w-md bg-white p-8 md:p-10 rounded-3xl shadow-xl border border-slate-200">
-      
-      {/* 🔴 TEMPORARY DEBUG BOX 🔴 */}
-      <div className="mb-6 p-4 bg-red-50 border-2 border-red-500 rounded-xl break-all">
-        <p className="font-bold text-red-700 mb-2">Vercel Variable Check:</p>
-        <p className="text-xs text-red-900 font-mono mb-1">
-          <strong>URL:</strong> {process.env.NEXT_PUBLIC_SUPABASE_URL ? process.env.NEXT_PUBLIC_SUPABASE_URL : "MISSING!"}
-        </p>
-        <p className="text-xs text-red-900 font-mono">
-          <strong>KEY:</strong> {process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.substring(0, 10) + "...") : "MISSING!"}
-        </p>
-      </div>
-      {/* 🔴 END DEBUG BOX 🔴 */}
-
       <div className="flex justify-center mb-8 md:hidden">
         <Image src="/MiSpark.svg" alt="MiSpark Logo" width={140} height={40} />
       </div>
@@ -116,6 +107,7 @@ function AuthForm() {
             placeholder="••••••••"
             className="h-14 text-lg rounded-xl border-slate-200 focus-visible:ring-teal-500"
           />
+          {/* PASSWORD REQUIREMENTS - ONLY SHOWS ON SIGNUP */}
           {isSignUp && (
             <p className="text-xs text-slate-500 mt-2 font-medium flex items-center gap-1">
               <span className={`w-1.5 h-1.5 rounded-full ${password.length >= 6 ? 'bg-teal-500' : 'bg-slate-300'}`}></span>
@@ -164,8 +156,12 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen flex flex-col md:flex-row bg-slate-50">
+      
+      {/* LEFT COLUMN: MARKETING & FEATURES */}
       <div className="w-full md:w-5/12 lg:w-1/2 bg-teal-900 text-white p-8 md:p-16 flex flex-col justify-center relative overflow-hidden">
+        {/* Decorative background circle */}
         <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-teal-800 rounded-full blur-3xl opacity-50 -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+        
         <div className="relative z-10 max-w-lg mx-auto md:mx-0">
           <Button variant="ghost" onClick={() => router.push("/")} className="mb-12 -ml-4 text-teal-100 hover:text-white hover:bg-teal-800">
             <ArrowLeft className="w-5 h-5 mr-2" /> Back to Home
@@ -178,14 +174,58 @@ export default function LoginPage() {
             </h1>
             <p className="text-teal-100 text-lg font-medium">Create your free account to unlock the full power of MiSpark's AI curriculum engine.</p>
           </div>
+
+          <div className="space-y-8">
+            <div className="flex gap-4 items-start">
+              <div className="bg-orange-500/20 p-3 rounded-2xl shrink-0">
+                <Sparkles className="w-6 h-6 text-orange-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">Custom Learner Profiles</h3>
+                <p className="text-teal-100/80 font-medium text-sm leading-relaxed">The AI curates books and hands-on activities based on your child's specific grade, interests, and sensory needs.</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 items-start">
+              <div className="bg-blue-500/20 p-3 rounded-2xl shrink-0">
+                <Target className="w-6 h-6 text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">Automatic State Standards</h3>
+                <p className="text-teal-100/80 font-medium text-sm leading-relaxed">Never guess if you are compliant. We automatically map your topics directly to your state's specific educational requirements.</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 items-start">
+              <div className="bg-rose-500/20 p-3 rounded-2xl shrink-0">
+                <FileCheck className="w-6 h-6 text-rose-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">Printable Portfolios</h3>
+                <p className="text-teal-100/80 font-medium text-sm leading-relaxed">Snap a photo of their work, track their progress, and generate evaluator-approved end-of-year reports instantly.</p>
+              </div>
+            </div>
+            
+            <div className="flex gap-4 items-start">
+              <div className="bg-emerald-500/20 p-3 rounded-2xl shrink-0">
+                <HeartHandshake className="w-6 h-6 text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">Smart Feedback Loop</h3>
+                <p className="text-teal-100/80 font-medium text-sm leading-relaxed">Rate the activities as you go. The engine learns exactly what your child loves and adapts future lesson plans to match.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* RIGHT COLUMN: AUTH FORM */}
       <div className="w-full md:w-7/12 lg:w-1/2 flex items-center justify-center p-6 py-12 md:p-12 relative z-10">
         <Suspense fallback={<Loader2 className="w-10 h-10 animate-spin text-teal-600" />}>
           <AuthForm />
         </Suspense>
       </div>
+
     </main>
   );
 }
