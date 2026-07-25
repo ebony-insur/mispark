@@ -94,9 +94,9 @@ export default function Dashboard() {
       if (user) {
         // Fetch User Profile for Sparks & Sub Status
         const { data: profile } = await supabase.from("profiles").select("sparks_remaining, is_subscribed").eq("id", user.id).single();
-        if (profile) {
-          setSparks(profile.sparks_remaining);
-          setIsSubscribed(profile.is_subscribed);
+if (profile) {
+  setSparks((profile as any).sparks_remaining);
+  setIsSubscribed((profile as any).is_subscribed);
         }
 
         // Fetch Students
