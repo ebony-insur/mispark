@@ -1,32 +1,38 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16" as any,
-});
-
 export async function POST(req: Request) {
   try {
-    const { email } = await req.json();
+    // 1. Grab the key inside the function
+    const apiKey = process.env.STRIPE_SECRET_KEY;
     
-    // Search Stripe for the customer matching this email
-    const customers = await stripe.customers.list({ email, limit: 1 });
-    const customerId = customers.data[0]?.id;
-
-    if (!customerId) {
-      return NextResponse.json({ error: "No active Stripe customer found for this email." }, { status: 404 });
+    if (!apiKey) {
+      console.error("Missing STRIPE_SECRET_KEY");
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
     }
 
-    // Generate a secure, temporary link to the Stripe Portal
-    const origin = req.headers.get("origin") || "http://localhost:3000";
-    const portalSession = await stripe.billingPortal.sessions.create({
-      customer: customerId,
-      return_url: `${origin}/billing`,
+    // 2. Initialize Stripe INSIDE the handler
+    const stripe = new Stripe(apiKey, {
+      apiVersion: "2026-06-24.dahlia",
     });
 
-    return NextResponse.json({ url: portalSession.url }, { status: 200 });
-  } catch (error) {
+    const { customerId } = await req.json();
+
+    if (!customerId) {
+      return NextResponse.json({ error: "Customer ID is required" }, { status: 400 });
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+
+    // 3. Create the Stripe Customer Portal session
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${baseUrl}/billing`,
+    });
+
+    return NextResponse.json({ url: session.url });
+  } catch (error: any) {
     console.error("Stripe Portal Error:", error);
-    return NextResponse.json({ error: "Failed to generate portal link." }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Failed to create portal session" }, { status: 500 });
   }
 }
