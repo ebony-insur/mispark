@@ -107,7 +107,7 @@ if (profile) {
           
         if (studentData && studentData.length > 0) {
           setStudents(studentData);
-          setSelectedStudentId(studentData[0].id);
+          setSelectedStudentId((studentData[0]as any).id);
         } else {
           window.location.href = "/onboarding";
         }
