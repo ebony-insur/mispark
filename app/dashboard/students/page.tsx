@@ -111,10 +111,10 @@ export default function StudentsPage() {
 
   const handleSaveBackpack = async () => {
     setIsSavingBackpack(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ subscriptions: activeSubscriptions } as any)
-      .eq("id", user?.id);
+const { error } = await (supabase as any)
+  .from("profiles")
+  .update({ subscriptions: activeSubscriptions })
+  .eq("id", user?.id);
 
     setIsSavingBackpack(false);
     if (error) toast.error("Failed to save backpack.");
@@ -182,18 +182,18 @@ export default function StudentsPage() {
     };
 
     let error;
-    if (editingId) {
-      const { error: updateError } = await supabase
-        .from("children_profiles")
-        .update(payload as any)
-        .eq("id", editingId);
-      error = updateError;
-    } else {
-      const { error: insertError } = await supabase
-        .from("children_profiles")
-        .insert(payload as any);
-      error = insertError;
-    }
+if (editingId) {
+  const { error: updateError } = await (supabase as any)
+    .from("children_profiles")
+    .update(payload)
+    .eq("id", editingId);
+  error = updateError;
+} else {
+  const { error: insertError } = await (supabase as any)
+    .from("children_profiles")
+    .insert(payload);
+  error = insertError;
+}
 
     setIsSavingStudent(false);
 
