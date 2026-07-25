@@ -47,7 +47,8 @@ export default function EvidenceUploader({ studentId, lessonPlanId, standardText
       }
 
       // Save to Database (Now including enjoyment_rating)
-    const { error } = await (supabase as any).from("portfolio_artifacts").insert({
+      // PROACTIVE FIX: Cast the entire insert payload 'as any' to bypass the 'never' array error
+      const { error } = await (supabase as any).from("portfolio_artifacts").insert({
         student_id: studentId,
         lesson_plan_id: lessonPlanId,
         standard_text: standardText,
@@ -55,7 +56,7 @@ export default function EvidenceUploader({ studentId, lessonPlanId, standardText
         enjoyment_rating: enjoymentRating > 0 ? enjoymentRating : null,
         notes: notes,
         image_url: imageUrl
-      });
+      } as any);
 
       if (error) throw error;
 
