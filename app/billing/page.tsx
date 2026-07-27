@@ -32,11 +32,14 @@ export default function BillingPage() {
       
       setUserId(user.id);
 
-      const { data: profile } = await supabase
+      const { data } = await supabase
         .from("profiles")
         .select("first_name, last_name")
         .eq("id", user.id)
         .single();
+
+      // Explicitly tell TypeScript the shape of the data returned by Supabase
+      const profile = data as { first_name: string; last_name: string } | null;
 
       if (profile) {
         setFirstName(profile.first_name || "");
