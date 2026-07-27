@@ -215,7 +215,6 @@ export default function Dashboard() {
       : students.find(s => s.id === selectedStudentId);
     
     try {
-      // Pass the session token so the API knows who is requesting (and deducting)
       const { data: { session } } = await supabase.auth.getSession();
       
       const res = await fetch("/api/generate", {
@@ -224,7 +223,13 @@ export default function Dashboard() {
           "Content-Type": "application/json",
           "Authorization": session ? `Bearer ${session.access_token}` : ""
         },
-        body: JSON.stringify({ lessonText, studentProfile }),
+        // FIX: Injected studentId and userId so the backend knows where to save the plan
+        body: JSON.stringify({ 
+          lessonText, 
+          studentProfile,
+          studentId: selectedStudentId,
+          userId: user?.id
+        }),
         signal: abortControllerRef.current.signal
       });
       
