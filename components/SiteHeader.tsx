@@ -1,147 +1,57 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import Image from "next/image";
-import { createClient } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Zap, User as UserIcon, ChevronDown, ArrowLeft } from "lucide-react";
 
-export default function SiteHeader() {
+interface SiteHeaderProps {
+  firstName?: string;
+}
+
+export default function SiteHeader({ firstName }: SiteHeaderProps) {
   const router = useRouter();
-  const pathname = usePathname();
-  const supabase = createClient();
-  
-  const [user, setUser] = useState<any>(null);
-  const [isGuest, setIsGuest] = useState(true);
-  const [sparksBalance, setSparksBalance] = useState(0);
-  const [subscriptionTier, setSubscriptionTier] = useState("Free Trial");
-  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const fetchAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setIsGuest(!user);
-
-      if (user) {
-        // PROACTIVE FIX: (supabase as any) to bypass strict typing on the new 'profiles' table
-        const { data } = await (supabase as any)
-          .from("profiles")
-          .select("sparks_remaining, subscription_tier")
-          .eq("id", user.id)
-          .single();
-          
-        if (data) {
-          // PROACTIVE FIX: (data as any) to allow reading the fields safely
-          setSparksBalance((data as any).sparks_remaining || 0);
-          setSubscriptionTier((data as any).subscription_tier || "Free Trial");
-        }
-      }
-    };
-    fetchAuth();
-  }, [supabase]);
-
-  const userFirstName = user?.email 
-    ? user.email.split('@')[0].charAt(0).toUpperCase() + user.email.split('@')[0].slice(1).toLowerCase() 
-    : "Parent";
-    
-  const isDashboard = pathname === "/dashboard";
 
   return (
-    <div className="w-full max-w-5xl flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200 print:hidden mb-8">
-      <div className="flex items-center gap-4">
-        {!isDashboard && (
-          <Button 
-            onClick={() => router.push("/dashboard")} 
-            variant="ghost" 
-            className="text-slate-500 hover:text-slate-800 px-2"
-          >
-            <ArrowLeft className="w-5 h-5 mr-1" />
-          </Button>
-        )}
-        <Image 
-          src="/MiSpark.svg" 
-          alt="MiSpark Logo" 
-          width={120} 
-          height={40} 
-          className="cursor-pointer" 
-          onClick={() => router.push("/")} 
-        />
+    <header className="w-full max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200 gap-4">
+      {/* Branding */}
+      <div 
+        className="flex items-center gap-2 cursor-pointer" 
+        onClick={() => router.push("/")}
+      >
+        <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-blue-600 tracking-tight">
+          MiSpark
+        </span>
       </div>
 
-      <div className="flex gap-3 items-center">
-        {isGuest ? (
-          <Button 
-            onClick={() => router.push("/login?signup=true")} 
-            className="bg-orange-500 hover:bg-orange-600 text-white font-bold"
-          >
-            Sign Up to Save
-          </Button>
-        ) : (
-          <>
-            <button 
-              onClick={() => router.push("/billing")} 
-              className="flex items-center gap-1 bg-amber-50 text-amber-800 px-4 py-2 rounded-xl border border-amber-200 font-bold text-sm transition-colors hover:bg-amber-100"
-            >
-              <Zap className="w-4 h-4 fill-amber-500 text-amber-500" /> 
-              {subscriptionTier === "Family Unlimited" ? "Unlimited" : `${sparksBalance} Sparks`}
-            </button>
-            <div className="relative">
-              <button 
-                onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)} 
-                onBlur={() => setTimeout(() => setIsAccountMenuOpen(false), 200)} 
-                className="flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-xl font-bold text-slate-700 hover:bg-slate-200 transition-colors"
-              >
-                <UserIcon className="w-4 h-4" /> Hi, {userFirstName}! <ChevronDown className="w-4 h-4" />
-              </button>
-              
-              {isAccountMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-2 z-50">
-                  <button 
-                    onClick={() => router.push("/dashboard")} 
-                    className="w-full text-left px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
-                  >
-                    Dashboard
-                  </button>
-                  <button 
-                    onClick={() => router.push("/dashboard/students")} 
-                    className="w-full text-left px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
-                  >
-                    My Learners
-                  </button>
-                  {/* UPDATED TERMINOLOGY BELOW */}
-                  <button 
-                    onClick={() => router.push("/history")} 
-                    className="w-full text-left px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
-                  >
-                    Plan History
-                  </button>
-                  <button 
-                    onClick={() => router.push("/portfolio")} 
-                    className="w-full text-left px-4 py-3 text-sm font-black text-teal-700 hover:bg-teal-50"
-                  >
-                    Portfolios
-                  </button>
-                  <button 
-                    onClick={() => router.push("/billing")} 
-                    className="w-full text-left px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
-                  >
-                    Manage Account
-                  </button>
-                  <div className="h-px bg-slate-100 my-1"></div>
-                  <button 
-                    onClick={() => { supabase.auth.signOut(); router.push("/"); }} 
-                    className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              )}
-            </div>
-          </>
-        )}
+      {/* Primary Navigation */}
+      <nav className="flex flex-wrap justify-center gap-4 text-sm font-bold text-slate-600">
+        <Link href="/dashboard" className="hover:text-teal-600 transition-colors">
+          Create A Plan
+        </Link>
+        <Link href="/dashboard/students" className="hover:text-teal-600 transition-colors">
+          Learner Profiles
+        </Link>
+        <Link href="/portfolio" className="hover:text-teal-600 transition-colors">
+          Portfolios
+        </Link>
+        <Link href="/history" className="hover:text-teal-600 transition-colors">
+          Plan History
+        </Link>
+      </nav>
+
+      {/* Account Controls */}
+      <div className="flex items-center gap-4">
+        <span className="text-sm font-bold text-slate-800">
+          {firstName ? `Welcome, ${firstName}` : "Welcome"}
+        </span>
+        <Button 
+          variant="outline" 
+          onClick={() => router.push("/billing")}
+          className="border-slate-200 text-slate-700 hover:bg-slate-50"
+        >
+          My Account
+        </Button>
       </div>
-    </div>
+    </header>
   );
 }

@@ -10,8 +10,9 @@ export const MiSparkPayloadSchema = z.object({
   })),
   mediaLinks: z.array(z.object({
     topicReference: z.string(),
-    podcastName: z.string(),
-    youtubeSearchQuery: z.string().describe("Exact channel and video title for backend API validation")
+    platformName: z.string().describe("e.g., Khan Academy, YouTube, Specific Podcast"),
+    resourceTitle: z.string(),
+    directUrl: z.string().url().describe("Exact, valid HTTPS URL directly to the video, article, or podcast episode. Ensure Khan Academy and YouTube links are properly formatted.")
   })),
   catalysts: z.object({
     pantrySpark: z.object({

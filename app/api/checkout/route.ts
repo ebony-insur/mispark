@@ -1,51 +1,62 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
 
-export async function POST(req: Request) {
+// Initialize Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2026-06-24.dahlia" as any,
+});
+
+export async function POST(request: Request) {
   try {
-    const apiKey = process.env.STRIPE_SECRET_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "Missing STRIPE_SECRET_KEY" }, { status: 500 });
+    const { userId, priceId, mode } = await request.json();
+
+    if (!userId || !priceId) {
+      return NextResponse.json({ error: "Missing required parameters." }, { status: 400 });
     }
 
-    const stripe = new Stripe(apiKey, {
-      apiVersion: "2026-06-24.dahlia",
-    });
+    // Initialize Supabase Admin to bypass RLS for this check
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
-    // Accept planType ("single" or "family") from the frontend
-    const { userId, email, planType = "family" } = await req.json();
+    // Fetch the user's profile to check for an existing Stripe Customer ID
+    const { data: profile, error } = await supabaseAdmin
+      .from("profiles")
+      .select("stripe_customer_id")
+      .eq("id", userId)
+      .single();
 
-    if (!userId || !email) {
-      return NextResponse.json({ error: "User ID and Email required" }, { status: 400 });
+    if (error) {
+      console.error("Profile fetch error:", error);
+      return NextResponse.json({ error: "Could not retrieve user profile." }, { status: 500 });
     }
 
-    // Select the correct Price ID based on the requested plan
-    const stripePriceId = planType === "single" 
-      ? process.env.STRIPE_PRICE_ID_SINGLE 
-      : process.env.STRIPE_PRICE_ID_FAMILY;
-
-    if (!stripePriceId) {
-      return NextResponse.json({ error: `Price ID for plan '${planType}' is missing.` }, { status: 500 });
-    }
-
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-
-    const session = await stripe.checkout.sessions.create({
+    // Base Stripe Session Parameters
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ["card"],
-      mode: "subscription",
-      customer_email: email,
-      line_items: [{ price: stripePriceId, quantity: 1 }],
-      success_url: `${baseUrl}/dashboard?success=true`,
-      cancel_url: `${baseUrl}/dashboard?canceled=true`,
-      metadata: {
-        userId: userId,
-        planType: planType // Pass plan type to webhook
-      },
-    });
+      line_items: [{ price: priceId, quantity: 1 }],
+      // Use 'payment' for one-off Spark Packs, 'subscription' for plans
+      mode: mode || "subscription", 
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?success=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/billing?canceled=true`,
+      metadata: { userId },
+    };
 
-    return NextResponse.json({ url: session.url });
+    // FIX: Attach the existing Stripe Customer ID if it exists
+    if (profile?.stripe_customer_id) {
+      sessionParams.customer = profile.stripe_customer_id;
+    } else {
+      // If creating a new customer, pass the email if you have it, or let Stripe create one.
+      sessionParams.customer_creation = "always";
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
+
+    return NextResponse.json({ url: session.url }, { status: 200 });
   } catch (error: any) {
     console.error("Stripe Checkout Error:", error);
-    return NextResponse.json({ error: error.message || "Failed to create checkout session" }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

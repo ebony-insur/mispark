@@ -39,24 +39,52 @@ export async function POST(req: Request) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
-        const planType = session.metadata?.planType || "family";
         const customerId = session.customer as string;
 
-        // Convert key to display tier string for Students Page checks
-        const tierName = planType === "single" ? "Solo Scholar" : "Family Unlimited";
+        if (!userId) break;
 
-        if (userId) {
-          const { error } = await supabaseAdmin
-            .from("profiles")
-            .update({
-              is_subscribed: true,
-              subscription_tier: tierName,
-              stripe_customer_id: customerId,
-            })
-            .eq("id", userId);
+        // Retrieve line items to determine the product purchased
+        const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+        const isSparkPack = lineItems.data.some(item => item.price?.product === 'prod_UxMoASRnl4acGz');
+        const isClassroom = lineItems.data.some(item => item.price?.product === 'prod_UxMsst5r7iZfnl');
 
-          if (error) throw error;
-          console.log(`Successfully upgraded user ${userId} to ${tierName}`);
+        if (isSparkPack) {
+            // Process One-off Spark Pack
+            const { data: profile } = await supabaseAdmin
+                .from("profiles")
+                .select("sparks_remaining, subscription_tier")
+                .eq("id", userId)
+                .single();
+            
+            const currentSparks = profile?.sparks_remaining || 0;
+            // Cap logic: Accommodates up to 3 months of their base tier.
+            // Example: If base is 8, max cap is 24.
+            const maxCap = 24; 
+            const newTotal = Math.min(currentSparks + 4, maxCap);
+
+            await supabaseAdmin.from("profiles").update({ 
+                sparks_remaining: newTotal,
+                stripe_customer_id: customerId 
+            }).eq("id", userId);
+
+            console.log(`Added Spark Pack for user ${userId}. New balance: ${newTotal}`);
+
+        } else {
+            // Process Subscription Upgrades
+            const planType = session.metadata?.planType || (isClassroom ? "classroom" : "family");
+            const tierName = planType === "single" ? "Solo Scholar" : planType === "classroom" ? "Classroom" : "Family Unlimited";
+
+            const { error } = await supabaseAdmin
+              .from("profiles")
+              .update({
+                is_subscribed: true,
+                subscription_tier: tierName,
+                stripe_customer_id: customerId,
+              })
+              .eq("id", userId);
+
+            if (error) throw error;
+            console.log(`Successfully upgraded user ${userId} to ${tierName}`);
         }
         break;
       }
