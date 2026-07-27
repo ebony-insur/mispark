@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, ShieldAlert, Zap } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { CheckCircle2, ShieldAlert, Zap, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import SiteHeader from "@/components/SiteHeader";
 
@@ -14,27 +15,56 @@ export default function BillingPage() {
   const supabase = createClient();
   
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [firstName, setFirstName] = useState<string>("Account Holder");
+  
+  // Profile Form States
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUserAndProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("first_name")
-          .eq("id", user.id)
-          .single();
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+      
+      setUserId(user.id);
 
-        if (profile?.first_name) {
-          setFirstName(profile.first_name);
-        }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("first_name, last_name")
+        .eq("id", user.id)
+        .single();
+
+      if (profile) {
+        setFirstName(profile.first_name || "");
+        setLastName(profile.last_name || "");
       }
     };
-    fetchUser();
-  }, [supabase]);
+    fetchUserAndProfile();
+  }, [supabase, router]);
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId) return;
+
+    setIsSavingProfile(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ first_name: firstName, last_name: lastName })
+        .eq("id", userId);
+
+      if (error) throw error;
+      toast.success("Account name updated successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update profile.");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   const handleCheckout = async (priceId: string, mode: string) => {
     if (!userId) {
@@ -56,11 +86,9 @@ export default function BillingPage() {
         window.location.href = data.url;
       } else {
         toast.error(data.error || "Failed to start checkout.");
-        console.error("Checkout Backend Error:", data.error);
       }
     } catch (error) {
-      toast.error("Checkout service unavailable. Check your console.");
-      console.error("Network Error:", error);
+      toast.error("Checkout service unavailable.");
     } finally {
       setIsLoading(null);
     }
@@ -77,12 +105,56 @@ export default function BillingPage() {
         <div className="text-center space-y-3">
           <h1 className="text-4xl font-extrabold text-slate-900">Manage Your Account</h1>
           <p className="text-slate-600 text-lg max-w-2xl mx-auto">
-            Upgrade your membership to unlock more Sparks and support more Learner Profiles.
+            Update your personal details or upgrade your plan to unlock more capabilities.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8">
+        {/* PROFILE SETTINGS CARD */}
+        <Card className="border-2 border-slate-200 bg-white shadow-sm">
+          <CardHeader className="border-b border-slate-100 pb-4">
+            <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-teal-600" /> Account Holder Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <form onSubmit={handleUpdateProfile} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-bold text-slate-700">First Name</label>
+                  <Input 
+                    type="text" 
+                    value={firstName} 
+                    onChange={(e) => setFirstName(e.target.value)} 
+                    required 
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-700">Last Name</label>
+                  <Input 
+                    type="text" 
+                    value={lastName} 
+                    onChange={(e) => setLastName(e.target.value)} 
+                    required 
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              <Button 
+                type="submit" 
+                disabled={isSavingProfile}
+                className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6"
+              >
+                {isSavingProfile ? "Saving..." : "Save Changes"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* PLANS GRID */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4">
           
+          {/* SOLO PLAN */}
           <Card className="border-2 border-slate-200 relative shadow-sm flex flex-col">
             <CardHeader className="text-center pb-4 border-b border-slate-100">
               <CardTitle className="text-2xl font-bold text-slate-800">Solo Scholar</CardTitle>
@@ -105,6 +177,7 @@ export default function BillingPage() {
             </CardContent>
           </Card>
 
+          {/* FAMILY PLAN */}
           <Card className="border-2 border-teal-500 relative shadow-xl flex flex-col transform md:-translate-y-4">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-teal-500 text-white text-xs font-extrabold px-4 py-1 rounded-full uppercase tracking-wider">
               Most Popular
@@ -130,6 +203,7 @@ export default function BillingPage() {
             </CardContent>
           </Card>
 
+          {/* CLASSROOM PLAN */}
           <Card className="border-2 border-slate-200 relative shadow-sm flex flex-col">
             <CardHeader className="text-center pb-4 border-b border-slate-100">
               <CardTitle className="text-2xl font-bold text-slate-800">Classroom</CardTitle>
@@ -154,7 +228,8 @@ export default function BillingPage() {
 
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6">
+        {/* ONE-OFF PURCHASES & POLICY */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
           
           <Card className="border border-orange-200 bg-orange-50/50 shadow-sm">
             <CardHeader className="pb-3">

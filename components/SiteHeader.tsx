@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 
 interface SiteHeaderProps {
@@ -10,6 +12,16 @@ interface SiteHeaderProps {
 
 export default function SiteHeader({ firstName }: SiteHeaderProps) {
   const router = useRouter();
+  const supabase = createClient();
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
+    };
+    checkAuth();
+  }, [supabase]);
 
   return (
     <header className="w-full max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200 gap-4">
@@ -39,18 +51,30 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
         </Link>
       </nav>
 
-      {/* Account Controls */}
+      {/* Account Controls / Login Toggle */}
       <div className="flex items-center gap-4">
-        <span className="text-sm font-bold text-slate-800">
-          {firstName ? `Welcome, ${firstName}` : "Welcome"}
-        </span>
-        <Button 
-          variant="outline" 
-          onClick={() => router.push("/billing")}
-          className="border-slate-200 text-slate-700 hover:bg-slate-50"
-        >
-          My Account
-        </Button>
+        {isLoggedIn && firstName && (
+          <span className="text-sm font-bold text-slate-800">
+            Welcome, {firstName}
+          </span>
+        )}
+        
+        {isLoggedIn === false ? (
+          <Button 
+            onClick={() => router.push("/login")}
+            className="bg-teal-600 hover:bg-teal-700 text-white font-bold"
+          >
+            Login
+          </Button>
+        ) : (
+          <Button 
+            variant="outline" 
+            onClick={() => router.push("/billing")}
+            className="border-slate-200 text-slate-700 hover:bg-slate-50 font-bold"
+          >
+            My Account
+          </Button>
+        )}
       </div>
     </header>
   );
