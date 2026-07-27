@@ -38,7 +38,6 @@ export default function BillingPage() {
         .eq("id", user.id)
         .single();
 
-      // Explicitly tell TypeScript the shape of the data returned by Supabase
       const profile = data as { first_name: string; last_name: string } | null;
 
       if (profile) {
@@ -55,10 +54,9 @@ export default function BillingPage() {
 
     setIsSavingProfile(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        // Bypass strict type checking for this update payload
-        .update({ first_name: firstName, last_name: lastName } as any)
+      // FIX: Cast the table reference to 'any' to bypass the 'never' restriction entirely
+      const { error } = await (supabase.from("profiles") as any)
+        .update({ first_name: firstName, last_name: lastName })
         .eq("id", userId);
 
       if (error) throw error;

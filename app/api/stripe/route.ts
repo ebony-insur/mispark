@@ -43,13 +43,11 @@ export async function POST(req: Request) {
 
         if (!userId) break;
 
-        // Retrieve line items to determine the product purchased
         const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
         const isSparkPack = lineItems.data.some(item => item.price?.product === 'prod_UxMoASRnl4acGz');
         const isClassroom = lineItems.data.some(item => item.price?.product === 'prod_UxMsst5r7iZfnl');
 
         if (isSparkPack) {
-            // Process One-off Spark Pack
             const { data: profile } = await supabaseAdmin
                 .from("profiles")
                 .select("sparks_remaining, subscription_tier")
@@ -57,12 +55,11 @@ export async function POST(req: Request) {
                 .single();
             
             const currentSparks = profile?.sparks_remaining || 0;
-            // Cap logic: Accommodates up to 3 months of their base tier.
-            // Example: If base is 8, max cap is 24.
             const maxCap = 24; 
             const newTotal = Math.min(currentSparks + 4, maxCap);
 
-            await supabaseAdmin.from("profiles").update({ 
+            // FIX: Cast table reference to any
+            await (supabaseAdmin.from("profiles") as any).update({ 
                 sparks_remaining: newTotal,
                 stripe_customer_id: customerId 
             }).eq("id", userId);
@@ -70,12 +67,11 @@ export async function POST(req: Request) {
             console.log(`Added Spark Pack for user ${userId}. New balance: ${newTotal}`);
 
         } else {
-            // Process Subscription Upgrades
             const planType = session.metadata?.planType || (isClassroom ? "classroom" : "family");
             const tierName = planType === "single" ? "Solo Scholar" : planType === "classroom" ? "Classroom" : "Family Unlimited";
 
-            const { error } = await supabaseAdmin
-              .from("profiles")
+            // FIX: Cast table reference to any
+            const { error } = await (supabaseAdmin.from("profiles") as any)
               .update({
                 is_subscribed: true,
                 subscription_tier: tierName,
@@ -93,8 +89,8 @@ export async function POST(req: Request) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        const { error } = await supabaseAdmin
-          .from("profiles")
+        // FIX: Cast table reference to any
+        const { error } = await (supabaseAdmin.from("profiles") as any)
           .update({ 
             is_subscribed: false,
             subscription_tier: "free"
