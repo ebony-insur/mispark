@@ -24,8 +24,10 @@ export default function BillingPage() {
 
   useEffect(() => {
     const fetchUserAndProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      // Strict Auth Gate: Redirect to login if not authenticated
+      if (authError || !user) {
         router.push("/login");
         return;
       }
@@ -54,7 +56,6 @@ export default function BillingPage() {
 
     setIsSavingProfile(true);
     try {
-      // FIX: Cast the table reference to 'any' to bypass the 'never' restriction entirely
       const { error } = await (supabase.from("profiles") as any)
         .update({ first_name: firstName, last_name: lastName })
         .eq("id", userId);
