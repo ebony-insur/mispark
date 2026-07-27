@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 
 interface SiteHeaderProps {
   firstName?: string;
@@ -16,14 +17,12 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Check initial session
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setIsLoggedIn(!!session);
     };
     checkAuth();
 
-    // Listen for real-time login/logout changes
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       setIsLoggedIn(!!session);
     });
@@ -32,6 +31,12 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
       authListener.subscription.unsubscribe();
     };
   }, [supabase]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  };
 
   return (
     <header className="w-full max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200 gap-4">
@@ -77,13 +82,23 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
             Login
           </Button>
         ) : (
-          <Button 
-            variant="outline" 
-            onClick={() => router.push("/billing")}
-            className="border-slate-200 text-slate-700 hover:bg-slate-50 font-bold"
-          >
-            My Account
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => router.push("/billing")}
+              className="border-slate-200 text-slate-700 hover:bg-slate-50 font-bold"
+            >
+              My Account
+            </Button>
+            <Button 
+              variant="ghost" 
+              onClick={handleLogout}
+              className="text-slate-500 hover:text-rose-600 hover:bg-rose-50 px-3 transition-colors"
+              title="Log Out"
+            >
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </div>
         )}
       </div>
     </header>
