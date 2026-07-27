@@ -21,8 +21,8 @@ export default function HistoryPage() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        // Fetch User's First Name for the Header
-        const { data: profile } = await supabase
+        // FIX: Added 'as any' bypass to the profile fetch
+        const { data: profile } = await (supabase as any)
           .from("profiles")
           .select("first_name")
           .eq("id", user.id)
