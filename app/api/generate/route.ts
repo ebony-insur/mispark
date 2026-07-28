@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     // Support both payload formats (Dashboard vs Legacy)
     const contentToAnalyze = promptText || lessonText || "";
 
-    // --- RESTORED: The Vercel URL Sledgehammer ---
+    // --- The Vercel URL Sledgehammer ---
     const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
     const cleanUrl = rawUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
 
@@ -220,7 +220,7 @@ export async function POST(req: Request) {
 
     // Pass the AbortSignal from Next.js directly to Anthropic so the Stop Button works
     const msg = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-latest",
+      model: "claude-3-5-sonnet-20240620", // <-- FIX: The exact versioned Anthropic string
       max_tokens: 8192,
       system: systemPrompt,
       messages: [
@@ -275,7 +275,6 @@ export async function POST(req: Request) {
     if (error.name === "AbortError" || error.message?.includes("aborted")) {
       return NextResponse.json({ error: "Generation stopped by user." }, { status: 499 });
     }
-    // Added detailed error logging to bubble up the exact failure reason
     console.error("Error in generate API:", error);
     return NextResponse.json({ error: error.message || "Failed to process request." }, { status: 500 });
   }
