@@ -16,6 +16,8 @@ import {
   Sparkles, MapPin, MessageCircle, Lock, Settings
 } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
+import GlobalAffiliateBanner from "@/components/GlobalAffiliateBanner"; // NEW: Imported the banner
+
 
 // Affiliate Search Link Generator
 const generateSearchLink = (query: string, platform: "amazon-book" | "amazon-game" | "walmart" | "thriftbooks" | "bookshop" | "youtube") => {
@@ -92,7 +94,6 @@ export default function Dashboard() {
       setUser(user);
       setIsGuest(!user);
       if (user) {
-        // Fetch User Profile for Sparks & Sub Status - FIX: (supabase as any)
         const { data: profile } = await (supabase as any)
           .from("profiles")
           .select("sparks_remaining, is_subscribed")
@@ -104,7 +105,6 @@ export default function Dashboard() {
           setIsSubscribed((profile as any).is_subscribed);
         }
 
-        // Fetch Students - FIX: (supabase as any)
         const { data: studentData } = await (supabase as any)
           .from("children_profiles")
           .select("*")
@@ -174,7 +174,7 @@ export default function Dashboard() {
       
       if (res.ok) {
         toast.success(data.message);
-        setSparks(6); // Visually update the UI
+        setSparks(6); 
         setPromoCode("");
       } else {
         toast.error(data.error || "Failed to apply promo.");
@@ -223,7 +223,6 @@ export default function Dashboard() {
           "Content-Type": "application/json",
           "Authorization": session ? `Bearer ${session.access_token}` : ""
         },
-        // FIX: Injected studentId and userId so the backend knows where to save the plan
         body: JSON.stringify({ 
           lessonText, 
           studentProfile,
@@ -237,7 +236,6 @@ export default function Dashboard() {
       
       if (res.ok && data.data) {
         setGeneratedData(data.data);
-        // Visually deduct a spark for free users
         if (!isGuest && !isSubscribed && sparks !== null && sparks > 0) {
           setSparks(sparks - 1);
         }
@@ -369,6 +367,9 @@ export default function Dashboard() {
       {generatedData && (
         <div className="w-full max-w-5xl space-y-2 animate-in fade-in slide-in-from-bottom-8 pb-20 print:space-y-6">
           
+          {/* NEW: Global Affiliate Disclaimer injected at the very top of the generated results */}
+          <GlobalAffiliateBanner />
+
           <div className="flex justify-between items-center mb-6 print:hidden bg-slate-800 p-3 rounded-2xl text-white shadow-lg">
             <Button variant="ghost" onClick={() => setAllExpanded(!allExpanded)} className="text-slate-300 hover:text-white hover:bg-slate-700 font-bold rounded-xl">
               <ChevronsUpDown className="w-5 h-5 mr-2"/> {allExpanded ? "Collapse All" : "Expand All"}
