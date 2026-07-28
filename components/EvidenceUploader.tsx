@@ -11,19 +11,19 @@ export default function EvidenceUploader({
   studentId, 
   lessonPlanId, 
   standardText, 
-  existingArtifact = null // NEW: Pass an existing row here to trigger Edit Mode
+  existingArtifact = null 
 }: any) {
   const [masteryRating, setMasteryRating] = useState<number>(0);
   const [enjoymentRating, setEnjoymentRating] = useState<number>(0);
   const [notes, setNotes] = useState("");
   const [existingFiles, setExistingFiles] = useState<string[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
-  // Populate state if an existing artifact is passed in
   useEffect(() => {
     if (existingArtifact) {
       setMasteryRating(existingArtifact.rating || 0);
@@ -33,7 +33,7 @@ export default function EvidenceUploader({
     }
   }, [existingArtifact]);
 
-  const handleSave = async (files?: FileList | null) => {
+  const handleSave = async () => {
     if (!studentId || !lessonPlanId) {
       toast.error("Missing learner or plan ID.");
       return;
@@ -46,11 +46,13 @@ export default function EvidenceUploader({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Must be logged in to save evidence.");
 
-      // Handle Multiple File Uploads Concurrently
-      if (files && files.length > 0) {
-        const uploadPromises = Array.from(files).map(async (file) => {
+      // Upload newly selected pending files
+      if (pendingFiles.length > 0) {
+        const uploadPromises = pendingFiles.map(async (file) => {
           const fileExt = file.name.split('.').pop();
-          const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+          // We include the original file name in the path so it is recognizable in the URL later
+          const safeOriginalName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+          const fileName = `${Math.random().toString(36).substring(2)}_${safeOriginalName}`;
           const filePath = `${studentId}/${fileName}`;
 
           const { error: uploadError } = await supabase.storage
@@ -69,7 +71,6 @@ export default function EvidenceUploader({
         newUploadedUrls = await Promise.all(uploadPromises);
       }
 
-      // Combine previous files with any new ones uploaded
       const finalFileUrls = [...existingFiles, ...newUploadedUrls];
 
       const payload = {
@@ -80,19 +81,17 @@ export default function EvidenceUploader({
         rating: masteryRating > 0 ? masteryRating : null,
         enjoyment_rating: enjoymentRating > 0 ? enjoymentRating : null,
         notes: notes,
-        file_urls: finalFileUrls // Using our new database array column
+        file_urls: finalFileUrls 
       };
 
       let dbError;
 
       if (existingArtifact?.id) {
-        // EDIT MODE: Update the existing row
         const { error } = await (supabase as any).from("portfolio_artifacts")
           .update(payload)
           .eq("id", existingArtifact.id);
         dbError = error;
       } else {
-        // CREATE MODE: Insert a new row
         const { error } = await (supabase as any).from("portfolio_artifacts").insert(payload);
         dbError = error;
       }
@@ -100,6 +99,7 @@ export default function EvidenceUploader({
       if (dbError) throw dbError;
 
       setIsSaved(true);
+      setPendingFiles([]); // Clear pending files on success
       toast.success(existingArtifact ? "Evidence updated!" : "Evidence saved securely!");
     } catch (error: any) {
       console.error(error);
@@ -165,21 +165,41 @@ export default function EvidenceUploader({
         className="w-full mb-4 bg-slate-50 border-slate-200 rounded-xl focus-visible:ring-teal-500 resize-none h-20"
       />
 
-      {/* Show indicator if files are already attached to this entry */}
-      {existingFiles.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-2">
-          <span className="text-xs font-bold text-slate-500 w-full">Attached Files:</span>
-          {existingFiles.map((url, i) => (
-             <div key={i} className="flex items-center text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md border border-slate-200">
-               <ImageIcon className="w-3 h-3 mr-1" /> File {i + 1}
-             </div>
-          ))}
+      {/* File Roster: Shows both previously saved files AND new pending files */}
+      {(existingFiles.length > 0 || pendingFiles.length > 0) && (
+        <div className="mb-4 flex flex-col gap-2">
+          <span className="text-xs font-bold text-slate-500 uppercase">Attached Files</span>
+          <div className="flex flex-wrap gap-2">
+            
+            {/* Show already saved files */}
+            {existingFiles.map((url, i) => {
+               // Extract filename from the URL, handle any extra URL parameters
+               let fileName = url.split('/').pop()?.split('?')[0] || `File ${i + 1}`;
+               // If we injected a unique ID prefix, optionally clean it up for display
+               fileName = fileName.replace(/^[0-9a-z]+_/, ''); 
+
+               return (
+                 <div key={`existing-${i}`} className="flex items-center text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200" title={fileName}>
+                   <ImageIcon className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" /> 
+                   <span className="truncate max-w-[180px] font-medium">{fileName}</span>
+                 </div>
+               );
+            })}
+
+            {/* Show new files waiting to be saved */}
+            {pendingFiles.map((file, i) => (
+               <div key={`pending-${i}`} className="flex items-center text-xs bg-teal-50 text-teal-700 px-3 py-1.5 rounded-lg border border-teal-200" title={file.name}>
+                 <Upload className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" /> 
+                 <span className="truncate max-w-[180px] font-bold">{file.name}</span>
+               </div>
+            ))}
+
+          </div>
         </div>
       )}
 
       {/* Upload and Save Controls */}
       <div className="flex gap-3">
-        {/* NEW: Added 'multiple' attribute to allow multi-file selection */}
         <input 
           type="file" 
           multiple 
@@ -187,8 +207,10 @@ export default function EvidenceUploader({
           className="hidden" 
           ref={fileInputRef} 
           onChange={(e) => {
-            const files = e.target.files; 
-            if(files && files.length > 0) handleSave(files);
+            if(e.target.files && e.target.files.length > 0) {
+              // Convert FileList to an array and store it in state instead of auto-saving
+              setPendingFiles(Array.from(e.target.files));
+            }
           }} 
         />
         
@@ -199,15 +221,15 @@ export default function EvidenceUploader({
           className="flex-1 bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 font-bold rounded-xl"
         >
           {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-          {existingFiles.length > 0 ? "Add More Files" : "Attach Files"}
+          {existingFiles.length > 0 || pendingFiles.length > 0 ? "Select More Files" : "Attach Files"}
         </Button>
 
         <Button 
           onClick={() => handleSave()} 
-          disabled={isUploading || (!notes && masteryRating === 0 && enjoymentRating === 0 && existingFiles.length === 0)}
+          disabled={isUploading || (!notes && masteryRating === 0 && enjoymentRating === 0 && existingFiles.length === 0 && pendingFiles.length === 0)}
           className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl"
         >
-          {existingArtifact ? "Save Updates" : "Save Text Only"}
+          {pendingFiles.length > 0 || existingArtifact ? "Save Updates" : "Save Text Only"}
         </Button>
       </div>
     </div>
