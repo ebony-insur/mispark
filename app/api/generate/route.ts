@@ -31,27 +31,34 @@ export async function POST(req: Request) {
     // Support both payload formats (Dashboard vs Legacy)
     const contentToAnalyze = promptText || lessonText || "";
 
+    // --- FIX: The Vercel URL Sledgehammer ---
+    // Clean the URL to ensure Vercel's '/rest/v1/' injection doesn't break Auth
+    const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    const cleanUrl = rawUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
+
     // 1. Authenticate the user safely
     const authHeader = req.headers.get("authorization");
     if (!authHeader) {
-      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized: Missing token." }, { status: 401 });
     }
 
     const supabaseAuth = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!, 
+      cleanUrl, 
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, 
       { global: { headers: { Authorization: authHeader } } }
     );
-    const { data: authData } = await supabaseAuth.auth.getUser();
-    const user = authData.user;
+    
+    const { data: authData, error: authError } = await supabaseAuth.auth.getUser();
+    const user = authData?.user;
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    if (!user || authError) {
+      console.error("Backend Auth Error:", authError);
+      return NextResponse.json({ error: "Unauthorized: Invalid session." }, { status: 401 });
     }
 
     // 2. Initialize Admin Client to bypass RLS for guaranteed backend saves
     const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      cleanUrl,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
