@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2, ShieldAlert, Zap, UserCheck } from "lucide-react";
+import { CheckCircle2, ShieldAlert, Zap, UserCheck, Mail, Award } from "lucide-react";
 import { toast } from "sonner";
 import SiteHeader from "@/components/SiteHeader";
 
@@ -21,6 +21,8 @@ export default function BillingPage() {
   // Profile Form States
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [subscriptionTier, setSubscriptionTier] = useState("Free");
 
   useEffect(() => {
     const fetchUserAndProfile = async () => {
@@ -33,18 +35,21 @@ export default function BillingPage() {
       }
       
       setUserId(user.id);
+      setEmail(user.email || ""); // Set email from auth session
 
+      // Fetch the full profile details including the subscription tier
       const { data } = await supabase
         .from("profiles")
-        .select("first_name, last_name")
+        .select("first_name, last_name, subscription_tier")
         .eq("id", user.id)
         .single();
 
-      const profile = data as { first_name: string; last_name: string } | null;
+      const profile = data as any;
 
       if (profile) {
         setFirstName(profile.first_name || "");
         setLastName(profile.last_name || "");
+        setSubscriptionTier(profile.subscription_tier || "Free");
       }
     };
     fetchUserAndProfile();
@@ -120,8 +125,9 @@ export default function BillingPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <form onSubmit={handleUpdateProfile} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleUpdateProfile} className="space-y-6">
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="text-sm font-bold text-slate-700">First Name</label>
                   <Input 
@@ -129,7 +135,7 @@ export default function BillingPage() {
                     value={firstName} 
                     onChange={(e) => setFirstName(e.target.value)} 
                     required 
-                    className="mt-1"
+                    className="mt-1 font-medium bg-white"
                   />
                 </div>
                 <div>
@@ -139,17 +145,44 @@ export default function BillingPage() {
                     value={lastName} 
                     onChange={(e) => setLastName(e.target.value)} 
                     required 
-                    className="mt-1"
+                    className="mt-1 font-medium bg-white"
                   />
                 </div>
               </div>
-              <Button 
-                type="submit" 
-                disabled={isSavingProfile}
-                className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6"
-              >
-                {isSavingProfile ? "Saving..." : "Save Changes"}
-              </Button>
+
+              {/* RESTORED: Email and Subscription Display */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                <div>
+                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-1">
+                    <Mail className="w-4 h-4 text-slate-400"/> Email Address
+                  </label>
+                  <Input 
+                    type="email" 
+                    value={email} 
+                    disabled 
+                    className="font-medium bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">Email cannot be changed.</p>
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-1">
+                    <Award className="w-4 h-4 text-amber-500"/> Current Plan
+                  </label>
+                  <div className="h-10 px-4 rounded-lg border-2 border-amber-200 bg-amber-50 flex items-center font-black text-amber-800">
+                    {subscriptionTier}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 flex justify-end">
+                <Button 
+                  type="submit" 
+                  disabled={isSavingProfile}
+                  className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 h-12 rounded-xl"
+                >
+                  {isSavingProfile ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
