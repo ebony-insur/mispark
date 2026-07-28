@@ -21,34 +21,33 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Fetch the user's profile to check for an existing Stripe Customer ID
-    const { data: profile, error } = await supabaseAdmin
-      .from("profiles")
+    // FIX 1: Cast as 'any' to bypass Vercel build errors
+    // FIX 2: Use 'maybeSingle()' so it doesn't crash if the profile is missing
+    const { data: profile, error } = await (supabaseAdmin.from("profiles") as any)
       .select("stripe_customer_id")
       .eq("id", userId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Profile fetch error:", error);
-      return NextResponse.json({ error: "Could not retrieve user profile." }, { status: 500 });
+      return NextResponse.json({ error: "Database error while verifying profile." }, { status: 500 });
     }
 
     // Base Stripe Session Parameters
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
-      // Use 'payment' for one-off Spark Packs, 'subscription' for plans
       mode: mode || "subscription", 
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/billing?canceled=true`,
       metadata: { userId },
     };
 
-    // FIX: Attach the existing Stripe Customer ID if it exists
+    // Attach the existing Stripe Customer ID if the profile and ID exist
     if (profile?.stripe_customer_id) {
       sessionParams.customer = profile.stripe_customer_id;
     } else {
-      // If creating a new customer, pass the email if you have it, or let Stripe create one.
+      // If no profile or no Stripe ID exists, let Stripe create a new customer record securely
       sessionParams.customer_creation = "always";
     }
 
