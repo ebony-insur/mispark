@@ -8,7 +8,7 @@ import SiteHeader from "@/components/SiteHeader";
 
 export default function Home() {
   const router = useRouter();
-<meta name="fo-verify" content="99968f32-b53b-4554-82e6-f9db505a0925" />
+
   return (
     <main className="flex min-h-screen flex-col items-center bg-slate-50 overflow-x-hidden">
       
