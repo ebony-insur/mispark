@@ -35,10 +35,11 @@ export async function POST(request: Request) {
       priceId === "price_1TxS8KF035PE8L5xuMDlFLVc" ? "classroom" : 
       "family";
 
+    const sessionMode = mode || "subscription";
+
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
-      // NOTE: payment_method_types removed to support Managed Payments
       line_items: [{ price: priceId, quantity: 1 }],
-      mode: mode || "subscription", 
+      mode: sessionMode, 
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/billing?canceled=true`,
       metadata: { userId, planType },
@@ -46,7 +47,8 @@ export async function POST(request: Request) {
 
     if (profile?.stripe_customer_id) {
       sessionParams.customer = profile.stripe_customer_id;
-    } else {
+    } else if (sessionMode === "payment") {
+      // customer_creation is strictly restricted to payment mode
       sessionParams.customer_creation = "always";
     }
 
