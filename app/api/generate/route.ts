@@ -31,8 +31,7 @@ export async function POST(req: Request) {
     // Support both payload formats (Dashboard vs Legacy)
     const contentToAnalyze = promptText || lessonText || "";
 
-    // --- FIX: The Vercel URL Sledgehammer ---
-    // Clean the URL to ensure Vercel's '/rest/v1/' injection doesn't break Auth
+    // --- RESTORED: The Vercel URL Sledgehammer ---
     const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
     const cleanUrl = rawUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
 
@@ -47,7 +46,6 @@ export async function POST(req: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, 
       { global: { headers: { Authorization: authHeader } } }
     );
-    
     const { data: authData, error: authError } = await supabaseAuth.auth.getUser();
     const user = authData?.user;
 
@@ -277,7 +275,8 @@ export async function POST(req: Request) {
     if (error.name === "AbortError" || error.message?.includes("aborted")) {
       return NextResponse.json({ error: "Generation stopped by user." }, { status: 499 });
     }
+    // Added detailed error logging to bubble up the exact failure reason
     console.error("Error in generate API:", error);
-    return NextResponse.json({ error: "Failed to process request." }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Failed to process request." }, { status: 500 });
   }
 }
