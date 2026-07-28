@@ -192,7 +192,7 @@ export default function Home() {
           <button onClick={() => router.push("/help")} className="text-slate-400 hover:text-white font-medium text-sm transition-colors">
             Help & Best Practices
           </button>
-          <a href="mailto:support@mispark.com" className="text-slate-400 hover:text-white font-medium text-sm transition-colors">
+          <a href="mailto:mispark@insursuccess.com" className="text-slate-400 hover:text-white font-medium text-sm transition-colors">
             Contact Support
           </a>
         </div>
