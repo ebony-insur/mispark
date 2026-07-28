@@ -209,10 +209,15 @@ export default function PortfolioPage() {
                         <Edit3 className="w-5 h-5" />
                       </div>
 
-                      <div className="flex items-center gap-2 text-sm font-bold text-slate-400 mb-3">
-                        <Calendar className="w-4 h-4" /> 
-                        {new Date(item.created_at).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-                      </div>
+<div className="flex items-center gap-2 text-sm font-bold text-slate-400 mb-3">
+  <Calendar className="w-4 h-4" /> 
+  Feedback Recorded: {new Date(item.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+  {item.updated_at && item.updated_at !== item.created_at && (
+    <span className="text-slate-300 ml-1 font-medium italic">
+      (Updated: {new Date(item.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})
+    </span>
+  )}
+</div>
                       
                       <h3 className="text-xl font-black text-slate-800 mb-4 leading-snug pr-8">
                         {item.standard_text}
