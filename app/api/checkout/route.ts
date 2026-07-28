@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required parameters." }, { status: 400 });
     }
 
-    // --- FIX 1: Vercel URL Sledgehammer ---
+    // Vercel URL Sledgehammer
     const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
     const cleanUrl = rawUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
 
@@ -30,19 +30,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Database error while verifying profile." }, { status: 500 });
     }
 
-    // --- FIX 2: Identify Plan Type for the Webhook ---
     const planType = 
       priceId === "price_1Tx7p1F035PE8L5xqpQM4t3N" ? "single" : 
       priceId === "price_1TxS8KF035PE8L5xuMDlFLVc" ? "classroom" : 
       "family";
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
-      payment_method_types: ["card"],
+      // NOTE: payment_method_types removed to support Managed Payments
       line_items: [{ price: priceId, quantity: 1 }],
       mode: mode || "subscription", 
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/billing?canceled=true`,
-      metadata: { userId, planType }, // Passed to Webhook
+      metadata: { userId, planType },
     };
 
     if (profile?.stripe_customer_id) {
