@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 
     // Call Claude (using the fast, cheap Haiku model for this simple task)
     const response = await anthropic.messages.create({
-      model: "claude-3-haiku-20240307",
+      model: "claude-3-5-sonnet-20240620",
       max_tokens: 500,
       temperature: 0.7,
       system: systemPrompt,
