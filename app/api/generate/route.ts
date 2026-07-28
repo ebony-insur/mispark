@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { createClient } from "@supabase/supabase-js"; // <-- ADDED: Supabase client
+import { createClient } from "@supabase/supabase-js";
 
 // Initialize Anthropic
 const anthropic = new Anthropic({
@@ -8,7 +8,10 @@ const anthropic = new Anthropic({
 });
 
 interface GenerateRequestPayload {
-  lessonText: string;
+  promptText?: string;
+  lessonText?: string;
+  studentId?: string;
+  userId?: string;
   studentProfile?: {
     grade?: string;
     focus_duration?: string;
@@ -23,46 +26,64 @@ interface GenerateRequestPayload {
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as GenerateRequestPayload;
-    const { lessonText, studentProfile, subscriptions } = body;
+    const { promptText, lessonText, studentId, studentProfile, subscriptions } = body;
+    
+    // Support both payload formats (Dashboard vs Legacy)
+    const contentToAnalyze = promptText || lessonText || "";
 
-    // --- NEW: SUPABASE AUTH & SPARK CHECK ---
+    // 1. Authenticate the user safely
     const authHeader = req.headers.get("authorization");
-    let user = null;
-    let supabase = null;
-
-    if (authHeader) {
-      supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!, 
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, 
-        { global: { headers: { Authorization: authHeader } } }
-      );
-      const { data: authData } = await supabase.auth.getUser();
-      user = authData.user;
+    if (!authHeader) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    if (user && supabase) {
-      // Check their sparks - FIX: (supabase as any)
-      const { data: profile } = await (supabase as any)
-        .from('profiles')
-        .select('sparks_remaining, is_subscribed')
-        .eq('id', user.id)
-        .single();
+    const supabaseAuth = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!, 
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, 
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: authData } = await supabaseAuth.auth.getUser();
+    const user = authData.user;
 
-      // FIX: (profile as any)
-      if (profile && !(profile as any).is_subscribed) {
-        if ((profile as any).sparks_remaining <= 0) {
-          return NextResponse.json({ error: "Out of Sparks. Please upgrade to continue." }, { status: 403 });
-        }
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    // 2. Initialize Admin Client to bypass RLS for guaranteed backend saves
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // 3. Check Sparks Remaining
+    const { data: profile } = await (supabaseAdmin.from('profiles') as any)
+      .select('sparks_remaining, subscription_tier')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.sparks_remaining <= 0) {
+      return NextResponse.json({ error: "Out of Sparks. Please upgrade or purchase a Spark Pack to continue." }, { status: 403 });
+    }
+
+    // 4. Fetch Student Profile Data
+    let activeStudentProfile: any = studentProfile || {};
+    if (studentId) {
+      const { data: studentData } = await (supabaseAdmin.from('children_profiles') as any)
+        .select('*')
+        .eq('id', studentId)
+        .single();
+      
+      if (studentData) {
+        activeStudentProfile = studentData;
       }
     }
-    // ----------------------------------------
 
-    const focusDuration = studentProfile?.focus_duration || "20 mins";
-    const stateResidence = studentProfile?.state_residence || "General US";
-    const zipCode = studentProfile?.zip_code || "None provided";
-    const grade = studentProfile?.grade || "Elementary";
-    const specialInterests = studentProfile?.interests || "None specified";
-    const sensoryNeeds = studentProfile?.sensory_needs || "None specified";
+    const focusDuration = activeStudentProfile?.focus_duration || "20 mins";
+    const stateResidence = activeStudentProfile?.state_residence || "General US";
+    const zipCode = activeStudentProfile?.zip_code || "None provided";
+    const grade = activeStudentProfile?.grade || "Elementary";
+    const specialInterests = activeStudentProfile?.interests || "None specified";
+    const sensoryNeeds = activeStudentProfile?.sensory_needs || "None specified";
 
     const activeSubsList = subscriptions && subscriptions.length > 0 
       ? subscriptions.join(", ") 
@@ -95,7 +116,6 @@ export async function POST(req: Request) {
             required: ["type", "title", "prompt"]
           }
         },
-        // NEW: Buyable Tools for Amazon Affiliates
         buyableTools: {
           type: "array",
           items: {
@@ -108,7 +128,6 @@ export async function POST(req: Request) {
             required: ["item", "howToUse", "searchQuery"]
           }
         },
-        // UPDATED: Lets Play with buyable flags
         letsPlay: {
           type: "array",
           items: {
@@ -136,7 +155,6 @@ export async function POST(req: Request) {
             required: ["videoTitle", "platform", "topic"]
           }
         },
-        // NEW: Separated Household Experiments with full instructions
         householdExperiments: {
           type: "array",
           items: {
@@ -149,7 +167,6 @@ export async function POST(req: Request) {
             required: ["title", "materials", "instructions"]
           }
         },
-        // KEPT: Your custom Zip Code Field Trip logic!
         outAndAbout: {
           type: "object",
           properties: {
@@ -198,16 +215,16 @@ export async function POST(req: Request) {
 
     // Pass the AbortSignal from Next.js directly to Anthropic so the Stop Button works
     const msg = await anthropic.messages.create({
-      model: "claude-sonnet-5",
+      model: "claude-3-5-sonnet-latest",
       max_tokens: 8192,
       system: systemPrompt,
       messages: [
         { 
           role: "user", 
-          content: `Here is the curriculum text to analyze:\n\n${lessonText}\n\nTarget Student Profile: ${studentProfile ? JSON.stringify(studentProfile) : 'None provided'}\n\nOutput strictly valid JSON starting with { and ending with } with no preamble or conversational text.` 
+          content: `Here is the curriculum text to analyze:\n\n${contentToAnalyze}\n\nTarget Student Profile: ${JSON.stringify({ grade, specialInterests, sensoryNeeds, focusDuration })}\n\nOutput strictly valid JSON starting with { and ending with } with no preamble or conversational text.` 
         }
       ]
-    }, { signal: req.signal }); // <-- Connects to your new Stop Button
+    }, { signal: req.signal });
 
     const textBlock = msg.content.find((block) => block.type === 'text');
     const responseText = textBlock && 'text' in textBlock ? textBlock.text : "";
@@ -225,22 +242,31 @@ export async function POST(req: Request) {
     const cleanJsonString = responseText.substring(startIndex, endIndex + 1);
     const parsedData = JSON.parse(cleanJsonString);
     
-    // --- NEW: THE SPARK DEDUCTION ---
-    if (user && supabase) {
-      // FIX: (supabase as any)
-      const { data: profile } = await (supabase as any).from('profiles').select('sparks_remaining, is_subscribed').eq('id', user.id).single();
-      
-      // FIX: (profile as any)
-      if (profile && !(profile as any).is_subscribed && (profile as any).sparks_remaining > 0) {
-        await (supabase as any).from('profiles').update({ sparks_remaining: (profile as any).sparks_remaining - 1 }).eq('id', user.id);
-      }
-    }
-    // --------------------------------
+    // 5. Save to lesson_plans
+    const { data: savedPlan, error: insertError } = await (supabaseAdmin.from('lesson_plans') as any)
+      .insert({
+        parent_id: user.id,
+        student_id: studentId || null,
+        original_prompt: contentToAnalyze,
+        plan_data: parsedData,
+      })
+      .select('id')
+      .single();
 
-    return NextResponse.json({ data: parsedData }, { status: 200 });
+    if (insertError) {
+      console.error("DB Insert Error:", insertError);
+      throw new Error("Failed to save the generated plan.");
+    }
+
+    // 6. Deduct exactly 1 Spark
+    await (supabaseAdmin.from('profiles') as any)
+      .update({ sparks_remaining: profile.sparks_remaining - 1 })
+      .eq('id', user.id);
+
+    // Return the generated data and the DB planId for redirecting
+    return NextResponse.json({ data: parsedData, planId: savedPlan.id }, { status: 200 });
     
   } catch (error: any) {
-    // Gracefully handle the Stop Button being clicked
     if (error.name === "AbortError" || error.message?.includes("aborted")) {
       return NextResponse.json({ error: "Generation stopped by user." }, { status: 499 });
     }
