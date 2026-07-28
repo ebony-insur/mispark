@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   }
 
   const stripe = new Stripe(apiKey, {
-    apiVersion: "2026-06-24.dahlia",
+    apiVersion: "2026-06-24.dahlia" as any,
   });
 
   const payload = await req.text();
@@ -29,10 +29,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
 
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  // --- FIX 1: Vercel URL Sledgehammer ---
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const cleanUrl = rawUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
+  
+  const supabaseAdmin = createClient(cleanUrl, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
   try {
     switch (event.type) {
@@ -58,7 +59,6 @@ export async function POST(req: Request) {
             const maxCap = 24; 
             const newTotal = Math.min(currentSparks + 4, maxCap);
 
-            // FIX: Cast table reference to any
             await (supabaseAdmin.from("profiles") as any).update({ 
                 sparks_remaining: newTotal,
                 stripe_customer_id: customerId 
@@ -67,10 +67,10 @@ export async function POST(req: Request) {
             console.log(`Added Spark Pack for user ${userId}. New balance: ${newTotal}`);
 
         } else {
+            // Utilizes the exact planType we just added to the checkout file
             const planType = session.metadata?.planType || (isClassroom ? "classroom" : "family");
             const tierName = planType === "single" ? "Solo Scholar" : planType === "classroom" ? "Classroom" : "Family Unlimited";
 
-            // FIX: Cast table reference to any
             const { error } = await (supabaseAdmin.from("profiles") as any)
               .update({
                 is_subscribed: true,
@@ -89,7 +89,6 @@ export async function POST(req: Request) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        // FIX: Cast table reference to any
         const { error } = await (supabaseAdmin.from("profiles") as any)
           .update({ 
             is_subscribed: false,

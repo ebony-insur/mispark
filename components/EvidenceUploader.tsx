@@ -52,7 +52,7 @@ export default function EvidenceUploader({ studentId, lessonPlanId, standardText
 
       // Save to Database
       const { error } = await (supabase as any).from("portfolio_artifacts").insert({
-        parent_id: user.id, // FIX: Added missing required field
+        parent_id: user.id, 
         student_id: studentId,
         lesson_plan_id: lessonPlanId,
         standard_text: standardText,
@@ -66,9 +66,10 @@ export default function EvidenceUploader({ studentId, lessonPlanId, standardText
 
       setIsSaved(true);
       toast.success("Evidence saved securely!");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Failed to save evidence.");
+      // FIX: Surface the exact database rejection reason to the UI toast
+      toast.error(error.message || "Failed to save evidence.");
     } finally {
       setIsUploading(false);
     }
