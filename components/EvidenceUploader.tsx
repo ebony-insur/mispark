@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Upload, Star, Heart, Loader2, CheckCircle2, Image as ImageIcon } from "lucide-react";
+import { Upload, Star, Heart, Loader2, CheckCircle2 } from "lucide-react";
 
 export default function EvidenceUploader({ studentId, lessonPlanId, standardText }: any) {
   const [masteryRating, setMasteryRating] = useState<number>(0);
@@ -27,6 +27,10 @@ export default function EvidenceUploader({ studentId, lessonPlanId, standardText
     let imageUrl = null;
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) throw new Error("Must be logged in to save evidence.");
+
       // Image Upload Logic
       if (file) {
         const fileExt = file.name.split('.').pop();
@@ -46,9 +50,9 @@ export default function EvidenceUploader({ studentId, lessonPlanId, standardText
         imageUrl = publicUrlData.publicUrl;
       }
 
-      // Save to Database (Now including enjoyment_rating)
-      // PROACTIVE FIX: Cast the entire insert payload 'as any' to bypass the 'never' array error
+      // Save to Database
       const { error } = await (supabase as any).from("portfolio_artifacts").insert({
+        parent_id: user.id, // FIX: Added missing required field
         student_id: studentId,
         lesson_plan_id: lessonPlanId,
         standard_text: standardText,
