@@ -31,7 +31,8 @@ export async function POST(req: Request) {
     // Support both payload formats (Dashboard vs Legacy)
     const contentToAnalyze = promptText || lessonText || "";
 
-    // --- The Vercel URL Sledgehammer ---
+    // --- FIX 1: The Vercel URL Sledgehammer ---
+    // Clean the URL to ensure Vercel's '/rest/v1/' injection doesn't break Auth
     const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
     const cleanUrl = rawUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
 
@@ -220,7 +221,8 @@ export async function POST(req: Request) {
 
     // Pass the AbortSignal from Next.js directly to Anthropic so the Stop Button works
     const msg = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20240620", // <-- FIX: The exact versioned Anthropic string
+      // --- FIX 2: Correct Anthropic Model String ---
+      model: "claude-3-5-sonnet-20240620",
       max_tokens: 8192,
       system: systemPrompt,
       messages: [
