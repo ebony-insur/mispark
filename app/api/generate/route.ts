@@ -221,8 +221,8 @@ export async function POST(req: Request) {
 
     // Pass the AbortSignal from Next.js directly to Anthropic so the Stop Button works
     const msg = await anthropic.messages.create({
-      // --- FIX 2: Correct Anthropic Model String ---
-      model: "claude-3-5-sonnet-20240620",
+      // --- RESTORED: The correct current Anthropic model ---
+      model: "claude-sonnet-5",
       max_tokens: 8192,
       system: systemPrompt,
       messages: [
