@@ -1,74 +1,108 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Upload, Star, Heart, Loader2, CheckCircle2 } from "lucide-react";
+import { Upload, Star, Heart, Loader2, CheckCircle2, Image as ImageIcon } from "lucide-react";
 
-export default function EvidenceUploader({ studentId, lessonPlanId, standardText }: any) {
+export default function EvidenceUploader({ 
+  studentId, 
+  lessonPlanId, 
+  standardText, 
+  existingArtifact = null // NEW: Pass an existing row here to trigger Edit Mode
+}: any) {
   const [masteryRating, setMasteryRating] = useState<number>(0);
   const [enjoymentRating, setEnjoymentRating] = useState<number>(0);
   const [notes, setNotes] = useState("");
+  const [existingFiles, setExistingFiles] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
-  const handleSave = async (file?: File) => {
+  // Populate state if an existing artifact is passed in
+  useEffect(() => {
+    if (existingArtifact) {
+      setMasteryRating(existingArtifact.rating || 0);
+      setEnjoymentRating(existingArtifact.enjoyment_rating || 0);
+      setNotes(existingArtifact.notes || "");
+      setExistingFiles(existingArtifact.file_urls || (existingArtifact.image_url ? [existingArtifact.image_url] : []));
+    }
+  }, [existingArtifact]);
+
+  const handleSave = async (files?: FileList | null) => {
     if (!studentId || !lessonPlanId) {
       toast.error("Missing learner or plan ID.");
       return;
     }
 
     setIsUploading(true);
-    let imageUrl = null;
+    let newUploadedUrls: string[] = [];
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-
       if (!user) throw new Error("Must be logged in to save evidence.");
 
-      // Image Upload Logic
-      if (file) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `${studentId}/${fileName}`;
+      // Handle Multiple File Uploads Concurrently
+      if (files && files.length > 0) {
+        const uploadPromises = Array.from(files).map(async (file) => {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+          const filePath = `${studentId}/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('portfolio_images')
-          .upload(filePath, file);
+          const { error: uploadError } = await supabase.storage
+            .from('portfolio_images')
+            .upload(filePath, file);
 
-        if (uploadError) throw uploadError;
+          if (uploadError) throw uploadError;
 
-        const { data: publicUrlData } = supabase.storage
-          .from('portfolio_images')
-          .getPublicUrl(filePath);
+          const { data: publicUrlData } = supabase.storage
+            .from('portfolio_images')
+            .getPublicUrl(filePath);
 
-        imageUrl = publicUrlData.publicUrl;
+          return publicUrlData.publicUrl;
+        });
+
+        newUploadedUrls = await Promise.all(uploadPromises);
       }
 
-      // Save to Database
-      const { error } = await (supabase as any).from("portfolio_artifacts").insert({
-        parent_id: user.id, 
+      // Combine previous files with any new ones uploaded
+      const finalFileUrls = [...existingFiles, ...newUploadedUrls];
+
+      const payload = {
+        parent_id: user.id,
         student_id: studentId,
         lesson_plan_id: lessonPlanId,
         standard_text: standardText,
         rating: masteryRating > 0 ? masteryRating : null,
         enjoyment_rating: enjoymentRating > 0 ? enjoymentRating : null,
         notes: notes,
-        image_url: imageUrl
-      } as any);
+        file_urls: finalFileUrls // Using our new database array column
+      };
 
-      if (error) throw error;
+      let dbError;
+
+      if (existingArtifact?.id) {
+        // EDIT MODE: Update the existing row
+        const { error } = await (supabase as any).from("portfolio_artifacts")
+          .update(payload)
+          .eq("id", existingArtifact.id);
+        dbError = error;
+      } else {
+        // CREATE MODE: Insert a new row
+        const { error } = await (supabase as any).from("portfolio_artifacts").insert(payload);
+        dbError = error;
+      }
+
+      if (dbError) throw dbError;
 
       setIsSaved(true);
-      toast.success("Evidence saved securely!");
+      toast.success(existingArtifact ? "Evidence updated!" : "Evidence saved securely!");
     } catch (error: any) {
       console.error(error);
-      // FIX: Surface the exact database rejection reason to the UI toast
       toast.error(error.message || "Failed to save evidence.");
     } finally {
       setIsUploading(false);
@@ -77,8 +111,10 @@ export default function EvidenceUploader({ studentId, lessonPlanId, standardText
 
   if (isSaved) {
     return (
-      <div className="mt-4 p-4 bg-teal-50 border border-teal-200 rounded-xl flex items-center justify-center text-teal-700 font-bold print:hidden">
-        <CheckCircle2 className="w-5 h-5 mr-2" /> Evidence Attached Successfully
+      <div className="mt-4 p-4 bg-teal-50 border border-teal-200 rounded-xl flex items-center justify-center text-teal-700 font-bold print:hidden cursor-pointer" onClick={() => setIsSaved(false)}>
+        <CheckCircle2 className="w-5 h-5 mr-2" /> 
+        {existingArtifact ? "Update Saved Successfully" : "Evidence Attached Successfully"} 
+        <span className="text-xs ml-2 text-teal-500 font-normal">(Click to edit again)</span>
       </div>
     );
   }
@@ -122,7 +158,6 @@ export default function EvidenceUploader({ studentId, lessonPlanId, standardText
         </div>
       </div>
 
-      {/* Educator Notes */}
       <Textarea 
         placeholder="Educator Notes (e.g., Learner grasped this concept quickly...)" 
         value={notes}
@@ -130,16 +165,30 @@ export default function EvidenceUploader({ studentId, lessonPlanId, standardText
         className="w-full mb-4 bg-slate-50 border-slate-200 rounded-xl focus-visible:ring-teal-500 resize-none h-20"
       />
 
+      {/* Show indicator if files are already attached to this entry */}
+      {existingFiles.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          <span className="text-xs font-bold text-slate-500 w-full">Attached Files:</span>
+          {existingFiles.map((url, i) => (
+             <div key={i} className="flex items-center text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md border border-slate-200">
+               <ImageIcon className="w-3 h-3 mr-1" /> File {i + 1}
+             </div>
+          ))}
+        </div>
+      )}
+
       {/* Upload and Save Controls */}
       <div className="flex gap-3">
+        {/* NEW: Added 'multiple' attribute to allow multi-file selection */}
         <input 
           type="file" 
+          multiple 
           accept="image/*, application/pdf" 
           className="hidden" 
           ref={fileInputRef} 
           onChange={(e) => {
-            const f = e.target.files?.[0]; 
-            if(f) handleSave(f);
+            const files = e.target.files; 
+            if(files && files.length > 0) handleSave(files);
           }} 
         />
         
@@ -150,15 +199,15 @@ export default function EvidenceUploader({ studentId, lessonPlanId, standardText
           className="flex-1 bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 font-bold rounded-xl"
         >
           {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-          Attach File
+          {existingFiles.length > 0 ? "Add More Files" : "Attach Files"}
         </Button>
 
         <Button 
           onClick={() => handleSave()} 
-          disabled={isUploading || (!notes && masteryRating === 0 && enjoymentRating === 0)}
+          disabled={isUploading || (!notes && masteryRating === 0 && enjoymentRating === 0 && existingFiles.length === 0)}
           className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl"
         >
-          Save Text Only
+          {existingArtifact ? "Save Updates" : "Save Text Only"}
         </Button>
       </div>
     </div>
