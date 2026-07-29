@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
 
 interface SiteHeaderProps {
   firstName?: string;
@@ -16,7 +17,7 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
   const router = useRouter();
   const supabase = createClient();
   const [user, setUser] = useState<any>(null);
-  const [dbFirstName, setDbFirstName] = useState<string | തിരഞ്ഞെടുk>(firstName || "");
+  const [dbFirstName, setDbFirstName] = useState<string>(firstName || "");
 
   useEffect(() => {
     const checkUser = async () => {
