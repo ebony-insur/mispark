@@ -72,13 +72,10 @@ export default function PortfolioPage() {
     if (!selectedStudent || !startDate || !endDate) return;
     setIsFetching(true);
     
-    // NEW: Pull master items AND relational evaluations in one query
+    // Pull strictly from portfolio_artifacts single table architecture
     const { data: artData, error: artError } = await (supabase as any)
       .from("portfolio_artifacts")
-      .select(`
-        *,
-        artifact_evaluations (*)
-      `)
+      .select("*")
       .eq("student_id", selectedStudent)
       .eq("include_in_portfolio", true);
 
@@ -312,26 +309,6 @@ export default function PortfolioPage() {
 }
 
 function EditArtifactModal({ artifact, onClose, supabase }: any) {
-  // Legacy toggle logic remains safely attached to the modal wrapper
-  const [includeInPortfolio, setIncludeInPortfolio] = useState(artifact.include_in_portfolio ?? false);
-  const [isUpdating, setIsUpdating] = useState(false);
-
-  const handleToggleChange = async (checked: boolean) => {
-    setIncludeInPortfolio(checked);
-    setIsUpdating(true);
-    const { error } = await supabase
-      .from("portfolio_artifacts")
-      .update({ include_in_portfolio: checked })
-      .eq("id", artifact.id);
-
-    if (error) {
-      toast.error("Failed to update portfolio status.");
-    } else {
-      toast.success(checked ? "Included in state portfolio" : "Excluded from state portfolio");
-    }
-    setIsUpdating(false);
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 print:hidden">
       <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-xl relative border border-slate-200">
@@ -442,24 +419,11 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                       let rowFiles = row.file_urls?.length > 0 ? row.file_urls : (row.image_url ? [row.image_url] : []);
                       combinedFiles.push(...rowFiles);
 
-                      // NEW: Map history from the relational table if it exists
-                      if (row.artifact_evaluations && row.artifact_evaluations.length > 0) {
-                        const relationalHistory = row.artifact_evaluations.map((ev: any) => {
-                          if (ev.file_urls?.length) combinedFiles.push(...ev.file_urls);
-                          return {
-                            date: ev.created_at,
-                            note: ev.notes,
-                            rating: ev.mastery_rating
-                          };
-                        });
-                        rawFeedback.push(...relationalHistory);
-                      } else {
-                        // Fallback to old JSON history for legacy data
-                        const legacyHistory = row.feedback_history || [
-                          { date: row.updated_at || row.created_at, note: row.notes, rating: row.rating }
-                        ];
-                        rawFeedback.push(...legacyHistory);
-                      }
+                      // Read history strictly from the single-table feedback_history JSON array
+                      const history = row.feedback_history || [
+                        { date: row.updated_at || row.created_at, note: row.notes, rating: row.rating }
+                      ];
+                      rawFeedback.push(...history);
 
                       const rowDate = new Date(row.updated_at || row.created_at);
                       const latestDate = new Date(latestItem.updated_at || latestItem.created_at);
