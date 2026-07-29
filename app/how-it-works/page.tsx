@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import GlobalAffiliateBanner from "@/components/GlobalAffiliateBanner";
 import { Button } from "@/components/ui/button";
@@ -238,19 +239,21 @@ export default function HowItWorksPage() {
           Create your free account today to configure learner profiles and generate personalized, hands-on lesson plans in seconds.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
-          <Button 
-            onClick={() => router.push("/login?signup=true")} 
-            className="bg-teal-500 hover:bg-teal-600 text-white font-black text-lg px-8 py-6 rounded-2xl shadow-sm"
-          >
-            Get Started Free <ArrowRight className="w-5 h-5 ml-2" />
-          </Button>
-          <Button 
-            onClick={() => router.push("/dashboard")} 
-            variant="outline" 
-            className="bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200 font-bold text-lg px-8 py-6 rounded-2xl"
-          >
-            Try Live Demo
-          </Button>
+          <Link href="/login?signup=true" className="w-full sm:w-auto">
+            <Button 
+              className="bg-teal-500 hover:bg-teal-600 text-white font-black text-lg px-8 py-6 rounded-2xl shadow-sm w-full"
+            >
+              Get Started Free <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          </Link>
+          <Link href="/dashboard" className="w-full sm:w-auto">
+            <Button 
+              variant="outline" 
+              className="bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200 font-bold text-lg px-8 py-6 rounded-2xl w-full"
+            >
+              Try Live Demo
+            </Button>
+          </Link>
         </div>
       </section>
 

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import Link from "next/link";
 
 interface SiteHeaderProps {
   firstName?: string;
