@@ -20,6 +20,7 @@ export default function EvidenceUploader({
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [includeInPortfolio, setIncludeInPortfolio] = useState<boolean>(true);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
@@ -30,6 +31,7 @@ export default function EvidenceUploader({
       setEnjoymentRating(existingArtifact.enjoyment_rating || 0);
       setNotes(existingArtifact.notes || "");
       setExistingFiles(existingArtifact.file_urls || (existingArtifact.image_url ? [existingArtifact.image_url] : []));
+      setIncludeInPortfolio(existingArtifact.include_in_portfolio ?? true);
     }
   }, [existingArtifact]);
 
@@ -50,7 +52,6 @@ export default function EvidenceUploader({
       if (pendingFiles.length > 0) {
         const uploadPromises = pendingFiles.map(async (file) => {
           const fileExt = file.name.split('.').pop();
-          // We include the original file name in the path so it is recognizable in the URL later
           const safeOriginalName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
           const fileName = `${Math.random().toString(36).substring(2)}_${safeOriginalName}`;
           const filePath = `${studentId}/${fileName}`;
@@ -73,6 +74,7 @@ export default function EvidenceUploader({
 
       const finalFileUrls = [...existingFiles, ...newUploadedUrls];
 
+      // Payload automatically forces include_in_portfolio to true upon any update or review
       const payload = {
         parent_id: user.id,
         student_id: studentId,
@@ -81,7 +83,8 @@ export default function EvidenceUploader({
         rating: masteryRating > 0 ? masteryRating : null,
         enjoyment_rating: enjoymentRating > 0 ? enjoymentRating : null,
         notes: notes,
-        file_urls: finalFileUrls 
+        file_urls: finalFileUrls,
+        include_in_portfolio: true // Automatically moves element into state portfolio requirements
       };
 
       let dbError;
@@ -100,7 +103,8 @@ export default function EvidenceUploader({
 
       setIsSaved(true);
       setPendingFiles([]); // Clear pending files on success
-      toast.success(existingArtifact ? "Evidence updated!" : "Evidence saved securely!");
+      setIncludeInPortfolio(true);
+      toast.success(existingArtifact ? "Evidence updated & added to portfolio!" : "Evidence saved securely & added to portfolio!");
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || "Failed to save evidence.");
@@ -113,15 +117,21 @@ export default function EvidenceUploader({
     return (
       <div className="mt-4 p-4 bg-teal-50 border border-teal-200 rounded-xl flex items-center justify-center text-teal-700 font-bold print:hidden cursor-pointer" onClick={() => setIsSaved(false)}>
         <CheckCircle2 className="w-5 h-5 mr-2" /> 
-        {existingArtifact ? "Update Saved Successfully" : "Evidence Attached Successfully"} 
+        {existingArtifact ? "Update Saved & Included in Portfolio" : "Evidence Attached & Included in Portfolio"} 
         <span className="text-xs ml-2 text-teal-500 font-normal">(Click to edit again)</span>
       </div>
     );
   }
 
   return (
-    <div className="mt-4 pt-4 border-t border-slate-200 print:hidden">
+    <div className="mt-4 pt-4 border-t border-slate-200 print:hidden space-y-4">
       
+      {/* State Portfolio Indicator Banner */}
+      <div className="flex items-center justify-between bg-teal-50/60 border border-teal-100 px-3 py-2 rounded-xl">
+        <span className="text-[11px] font-bold text-teal-800">Saving this review automatically includes it in state portfolio compliance.</span>
+        <span className="text-[10px] font-black uppercase bg-teal-200 text-teal-900 px-2 py-0.5 rounded">Active</span>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
         {/* 1. AI Feedback: Learner Enjoyment */}
         <div className="bg-rose-50 p-3 rounded-xl border border-rose-100 flex flex-col items-center">
@@ -173,9 +183,7 @@ export default function EvidenceUploader({
             
             {/* Show already saved files */}
             {existingFiles.map((url, i) => {
-               // Extract filename from the URL, handle any extra URL parameters
                let fileName = url.split('/').pop()?.split('?')[0] || `File ${i + 1}`;
-               // If we injected a unique ID prefix, optionally clean it up for display
                fileName = fileName.replace(/^[0-9a-z]+_/, ''); 
 
                return (
@@ -208,7 +216,6 @@ export default function EvidenceUploader({
           ref={fileInputRef} 
           onChange={(e) => {
             if(e.target.files && e.target.files.length > 0) {
-              // Convert FileList to an array and store it in state instead of auto-saving
               setPendingFiles(Array.from(e.target.files));
             }
           }} 
