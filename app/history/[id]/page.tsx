@@ -94,31 +94,30 @@ export default function HistoryDetailPage() {
     fetchPlanDetails();
   }, [params.id, router, supabase]);
 
-  // Handler to permanently add an item/topic to the student's dislikes list
+  // Handler to permanently add an item/topic to this lesson plan's review dislikes
   const handleDoNotRecommend = async (itemText: string) => {
-    if (!plan?.student_id) return;
+    if (!params.id) return;
 
-    // Fetch current student profile dislikes
-    const { data: studentProfile } = await supabase
-      .from("children_profiles")
+    const { data: currentPlan } = await (supabase as any)
+      .from("lesson_plans")
       .select("dislikes")
-      .eq("id", plan.student_id)
+      .eq("id", params.id as string)
       .single();
 
-    const existingDislikes = (studentProfile as any)?.dislikes || "";
+    const existingDislikes = (currentPlan as any)?.dislikes || "";
     const updatedDislikes = existingDislikes 
       ? `${existingDislikes}, ${itemText}` 
       : itemText;
 
-    const { error } = await supabase
-      .from("children_profiles")
+    const { error } = await (supabase as any)
+      .from("lesson_plans")
       .update({ dislikes: updatedDislikes })
-      .eq("id", plan.student_id);
+      .eq("id", params.id as string);
 
     if (error) {
-      toast.error("Failed to update preferences.");
+      toast.error("Failed to update plan review.");
     } else {
-      toast.success(`"${itemText}" added to Do Not Recommend list. Future plans will exclude it.`);
+      toast.success(`"${itemText}" added to this plan review's Do Not Recommend list.`);
     }
   };
 

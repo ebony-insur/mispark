@@ -22,7 +22,6 @@ interface GenerateRequestPayload {
     zip_code?: string;
     interests?: string; 
     sensory_needs?: string; 
-    dislikes?: string;
   };
   subscriptions?: string[];
 }
@@ -72,7 +71,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Out of Sparks. Please upgrade or purchase a Spark Pack to continue." }, { status: 403 });
     }
 
-    // 4. Fetch Student Profile Data & Historical Performance / Memory
+    // 4. Fetch Student Profile Data
     let activeStudentProfile: any = studentProfile || {};
     if (studentId) {
       const { data: studentData } = await (supabaseAdmin.from('children_profiles') as any)
@@ -85,8 +84,10 @@ export async function POST(req: Request) {
       }
     }
 
-    // --- STUDENT MEMORY & DISLIKES INJECTION ---
+    // --- STUDENT MEMORY & PLAN REVIEW DISLIKES INJECTION ---
     let studentMemoryContext = "";
+    let studentDislikes = "None specified";
+
     if (studentId) {
       const { data: pastArtifacts } = await (supabaseAdmin.from('portfolio_artifacts') as any)
         .select('standard_text, rating, notes, feedback_history')
@@ -94,11 +95,11 @@ export async function POST(req: Request) {
         .order('created_at', { ascending: false })
         .limit(15);
 
-      const { data: skippedPlans } = await (supabaseAdmin.from('lesson_plans') as any)
-        .select('plan_data, status')
+      const { data: pastPlans } = await (supabaseAdmin.from('lesson_plans') as any)
+        .select('plan_data, status, dislikes')
         .eq('student_id', studentId)
-        .eq('status', 'skipped')
-        .limit(10);
+        .order('created_at', { ascending: false })
+        .limit(15);
 
       if (pastArtifacts && pastArtifacts.length > 0) {
         studentMemoryContext += "\n\nPAST STUDENT PERFORMANCE & EDUCATOR FEEDBACK HISTORY:\n";
@@ -107,11 +108,23 @@ export async function POST(req: Request) {
         });
       }
 
-      if (skippedPlans && skippedPlans.length > 0) {
-        studentMemoryContext += "\nSKIPPED / DID NOT ATTEMPT PLANS (Avoid over-indexing on these topics):\n";
-        skippedPlans.forEach((p: any) => {
-          studentMemoryContext += `- Skipped Topic/Theme: "${p.plan_data?.weekAssigned || p.plan_data?.weekTheme || 'General Plan'}"\n`;
-        });
+      if (pastPlans && pastPlans.length > 0) {
+        const allDislikes = pastPlans
+          .map((p: any) => p.dislikes)
+          .filter(Boolean)
+          .join(", ");
+        
+        if (allDislikes) {
+          studentDislikes = allDislikes;
+        }
+
+        const skippedPlans = pastPlans.filter((p: any) => p.status === 'skipped');
+        if (skippedPlans.length > 0) {
+          studentMemoryContext += "\nSKIPPED / DID NOT ATTEMPT PLANS (Avoid over-indexing on these topics):\n";
+          skippedPlans.forEach((p: any) => {
+            studentMemoryContext += `- Skipped Topic/Theme: "${p.plan_data?.weekAssigned || p.plan_data?.weekTheme || 'General Plan'}"\n`;
+          });
+        }
       }
     }
 
@@ -121,7 +134,6 @@ export async function POST(req: Request) {
     const grade = activeStudentProfile?.grade || "Elementary";
     const specialInterests = activeStudentProfile?.interests || "None specified";
     const sensoryNeeds = activeStudentProfile?.sensory_needs || "None specified";
-    const studentDislikes = activeStudentProfile?.dislikes || "None specified";
 
     const jsonSchema = {
       type: "object",
@@ -283,7 +295,6 @@ export async function POST(req: Request) {
     const cleanJsonString = responseText.substring(startIndex, endIndex + 1);
     const parsedData = JSON.parse(cleanJsonString);
     
-    // Bundle assigned dates into plan_data so the portfolio page can read them correctly
     parsedData.weekAssigned = weekAssigned || "General Weekly Assignments";
     parsedData.weekStartDate = weekStartDate || new Date().toISOString().split('T')[0];
     parsedData.weekEndDate = weekEndDate || new Date().toISOString().split('T')[0];
