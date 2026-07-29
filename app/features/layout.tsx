@@ -1,17 +1,17 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Features | MiSpark AI Homeschool Curriculum Planner",
-  description: "Discover automated state standards mapping, adaptive AI feedback loops, instant portfolios, and hyper-personalized homeschool lesson plans.",
+  title: "Features & Capabilities | MiSpark",
+  description: "Discover MiSpark's automated state standards mapping, hyper-personalized multi-sensory curriculum design, printable portfolios, and adaptive AI feedback loop.",
   keywords: [
-    "homeschool curriculum planner features",
-    "state standards mapping app",
+    "AI lesson plan generator features",
+    "state standards compliance planner",
     "homeschool portfolio builder",
-    "adaptive AI lesson planner"
+    "differentiated instruction software"
   ],
   openGraph: {
-    title: "Features | MiSpark AI Homeschool Planner",
-    description: "Explore the powerful features behind MiSpark designed to save you hours of prep time.",
+    title: "Features & Capabilities | MiSpark",
+    description: "Everything you need to teach with confidence using automated state compliance and personalized AI lesson planning.",
     type: "website",
   }
 };

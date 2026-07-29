@@ -13,10 +13,10 @@ import {
   Printer, Upload, FileText, FlaskConical, Lightbulb, 
   Gamepad2, PlayCircle, BookHeart, ExternalLink, Loader2, 
   Plus, Shapes, ChevronRight, ChevronsUpDown, XCircle, 
-  Sparkles, MapPin, MessageCircle, Lock, Settings
+  Sparkles, MapPin, MessageCircle, Lock, Settings, Calendar
 } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
-import SiteFooter from "@/components/SiteFooter"; // NEW: Imported the global site footer
+import SiteFooter from "@/components/SiteFooter";
 import GlobalAffiliateBanner from "@/components/GlobalAffiliateBanner";
 
 // Affiliate Search Link Generator
@@ -71,6 +71,7 @@ export default function Dashboard() {
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [allExpanded, setAllExpanded] = useState(true);
   const [printMode, setPrintMode] = useState<string | null>(null);
+  const [weekAssigned, setWeekAssigned] = useState("Week 1: General Focus");
 
   // New Account & Billing State
   const [sparks, setSparks] = useState<number | null>(null);
@@ -227,7 +228,8 @@ export default function Dashboard() {
           lessonText, 
           studentProfile,
           studentId: selectedStudentId,
-          userId: user?.id
+          userId: user?.id,
+          weekAssigned // <--- Bundled here to save in plan_data
         }),
         signal: abortControllerRef.current.signal
       });
@@ -316,7 +318,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* INPUT GRID */}
+          {/* INPUT GRID & WEEK ASSIGNED SELECTOR */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div onClick={() => fileInputRef.current?.click()} className="md:col-span-1 border-2 border-dashed border-slate-300 bg-white hover:bg-slate-50 transition-colors rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer min-h-[125px]">
               <input type="file" accept=".pdf, .png, .jpg, .docx, .txt" className="hidden" ref={fileInputRef} onChange={(e) => {const f = e.target.files?.[0]; if(f) processPdf(f)}} />
@@ -325,11 +327,28 @@ export default function Dashboard() {
               <p className="text-xs text-slate-500 font-medium">Extract topics instantly</p>
             </div>
 
-            <div className="md:col-span-2 flex flex-col bg-white p-2 rounded-2xl border-2 border-slate-200 shadow-sm">
-              <Textarea placeholder="Type weekly topics, math concepts, or history subjects here..." value={lessonText} onChange={(e) => setLessonText(e.target.value)} className="flex-1 min-h-[125px] p-4 rounded-xl border-0 focus-visible:ring-0 text-base resize-none" />
-              <div className="flex justify-between items-center px-4 py-2 bg-slate-50 rounded-xl mt-2 text-xs text-slate-500 font-bold border border-slate-100">
-                <span className={isUnderLimit || isOverLimit ? "text-red-500" : ""}>{isUnderLimit && "Min 15 words required."}{isOverLimit && "Max 750 words."}</span>
-                <span>{currentWordCount} / 750 words</span>
+            <div className="md:col-span-2 flex flex-col bg-white p-4 rounded-2xl border-2 border-slate-200 shadow-sm space-y-4">
+              
+              {/* WEEK ASSIGNED INPUT FOR MONTHLY/WEEKLY PLANNING */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-black text-slate-500 uppercase flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-teal-600" /> Week Assigned / Date Frame
+                </label>
+                <Input 
+                  type="text"
+                  value={weekAssigned}
+                  onChange={(e) => setWeekAssigned(e.target.value)}
+                  placeholder="e.g., Week 1: September Focus"
+                  className="font-bold border-slate-200 bg-slate-50"
+                />
+              </div>
+
+              <div className="flex flex-col flex-1">
+                <Textarea placeholder="Type weekly topics, math concepts, or history subjects here..." value={lessonText} onChange={(e) => setLessonText(e.target.value)} className="flex-1 min-h-[100px] p-3 rounded-xl border border-slate-200 focus-visible:ring-0 text-base resize-none bg-slate-50" />
+                <div className="flex justify-between items-center px-2 py-1.5 mt-2 text-xs text-slate-500 font-bold">
+                  <span className={isUnderLimit || isOverLimit ? "text-red-500" : ""}>{isUnderLimit && "Min 15 words required."}{isOverLimit && "Max 750 words."}</span>
+                  <span>{currentWordCount} / 750 words</span>
+                </div>
               </div>
             </div>
           </div>
@@ -368,7 +387,6 @@ export default function Dashboard() {
         {generatedData && (
           <div className="w-full max-w-5xl space-y-2 animate-in fade-in slide-in-from-bottom-8 pb-20 print:space-y-6">
             
-            {/* NEW: Global Affiliate Disclaimer injected at the very top of the generated results */}
             <GlobalAffiliateBanner />
 
             <div className="flex justify-between items-center mb-6 print:hidden bg-slate-800 p-3 rounded-2xl text-white shadow-lg">
@@ -396,7 +414,6 @@ export default function Dashboard() {
                   </Button>
                 </div>
                 
-                {/* CSS-based Mock Learner Profile Card */}
                 <div className="flex-1 w-full bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-inner relative overflow-hidden">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-4 mb-4">
                     <div className="flex items-center gap-3">

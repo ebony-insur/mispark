@@ -4,11 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import SiteHeader from "@/components/SiteHeader";
-import SiteFooter from "@/components/SiteFooter"; // NEW: Imported the global site footer
+import SiteFooter from "@/components/SiteFooter";
 import EvidenceUploader from "@/components/EvidenceUploader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Printer, Calendar, Star, FileText, Loader2, ExternalLink, Award, Edit3, X } from "lucide-react";
+import { Printer, Calendar, Star, FileText, Loader2, ExternalLink, Award, Edit3, X, History, Filter } from "lucide-react";
 import { toast } from "sonner";
 
 export default function PortfolioPage() {
@@ -20,15 +20,14 @@ export default function PortfolioPage() {
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<string>("");
   
+  // Controls state
+  const [showFeedbackDate, setShowFeedbackDate] = useState<boolean>(true);
+  const [availableWeeks, setAvailableWeeks] = useState<string[]>([]);
+  const [selectedWeek, setSelectedWeek] = useState<string>("all");
+  
   // Modal State for Editing
   const [editingArtifact, setEditingArtifact] = useState<any | null>(null);
   
-  // Default to the last 30 days
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  
-  const [startDate, setStartDate] = useState(thirtyDaysAgo.toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [artifacts, setArtifacts] = useState<any[]>([]);
 
   // 1. Fetch Students on load
@@ -55,31 +54,63 @@ export default function PortfolioPage() {
     fetchStudents();
   }, [router, supabase]);
 
-  // 2. Fetch Artifacts logic (extracted so we can refresh after editing)
+  // 2. Fetch Artifacts & Map Week Assigned
   const fetchArtifacts = useCallback(async () => {
-    if (!selectedStudent || !startDate || !endDate) return;
+    if (!selectedStudent) return;
     setIsFetching(true);
     
-    const { data, error } = await (supabase as any)
+    // Fetch all portfolio artifacts for this student
+    const { data: artData, error: artError } = await (supabase as any)
       .from("portfolio_artifacts")
       .select("*")
       .eq("student_id", selectedStudent)
-      .gte("created_at", `${startDate}T00:00:00Z`)
-      .lte("created_at", `${endDate}T23:59:59Z`)
       .order("created_at", { ascending: true });
 
-    if (!error && data) {
-      setArtifacts(data);
+    if (!artError && artData) {
+      const enriched = await Promise.all(
+        artData.map(async (art: any) => {
+          let weekAssigned = "General Weekly Assignments";
+          let planCreatedAt = art.created_at;
+
+          if (art.lesson_plan_id) {
+            const { data: planData } = await (supabase as any)
+              .from("lesson_plans")
+              .select("created_at, plan_data")
+              .eq("id", art.lesson_plan_id)
+              .single();
+            
+            if (planData) {
+              planCreatedAt = planData.created_at;
+              if (planData.plan_data?.weekAssigned) {
+                weekAssigned = planData.plan_data.weekAssigned;
+              } else if (planData.plan_data?.weekTheme) {
+                weekAssigned = planData.plan_data.weekTheme;
+              }
+            }
+          }
+
+          return {
+            ...art,
+            plan_created_at: planCreatedAt,
+            week_assigned: weekAssigned
+          };
+        })
+      );
+
+      setArtifacts(enriched);
+
+      // Extract unique weeks for the filter dropdown
+      const uniqueWeeks = Array.from(new Set(enriched.map((item: any) => item.week_assigned))) as string[];
+      setAvailableWeeks(uniqueWeeks);
+      setSelectedWeek("all"); // Reset filter on student change
     }
     setIsFetching(false);
-  }, [selectedStudent, startDate, endDate, supabase]);
+  }, [selectedStudent, supabase]);
 
-  // Trigger fetch when dependencies change
   useEffect(() => {
     fetchArtifacts();
   }, [fetchArtifacts]);
 
-  // Handle closing the modal and refreshing the data automatically
   const handleCloseEdit = () => {
     setEditingArtifact(null);
     fetchArtifacts();
@@ -87,7 +118,7 @@ export default function PortfolioPage() {
 
   const handlePrint = () => {
     if (artifacts.length === 0) {
-      toast.error("No evidence to print for this date range.");
+      toast.error("No evidence to print.");
       return;
     }
     window.print();
@@ -96,13 +127,23 @@ export default function PortfolioPage() {
   if (isLoading) return <div className="min-h-screen flex items-center justify-center font-bold text-slate-500 bg-slate-50"><Loader2 className="w-6 h-6 animate-spin mr-2"/> Loading Portfolio...</div>;
 
   const currentStudentName = students.find(s => s.id === selectedStudent)?.nickname || "Student";
-  const formattedStart = new Date(startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  const formattedEnd = new Date(endDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  // Filter artifacts by selected week
+  const filteredArtifacts = selectedWeek === "all" 
+    ? artifacts 
+    : artifacts.filter(item => item.week_assigned === selectedWeek);
+
+  // Group filtered artifacts by Week Assigned
+  const groupedByWeek = filteredArtifacts.reduce((acc: any, item: any) => {
+    const weekKey = item.week_assigned || "General Weekly Assignments";
+    if (!acc[weekKey]) acc[weekKey] = [];
+    acc[weekKey].push(item);
+    return acc;
+  }, {});
 
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col justify-between print:bg-white print:py-0 print:px-0 relative">
       
-      {/* INNER CONTENT WRAPPER */}
       <div className="w-full flex-1 flex flex-col items-center py-12 px-6 space-y-8 mb-24 print:mb-0 print:px-0 print:py-0">
         <SiteHeader />
 
@@ -112,7 +153,7 @@ export default function PortfolioPage() {
             <Award className="w-6 h-6 text-teal-600" /> State Compliance Portfolio Builder
           </h1>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div className="flex flex-col gap-2">
               <label className="text-xs font-bold text-slate-500 uppercase">Student</label>
               <select 
@@ -125,23 +166,19 @@ export default function PortfolioPage() {
             </div>
             
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-slate-500 uppercase">Start Date</label>
-              <input 
-                type="date" 
-                value={startDate} 
-                onChange={(e) => setStartDate(e.target.value)}
+              <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
+                <Filter className="w-3.5 h-3.5 text-teal-600" /> Filter by Week Assigned
+              </label>
+              <select 
+                value={selectedWeek} 
+                onChange={(e) => setSelectedWeek(e.target.value)} 
                 className="p-3 rounded-xl border-2 border-slate-200 font-bold bg-slate-50 outline-none focus:border-teal-500"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-slate-500 uppercase">End Date</label>
-              <input 
-                type="date" 
-                value={endDate} 
-                onChange={(e) => setEndDate(e.target.value)}
-                className="p-3 rounded-xl border-2 border-slate-200 font-bold bg-slate-50 outline-none focus:border-teal-500"
-              />
+              >
+                <option value="all">All Weeks ({artifacts.length} Total)</option>
+                {availableWeeks.map(week => (
+                  <option key={week} value={week}>{week}</option>
+                ))}
+              </select>
             </div>
 
             <Button 
@@ -151,99 +188,155 @@ export default function PortfolioPage() {
               <Printer className="w-5 h-5 mr-2" /> Print Portfolio
             </Button>
           </div>
+
+          {/* TOGGLE CONTROLS */}
+          <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-3">
+            <input 
+              type="checkbox" 
+              id="toggleFeedbackDate" 
+              checked={showFeedbackDate} 
+              onChange={(e) => setShowFeedbackDate(e.target.checked)}
+              className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500"
+            />
+            <label htmlFor="toggleFeedbackDate" className="text-sm font-bold text-slate-700 cursor-pointer">
+              Show Feedback Recorded Timestamp on Report
+            </label>
+          </div>
         </div>
 
         {/* PRINTABLE PORTFOLIO VIEW */}
-        <div className="w-full max-w-5xl space-y-8 pb-20 print:pb-0">
+        <div className="w-full max-w-5xl space-y-12 pb-20 print:pb-0">
           
-          {artifacts.length > 0 && (
+          {filteredArtifacts.length > 0 && (
             <div className="text-center pb-8 border-b-2 border-slate-200 mb-8 print:border-slate-800 print:mb-12">
               <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Academic Portfolio</h2>
               <p className="text-2xl font-bold text-slate-700 mt-2">{currentStudentName}</p>
-              <p className="text-slate-500 font-medium mt-1">Reporting Period: {formattedStart} - {formattedEnd}</p>
+              <p className="text-slate-500 font-medium mt-1">Viewing: {selectedWeek === "all" ? "All Assigned Weeks" : selectedWeek}</p>
             </div>
           )}
 
           {isFetching ? (
             <div className="text-center py-20"><Loader2 className="w-8 h-8 animate-spin text-teal-600 mx-auto" /></div>
-          ) : artifacts.length === 0 ? (
+          ) : filteredArtifacts.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 print:hidden">
               <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <p className="text-xl font-bold text-slate-500">No evidence uploaded for this date range.</p>
+              <p className="text-xl font-bold text-slate-500">No evidence found for this selection.</p>
             </div>
           ) : (
-            <div className="space-y-8">
-              {artifacts.map((item) => {
-                const files: string[] = item.file_urls?.length > 0 ? item.file_urls : (item.image_url ? [item.image_url] : []);
-                const hasFiles = files.length > 0;
+            <div className="space-y-12">
+              {Object.entries(groupedByWeek).map(([weekTitle, weekItems]: [string, any]) => (
+                <div key={weekTitle} className="space-y-6 print:break-inside-avoid">
+                  
+                  {/* WEEK / LEARNING HEADER */}
+                  <div className="bg-slate-900 text-white px-6 py-4 rounded-2xl flex justify-between items-center print:bg-slate-100 print:text-slate-900 print:border print:border-slate-300">
+                    <h3 className="text-xl font-black">{weekTitle}</h3>
+                    <span className="text-xs font-bold uppercase tracking-wider bg-slate-800 text-teal-400 px-3 py-1 rounded-full print:bg-white print:text-slate-700">
+                      {weekItems.length} Assignment{weekItems.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
 
-                return (
-                  <Card 
-                    key={item.id} 
-                    onClick={() => setEditingArtifact(item)}
-                    className="overflow-hidden border-2 border-slate-200 shadow-sm transition-colors cursor-pointer hover:border-teal-400 group print:shadow-none print:border-slate-300 print:break-inside-avoid relative"
-                  >
-                    <CardContent className="p-0 flex flex-col md:flex-row">
-                      
-                      {hasFiles && (
-                        <div className="w-full md:w-1/3 bg-slate-100 min-h-[250px] border-b md:border-b-0 md:border-r border-slate-200 flex flex-col gap-4 items-center justify-center p-4">
-                          {files.map((url, index) => (
-                            <div key={index} className="w-full flex justify-center">
-                              {url.includes(".pdf") ? (
-                                <a href={url} target="_blank" rel="noreferrer" className="flex flex-col items-center text-teal-600 hover:text-teal-700" onClick={(e) => e.stopPropagation()}>
-                                  <FileText className="w-16 h-16 mb-2" />
-                                  <span className="font-bold flex items-center text-sm">View PDF <ExternalLink className="w-3 h-3 ml-1"/></span>
-                                </a>
-                              ) : (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={url} alt={`Evidence ${index + 1}`} className="max-h-[300px] object-contain rounded-lg shadow-sm" />
+                  {/* ASSIGNMENTS GROUPED UNDER THIS WEEK */}
+                  <div className="space-y-6">
+                    {weekItems.map((item: any) => {
+                      const files: string[] = item.file_urls?.length > 0 ? item.file_urls : (item.image_url ? [item.image_url] : []);
+                      const hasFiles = files.length > 0;
+                      const planDateStr = item.plan_created_at ? new Date(item.plan_created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null;
+
+                      const feedbackHistory = item.feedback_history || [
+                        { date: item.updated_at || item.created_at, note: item.notes, rating: item.rating }
+                      ];
+
+                      return (
+                        <Card 
+                          key={item.id} 
+                          onClick={() => setEditingArtifact(item)}
+                          className="overflow-hidden border-2 border-slate-200 shadow-sm transition-colors cursor-pointer hover:border-teal-400 group print:shadow-none print:border-slate-300 print:break-inside-avoid relative bg-white"
+                        >
+                          <CardContent className="p-6 md:p-8 space-y-6">
+                            
+                            <div className="absolute top-6 right-6 text-slate-300 group-hover:text-teal-500 transition-colors print:hidden">
+                              <Edit3 className="w-5 h-5" />
+                            </div>
+
+                            {/* PLAN CREATED DATE & FEEDBACK TIMESTAMP */}
+                            <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-400 border-b border-slate-100 pb-3">
+                              {planDateStr && (
+                                <span className="flex items-center gap-1.5 text-slate-600 bg-slate-100 px-3 py-1 rounded-lg">
+                                  <Calendar className="w-3.5 h-3.5 text-teal-600" /> Plan Created: {planDateStr}
+                                </span>
+                              )}
+                              {showFeedbackDate && (
+                                <span className="flex items-center gap-1.5">
+                                  <History className="w-3.5 h-3.5 text-slate-400" /> Feedback Recorded: {new Date(item.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                </span>
                               )}
                             </div>
-                          ))}
-                        </div>
-                      )}
+                            
+                            {/* STANDARD ASSESSED */}
+                            <h4 className="text-xl font-black text-slate-800 leading-snug pr-8">
+                              {item.standard_text}
+                            </h4>
 
-                      <div className={`${hasFiles ? "w-full md:w-2/3" : "w-full"} p-6 md:p-8 flex flex-col justify-center bg-white relative`}>
-                        
-                        <div className="absolute top-6 right-6 text-slate-300 group-hover:text-teal-500 transition-colors print:hidden">
-                          <Edit3 className="w-5 h-5" />
-                        </div>
+                            {/* WRITTEN ASSESSMENTS / MASTERY RATING */}
+                            {item.rating && (
+                              <div className="flex items-center gap-1 bg-amber-50 w-max px-3 py-1.5 rounded-lg border border-amber-100">
+                                <span className="text-xs font-black text-amber-700 uppercase mr-1">Mastery:</span>
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star key={star} className={`w-4 h-4 ${item.rating >= star ? "fill-amber-500 text-amber-500" : "text-amber-200"}`} />
+                                ))}
+                              </div>
+                            )}
 
-                        <div className="flex items-center gap-2 text-sm font-bold text-slate-400 mb-3">
-                          <Calendar className="w-4 h-4" /> 
-                          Feedback Recorded: {new Date(item.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                          {item.updated_at && item.updated_at !== item.created_at && (
-                            <span className="text-slate-300 ml-1 font-medium italic">
-                              (Updated: {new Date(item.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})
-                            </span>
-                          )}
-                        </div>
-                        
-                        <h3 className="text-xl font-black text-slate-800 mb-4 leading-snug pr-8">
-                          {item.standard_text}
-                        </h3>
+                            {/* EDUCATOR FEEDBACK AS A PROGRESSION */}
+                            <div className="space-y-3">
+                              <p className="text-xs font-black text-slate-500 uppercase">Educator Feedback Progression</p>
+                              <div className="space-y-3 border-l-2 border-teal-500 pl-4 py-1">
+                                {feedbackHistory.map((historyItem: any, hIdx: number) => (
+                                  <div key={hIdx} className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-1">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-[11px] font-bold text-teal-700 uppercase">Update #{hIdx + 1}</span>
+                                      <span className="text-[11px] text-slate-400 font-medium">
+                                        {new Date(historyItem.date || item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                      </span>
+                                    </div>
+                                    <p className="text-slate-700 font-medium text-sm leading-relaxed">{historyItem.note || item.notes || "No notes logged for this update."}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
 
-                        {item.rating && (
-                          <div className="flex items-center gap-1 mb-4 bg-amber-50 w-max px-3 py-1.5 rounded-lg border border-amber-100">
-                            <span className="text-xs font-black text-amber-700 uppercase mr-1">Mastery:</span>
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star key={star} className={`w-4 h-4 ${item.rating >= star ? "fill-amber-500 text-amber-500" : "text-amber-200"}`} />
-                            ))}
-                          </div>
-                        )}
+                            {/* FILE ARTIFACTS: MEDIUM ICONS TILED & GROUPED AFTER ASSESSMENTS */}
+                            {hasFiles && (
+                              <div className="pt-4 border-t border-slate-100 space-y-3">
+                                <p className="text-xs font-black text-slate-500 uppercase">Attached Evidence & File Artifacts</p>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                  {files.map((url, index) => (
+                                    <div key={index} className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-3 flex flex-col items-center justify-center gap-2 hover:border-teal-500 transition-all">
+                                      {url.includes(".pdf") ? (
+                                        <a href={url} target="_blank" rel="noreferrer" className="flex flex-col items-center text-teal-600 hover:text-teal-700 py-4" onClick={(e) => e.stopPropagation()}>
+                                          <FileText className="w-12 h-12 mb-1" />
+                                          <span className="font-bold text-xs flex items-center">PDF File <ExternalLink className="w-3 h-3 ml-1"/></span>
+                                        </a>
+                                      ) : (
+                                        <div className="relative w-full h-28 rounded-xl overflow-hidden bg-slate-200">
+                                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                                          <img src={url} alt={`Evidence ${index + 1}`} className="w-full h-full object-cover" />
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
 
-                        {item.notes && (
-                          <div className="mt-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                            <p className="text-xs font-black text-slate-500 uppercase mb-1">Educator Notes</p>
-                            <p className="text-slate-700 font-medium text-sm leading-relaxed whitespace-pre-wrap">{item.notes}</p>
-                          </div>
-                        )}
-                      </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
 
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                </div>
+              ))}
             </div>
           )}
         </div>

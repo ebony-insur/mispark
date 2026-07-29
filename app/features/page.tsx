@@ -136,7 +136,7 @@ export default function FeaturesPage() {
               <div className="flex-1 w-full bg-slate-100 rounded-3xl p-4 shadow-inner border border-slate-200 flex items-center justify-center overflow-hidden relative">
                 <div className="aspect-video w-full relative rounded-2xl overflow-hidden shadow-md">
                   <Image 
-                    src="/screenshots/portfolio-view.png" 
+                    src="/screenshots/portfolio-viewA.png" 
                     alt="Printable student portfolio report generator with evidence logs and mastery ratings" 
                     fill 
                     className="object-cover" 
