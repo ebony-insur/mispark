@@ -16,7 +16,7 @@ import {
 import { toast } from "sonner";
 
 // Reusable component for the Include in Portfolio toggle above each Do Not Recommend button
-function ElementPortfolioToggle({ studentId, lessonPlanId, standardText, supabase }: { studentId: string; lessonPlanId: string; standardText: string; supabase: any }) {
+function ElementPortfolioToggle({ studentId, lessonPlanId, standardText, parentId, supabase }: { studentId: string; lessonPlanId: string; standardText: string; parentId: string; supabase: any }) {
   const [isIncluded, setIsIncluded] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -29,12 +29,12 @@ function ElementPortfolioToggle({ studentId, lessonPlanId, standardText, supabas
         .eq("student_id", studentId)
         .eq("lesson_plan_id", lessonPlanId)
         .eq("standard_text", standardText)
-        .maybeSingle(); // Prevents crashes when a row doesn't exist yet
+        .maybeSingle(); 
       
       if (data && data.include_in_portfolio !== null) {
         setIsIncluded(Boolean(data.include_in_portfolio));
       } else {
-        setIsIncluded(true); // Default to true
+        setIsIncluded(true); 
       }
       setIsLoading(false);
     };
@@ -48,6 +48,7 @@ function ElementPortfolioToggle({ studentId, lessonPlanId, standardText, supabas
     const { error } = await (supabase as any)
       .from("portfolio_artifacts")
       .upsert({
+        parent_id: parentId, // Fix: Added required parent_id to prevent the 23502 not-null constraint error
         student_id: studentId,
         lesson_plan_id: lessonPlanId,
         standard_text: standardText,
@@ -57,7 +58,7 @@ function ElementPortfolioToggle({ studentId, lessonPlanId, standardText, supabas
 
     if (error) {
       toast.error("Failed to update portfolio status");
-      setIsIncluded(!checked); // Revert the checkbox visually if it fails
+      setIsIncluded(!checked); 
     } else {
       toast.success(checked ? "Added to state portfolio" : "Removed from state portfolio");
     }
@@ -65,7 +66,6 @@ function ElementPortfolioToggle({ studentId, lessonPlanId, standardText, supabas
 
   if (isLoading) return null;
 
-  // Ensure valid HTML ID without spaces
   const safeId = `port-toggle-${standardText.replace(/[^a-zA-Z0-9]/g, '-')}`;
 
   return (
@@ -163,7 +163,6 @@ export default function HistoryDetailPage() {
     fetchPlanDetails();
   }, [params.id, router, supabase]);
 
-  // Handler to record an element-level dislike into the student_dislikes table
   const handleDoNotRecommend = async (itemText: string) => {
     if (!plan?.student_id) {
       toast.error("Student profile not found for this plan.");
@@ -240,7 +239,7 @@ export default function HistoryDetailPage() {
                       <div className="flex justify-between items-start">
                         <p className="font-bold text-slate-800 text-base">{std.subject}</p>
                         <div className="flex flex-col items-end">
-                          <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} supabase={supabase} />
+                          <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} parentId={plan.parent_id} supabase={supabase} />
                           <button 
                             onClick={() => handleDoNotRecommend(`${std.subject}: ${std.topic}`)}
                             className="text-slate-400 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
@@ -275,7 +274,7 @@ export default function HistoryDetailPage() {
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-black text-purple-800 text-lg">{item.item}</h4>
                           <div className="flex flex-col items-end">
-                            <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} supabase={supabase} />
+                            <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} parentId={plan.parent_id} supabase={supabase} />
                             <button 
                               onClick={() => handleDoNotRecommend(`Tool: ${item.item}`)}
                               className="text-slate-400 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
@@ -311,7 +310,7 @@ export default function HistoryDetailPage() {
                         <div className="flex justify-between items-start mb-2">
                           <span className="text-xs font-black uppercase text-indigo-500 block bg-indigo-50 w-max px-2 py-1 rounded">{book.type}</span>
                           <div className="flex flex-col items-end">
-                            <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} supabase={supabase} />
+                            <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} parentId={plan.parent_id} supabase={supabase} />
                             <button 
                               onClick={() => handleDoNotRecommend(`Book: ${book.title}`)}
                               className="text-slate-400 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
@@ -347,7 +346,7 @@ export default function HistoryDetailPage() {
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-black text-emerald-800 text-lg">{game.gameName}</h4>
                           <div className="flex flex-col items-end">
-                            <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} supabase={supabase} />
+                            <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} parentId={plan.parent_id} supabase={supabase} />
                             <button 
                               onClick={() => handleDoNotRecommend(`Game: ${game.gameName}`)}
                               className="text-slate-400 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
@@ -380,7 +379,7 @@ export default function HistoryDetailPage() {
                       <div className="flex justify-between items-start">
                         <h4 className="font-black text-amber-900 text-xl">{exp.title}</h4>
                         <div className="flex flex-col items-end">
-                          <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} supabase={supabase} />
+                          <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} parentId={plan.parent_id} supabase={supabase} />
                           <button 
                             onClick={() => handleDoNotRecommend(`Experiment: ${exp.title}`)}
                             className="text-amber-800/60 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
@@ -409,7 +408,7 @@ export default function HistoryDetailPage() {
                     <div className="flex justify-between items-start">
                       <h4 className="font-black text-teal-900 uppercase text-xs bg-teal-200/50 px-2 py-1 rounded">Near You</h4>
                       <div className="flex flex-col items-end">
-                        <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} supabase={supabase} />
+                        <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} parentId={plan.parent_id} supabase={supabase} />
                         <button 
                           onClick={() => handleDoNotRecommend(`Field Trip: ${generatedData.outAndAbout.title}`)}
                           className="text-teal-800/60 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
@@ -443,7 +442,7 @@ export default function HistoryDetailPage() {
                         <p className="text-sm text-slate-600 font-medium">Focus: {media.topic}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} supabase={supabase} />
+                        <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} parentId={plan.parent_id} supabase={supabase} />
                         <button 
                           onClick={() => handleDoNotRecommend(`Video: ${media.videoTitle}`)}
                           className="text-slate-400 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
