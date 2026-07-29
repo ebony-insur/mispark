@@ -16,25 +16,28 @@ interface SiteHeaderProps {
 export default function SiteHeader({ firstName }: SiteHeaderProps) {
   const router = useRouter();
   const supabase = createClient();
-  const [user, setUser] = useState<any>(null);
   const [dbFirstName, setDbFirstName] = useState<string>(firstName || "");
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasUser, setHasUser] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-
-      if (user && !firstName) {
-        const { data: profile } = await (supabase as any)
-          .from("profiles")
-          .select("first_name")
-          .eq("id", user.id)
-          .single();
-          
-        if (profile?.first_name) {
-          setDbFirstName(profile.first_name);
+      if (user) {
+        setHasUser(true);
+        if (!firstName) {
+          const { data: profile } = await (supabase as any)
+            .from("profiles")
+            .select("first_name")
+            .eq("id", user.id)
+            .single();
+            
+          if (profile?.first_name) {
+            setDbFirstName(profile.first_name);
+          }
         }
       }
+      setIsLoaded(true);
     };
     checkUser();
   }, [supabase, firstName]);
@@ -48,12 +51,12 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
 
   return (
     <header className="w-full max-w-5xl flex items-center justify-between bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-200 mb-6 print:hidden">
-      <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2">
+      <Link href={hasUser ? "/dashboard" : "/"} className="flex items-center gap-2">
         <Image src="/MiSpark.svg" alt="MiSpark Logo" width={120} height={35} priority />
       </Link>
 
       <div className="flex items-center gap-4">
-        {user ? (
+        {isLoaded && hasUser ? (
           <div className="flex items-center gap-3">
             {dbFirstName && (
               <span className="text-sm font-extrabold text-slate-700 hidden sm:inline">
@@ -69,7 +72,7 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
               <LogOut className="w-4 h-4 mr-1.5" /> Logout
             </Button>
           </div>
-        ) : (
+        ) : isLoaded ? (
           <div className="flex items-center gap-3">
             <Link href="/login">
               <Button variant="ghost" className="font-bold text-slate-600 hover:text-slate-900">
@@ -82,6 +85,8 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
               </Button>
             </Link>
           </div>
+        ) : (
+          <div className="h-9 w-24 animate-pulse bg-slate-100 rounded-xl"></div>
         )}
       </div>
     </header>
