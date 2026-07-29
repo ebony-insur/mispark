@@ -15,9 +15,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-// Reusable component for the Include in Portfolio toggle above each Do Not Recommend button
+// Reusable component for the Include in Portfolio toggle
 function ElementPortfolioToggle({ studentId, lessonPlanId, standardText, parentId, supabase }: { studentId: string; lessonPlanId: string; standardText: string; parentId: string; supabase: any }) {
-  const [isIncluded, setIsIncluded] = useState(true);
+  const [isIncluded, setIsIncluded] = useState(false); // Default to false (Excluded)
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -29,12 +29,12 @@ function ElementPortfolioToggle({ studentId, lessonPlanId, standardText, parentI
         .eq("student_id", studentId)
         .eq("lesson_plan_id", lessonPlanId)
         .eq("standard_text", standardText)
-        .maybeSingle(); 
+        .maybeSingle();
       
       if (data && data.include_in_portfolio !== null) {
         setIsIncluded(Boolean(data.include_in_portfolio));
       } else {
-        setIsIncluded(true); 
+        setIsIncluded(false); // Default to false if no record exists
       }
       setIsLoading(false);
     };
@@ -45,20 +45,45 @@ function ElementPortfolioToggle({ studentId, lessonPlanId, standardText, parentI
     const checked = e.target.checked;
     setIsIncluded(checked);
 
-    const { error } = await (supabase as any)
+    // Fail-safe approach: Check if record exists first to avoid upsert constraint errors
+    const { data: existing } = await (supabase as any)
       .from("portfolio_artifacts")
-      .upsert({
-        parent_id: parentId, // Fix: Added required parent_id to prevent the 23502 not-null constraint error
-        student_id: studentId,
-        lesson_plan_id: lessonPlanId,
-        standard_text: standardText,
-        include_in_portfolio: checked,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'student_id,lesson_plan_id,standard_text' });
+      .select("id")
+      .eq("student_id", studentId)
+      .eq("lesson_plan_id", lessonPlanId)
+      .eq("standard_text", standardText)
+      .maybeSingle();
 
-    if (error) {
+    let saveError = null;
+
+    if (existing) {
+      // Update existing artifact
+      const { error } = await (supabase as any)
+        .from("portfolio_artifacts")
+        .update({ 
+          include_in_portfolio: checked,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", existing.id);
+      saveError = error;
+    } else {
+      // Insert new artifact
+      const { error } = await (supabase as any)
+        .from("portfolio_artifacts")
+        .insert({
+          parent_id: parentId,
+          student_id: studentId,
+          lesson_plan_id: lessonPlanId,
+          standard_text: standardText,
+          include_in_portfolio: checked
+        });
+      saveError = error;
+    }
+
+    if (saveError) {
+      console.error("Toggle Save Error:", saveError);
       toast.error("Failed to update portfolio status");
-      setIsIncluded(!checked); 
+      setIsIncluded(!checked); // Revert visually on failure
     } else {
       toast.success(checked ? "Added to state portfolio" : "Removed from state portfolio");
     }
