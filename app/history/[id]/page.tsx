@@ -17,7 +17,7 @@ import { toast } from "sonner";
 
 // Reusable component for the Include in Portfolio toggle above each Do Not Recommend button
 function ElementPortfolioToggle({ studentId, lessonPlanId, standardText, supabase }: { studentId: string; lessonPlanId: string; standardText: string; supabase: any }) {
-  const [isIncluded, setIsIncluded] = useState(false);
+  const [isIncluded, setIsIncluded] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -29,10 +29,12 @@ function ElementPortfolioToggle({ studentId, lessonPlanId, standardText, supabas
         .eq("student_id", studentId)
         .eq("lesson_plan_id", lessonPlanId)
         .eq("standard_text", standardText)
-        .single();
+        .maybeSingle(); // Prevents crashes when a row doesn't exist yet
       
-      if (data) {
+      if (data && data.include_in_portfolio !== null) {
         setIsIncluded(Boolean(data.include_in_portfolio));
+      } else {
+        setIsIncluded(true); // Default to true
       }
       setIsLoading(false);
     };
@@ -43,47 +45,39 @@ function ElementPortfolioToggle({ studentId, lessonPlanId, standardText, supabas
     const checked = e.target.checked;
     setIsIncluded(checked);
 
-    const { data: existing } = await (supabase as any)
+    const { error } = await (supabase as any)
       .from("portfolio_artifacts")
-      .select("id")
-      .eq("student_id", studentId)
-      .eq("lesson_plan_id", lessonPlanId)
-      .eq("standard_text", standardText)
-      .single();
+      .upsert({
+        student_id: studentId,
+        lesson_plan_id: lessonPlanId,
+        standard_text: standardText,
+        include_in_portfolio: checked,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'student_id,lesson_plan_id,standard_text' });
 
-    if (existing) {
-      const { error } = await (supabase as any)
-        .from("portfolio_artifacts")
-        .update({ include_in_portfolio: checked })
-        .eq("id", existing.id);
-      if (error) toast.error("Failed to update portfolio status");
-      else toast.success(checked ? "Added to state portfolio" : "Removed from state portfolio");
+    if (error) {
+      toast.error("Failed to update portfolio status");
+      setIsIncluded(!checked); // Revert the checkbox visually if it fails
     } else {
-      const { error } = await (supabase as any)
-        .from("portfolio_artifacts")
-        .insert({
-          student_id: studentId,
-          lesson_plan_id: lessonPlanId,
-          standard_text: standardText,
-          include_in_portfolio: checked
-        });
-      if (error) toast.error("Failed to update portfolio status");
-      else toast.success(checked ? "Added to state portfolio" : "Removed from state portfolio");
+      toast.success(checked ? "Added to state portfolio" : "Removed from state portfolio");
     }
   };
 
   if (isLoading) return null;
 
+  // Ensure valid HTML ID without spaces
+  const safeId = `port-toggle-${standardText.replace(/[^a-zA-Z0-9]/g, '-')}`;
+
   return (
     <div className="flex items-center gap-2 print:hidden mb-1">
       <input 
         type="checkbox" 
-        id={`port-toggle-${standardText.replace(/\s+/g, '-')}`}
+        id={safeId}
         checked={isIncluded}
         onChange={handleToggle}
         className="w-3.5 h-3.5 rounded text-teal-600 focus:ring-teal-500 cursor-pointer"
       />
-      <label htmlFor={`port-toggle-${standardText.replace(/\s+/g, '-')}`} className="text-[11px] font-bold text-slate-600 cursor-pointer">
+      <label htmlFor={safeId} className="text-[11px] font-bold text-slate-600 cursor-pointer">
         Include in State Portfolio
       </label>
     </div>
