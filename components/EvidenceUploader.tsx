@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,25 +13,47 @@ export default function EvidenceUploader({
   standardText, 
   existingArtifact = null 
 }: any) {
-  const [masteryRating, setMasteryRating] = useState<number>(existingArtifact?.rating || 0);
-  const [enjoymentRating, setEnjoymentRating] = useState<number>(existingArtifact?.enjoyment_rating || 0);
-  const [notes, setNotes] = useState(existingArtifact?.notes || "");
-  const [existingFiles, setExistingFiles] = useState<string[]>(existingArtifact?.file_urls || (existingArtifact?.image_url ? [existingArtifact.image_url] : []));
+  const [masteryRating, setMasteryRating] = useState<number>(0);
+  const [enjoymentRating, setEnjoymentRating] = useState<number>(0);
+  const [notes, setNotes] = useState("");
+  const [existingFiles, setExistingFiles] = useState<string[]>([]);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const supabase = createClient();
+  
+  // useMemo prevents unnecessary re-renders
+  const supabase = useMemo(() => createClient(), []);
 
+  // Automatically fetch existing data if this component is rendered on the history page
   useEffect(() => {
     if (existingArtifact) {
       setMasteryRating(existingArtifact.rating || 0);
       setEnjoymentRating(existingArtifact.enjoyment_rating || 0);
       setNotes(existingArtifact.notes || "");
       setExistingFiles(existingArtifact.file_urls || (existingArtifact.image_url ? [existingArtifact.image_url] : []));
+    } else {
+      const fetchExistingData = async () => {
+        if (!studentId || !lessonPlanId || !standardText) return;
+        const { data } = await (supabase as any)
+          .from("portfolio_artifacts")
+          .select("*")
+          .eq("student_id", studentId)
+          .eq("lesson_plan_id", lessonPlanId)
+          .eq("standard_text", standardText)
+          .maybeSingle(); // Safe fetch that won't throw errors if missing
+        
+        if (data) {
+          setMasteryRating(data.rating || 0);
+          setEnjoymentRating(data.enjoyment_rating || 0);
+          setNotes(data.notes || "");
+          setExistingFiles(data.file_urls || (data.image_url ? [data.image_url] : []));
+        }
+      };
+      fetchExistingData();
     }
-  }, [existingArtifact]);
+  }, [studentId, lessonPlanId, standardText, existingArtifact, supabase]);
 
   const handleSave = async () => {
     if (!studentId || !lessonPlanId) {
@@ -46,6 +68,7 @@ export default function EvidenceUploader({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Must be logged in to save evidence.");
 
+      // 1. Upload new files if any were selected
       if (pendingFiles.length > 0) {
         const uploadPromises = pendingFiles.map(async (file) => {
           const fileExt = file.name.split('.').pop();
@@ -80,28 +103,45 @@ export default function EvidenceUploader({
         enjoyment_rating: enjoymentRating > 0 ? enjoymentRating : null,
         notes: notes,
         file_urls: finalFileUrls,
-        include_in_portfolio: true
+        include_in_portfolio: true // Ensure it gets included when they leave a rating/note
       };
+
+      // 2. Foolproof Check: See if a row already exists (e.g. from the checkbox toggle)
+      const { data: currentRecord } = await (supabase as any)
+        .from("portfolio_artifacts")
+        .select("id")
+        .eq("student_id", studentId)
+        .eq("lesson_plan_id", lessonPlanId)
+        .eq("standard_text", standardText)
+        .maybeSingle();
 
       let dbError;
 
-      if (existingArtifact?.id) {
-        const { error } = await (supabase as any).from("portfolio_artifacts")
+      // 3. Update if exists, Insert if new (Bypasses all constraint errors)
+      if (currentRecord) {
+        const { error } = await (supabase as any)
+          .from("portfolio_artifacts")
           .update(payload)
-          .eq("id", existingArtifact.id);
+          .eq("id", currentRecord.id);
         dbError = error;
       } else {
-        const { error } = await (supabase as any).from("portfolio_artifacts").insert(payload);
+        const { error } = await (supabase as any)
+          .from("portfolio_artifacts")
+          .insert(payload);
         dbError = error;
       }
 
       if (dbError) throw dbError;
 
+      // 4. Update UI State
       setExistingFiles(finalFileUrls);
       setPendingFiles([]);
       setSuccessMessage("Changes saved successfully!");
       toast.success("Evidence saved successfully!");
+      
+      // Hide success banner after 4 seconds
       setTimeout(() => setSuccessMessage(null), 4000);
+      
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || "Failed to save evidence.");
@@ -162,7 +202,7 @@ export default function EvidenceUploader({
         className="w-full mb-4 bg-slate-50 border-slate-200 rounded-xl focus-visible:ring-teal-500 resize-none h-20"
       />
 
-      {/* File Roster: Shows both previously saved files AND new pending files */}
+      {/* File Roster */}
       {(existingFiles.length > 0 || pendingFiles.length > 0) && (
         <div className="mb-4 flex flex-col gap-2">
           <span className="text-xs font-bold text-slate-500 uppercase">Attached Files</span>
@@ -187,7 +227,7 @@ export default function EvidenceUploader({
         </div>
       )}
 
-      {/* Upload and Save Controls */}
+      {/* Controls */}
       <div className="flex gap-3">
         <input 
           type="file" 

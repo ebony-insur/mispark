@@ -62,10 +62,12 @@ export default function PortfolioPage() {
     if (!selectedStudent || !startDate || !endDate) return;
     setIsFetching(true);
     
+    // Explicitly filter for items flagged for portfolio inclusion on the database side
     const { data: artData, error: artError } = await (supabase as any)
       .from("portfolio_artifacts")
       .select("*")
-      .eq("student_id", selectedStudent);
+      .eq("student_id", selectedStudent)
+      .eq("include_in_portfolio", true);
 
     if (!artError && artData) {
       const enriched = await Promise.all(
@@ -106,18 +108,13 @@ export default function PortfolioPage() {
         })
       );
 
-      // Filter: date overlap + strict check that include_in_portfolio is true
+      // Filter: date overlap only (inclusion status handled by DB)
       const filtered = enriched.filter((item: any) => {
         const sDate = item.week_start;
         const eDate = item.week_end;
-        const inDateRange = (sDate >= startDate && sDate <= endDate) || 
-                            (eDate >= startDate && eDate <= endDate) || 
-                            (sDate <= startDate && eDate >= endDate);
-
-        // Must be explicitly opted into portfolio (default false unless updated/evaluated)
-        const isIncluded = item.include_in_portfolio === true;
-
-        return inDateRange && isIncluded;
+        return (sDate >= startDate && sDate <= endDate) || 
+               (eDate >= startDate && eDate <= endDate) || 
+               (sDate <= startDate && eDate >= endDate);
       });
 
       filtered.sort((a: any, b: any) => {
@@ -445,35 +442,61 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                       <div 
                         key={item.id} 
                         onClick={() => setEditingArtifact(item)}
-                        className="bg-slate-50/50 rounded-2xl p-6 border-2 border-slate-200 hover:border-teal-400 cursor-pointer transition-all space-y-4 relative group"
+                        className="bg-white rounded-2xl p-6 border border-slate-200 hover:border-teal-400 cursor-pointer transition-all shadow-sm space-y-4 group print:break-inside-avoid print:border-slate-300 print:shadow-none"
                       >
-                        <div className="absolute top-6 right-6 text-slate-300 group-hover:text-teal-500 transition-colors print:hidden">
-                          <Edit3 className="w-5 h-5" />
-                        </div>
+                        <h5 className="text-base font-black text-slate-800">{item.standard_text}</h5>
 
-                        <h5 className="text-base font-black text-slate-800 pr-8">{item.standard_text}</h5>
-
-                        <div className="space-y-3 pt-1">
+                        <div className="space-y-4">
                           {feedbackHistory.map((historyItem: any, hIdx: number) => (
-                            <div key={hIdx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-start justify-between">
+                            <div key={hIdx} className="flex flex-col md:flex-row gap-6 items-start justify-between border-t border-slate-100 pt-4 first:border-0 first:pt-0">
                               
-                              <div className="w-full md:w-1/3 space-y-1">
-                                <span className="text-[11px] font-black text-slate-400 uppercase block">Mastery Level</span>
-                                <div className="flex items-center gap-1">
-                                  {[1, 2, 3, 4, 5].map((star) => (
-                                    <Star key={star} className={`w-4 h-4 ${(historyItem.rating || item.rating) >= star ? "fill-amber-500 text-amber-500" : "text-amber-200"}`} />
-                                  ))}
+                              {/* Left Side: Mastery & Evidence next to each other */}
+                              <div className="w-full md:w-5/12 flex items-start gap-8">
+                                <div className="space-y-1 shrink-0">
+                                  <span className="text-[11px] font-black text-slate-400 uppercase block tracking-wider">Mastery Level</span>
+                                  <div className="flex items-center gap-1">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                      <Star key={star} className={`w-4 h-4 ${(historyItem.rating || item.rating) >= star ? "fill-amber-500 text-amber-500" : "text-amber-200"}`} />
+                                    ))}
+                                  </div>
                                 </div>
+
+                                {hasFiles && hIdx === 0 && (
+                                  <div className="space-y-1">
+                                    <span className="text-[11px] font-black text-slate-400 uppercase block tracking-wider">Evidence</span>
+                                    <div className="flex flex-wrap gap-2">
+                                      {files.map((url, index) => (
+                                        <div key={index} className="h-10 w-14 rounded-md border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                                          {url.includes(".pdf") ? (
+                                            <FileText className="w-4 h-4 text-teal-600" />
+                                          ) : (
+                                            <img src={url} alt={`Evidence ${index + 1}`} className="w-full h-full object-cover" />
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
 
-                              <div className="w-full md:w-2/3 space-y-1">
-                                <div className="flex justify-between items-start gap-4">
-                                  <span className="text-[11px] font-bold text-teal-700 uppercase">Update Record #{hIdx + 1}</span>
-                                  {showFeedbackDate && (
-                                    <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
-                                      Feedback Recorded: {new Date(historyItem.date || item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                    </span>
-                                  )}
+                              {/* Right Side: Update Record, Date, Edit Button, Notes */}
+                              <div className="w-full md:w-7/12 space-y-1.5">
+                                <div className="flex justify-between items-center gap-4">
+                                  <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider">Update Record #{hIdx + 1}</span>
+                                  <div className="flex items-center gap-2">
+                                    {showFeedbackDate && (
+                                      <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
+                                        Feedback Recorded: {new Date(historyItem.date || item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                      </span>
+                                    )}
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); setEditingArtifact(item); }} 
+                                      className="text-slate-300 hover:text-teal-500 transition-colors print:hidden ml-1"
+                                      title="Edit Record"
+                                    >
+                                      <Edit3 className="w-4 h-4" />
+                                    </button>
+                                  </div>
                                 </div>
                                 <p className="text-slate-700 font-medium text-sm leading-relaxed">{historyItem.note || item.notes || "No notes logged for this update."}</p>
                               </div>
@@ -481,30 +504,6 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                             </div>
                           ))}
                         </div>
-
-                        {hasFiles && (
-                          <div className="space-y-2 pt-2">
-                            <span className="text-[11px] font-black text-slate-500 uppercase">Evidence Artifacts</span>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                              {files.map((url, index) => (
-                                <div key={index} className="bg-white border-2 border-slate-200 rounded-xl p-2 flex flex-col items-center justify-center gap-1">
-                                  {url.includes(".pdf") ? (
-                                    <a href={url} target="_blank" rel="noreferrer" className="flex flex-col items-center text-teal-600 hover:text-teal-700 py-4" onClick={(e) => e.stopPropagation()}>
-                                      <FileText className="w-8 h-8 mb-1" />
-                                      <span className="font-bold text-[10px] flex items-center">PDF File <ExternalLink className="w-2.5 h-2.5 ml-1"/></span>
-                                    </a>
-                                  ) : (
-                                    <div className="relative w-full h-20 rounded-lg overflow-hidden bg-slate-200 shadow-sm">
-                                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                                      <img src={url} alt={`Evidence ${index + 1}`} className="w-full h-full object-cover" />
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
                       </div>
                     );
                   })}
