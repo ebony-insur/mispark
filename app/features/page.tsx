@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
@@ -27,11 +28,11 @@ export default function FeaturesPage() {
           <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-tight mb-6">
             Everything You Need to <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-blue-600">
-              Homeschool with Confidence
+              Teach with Confidence
             </span>
           </h1>
           <p className="text-xl text-slate-600 font-medium leading-relaxed">
-            Explore the powerful features behind MiSpark's AI curriculum planner. Designed to save you hours of prep time while keeping your learner engaged and your state evaluator happy.
+            Explore the powerful features behind MiSpark's AI curriculum engine. Designed to save educators and parents hours of prep time while keeping learners engaged and state compliance effortless.
           </p>
         </section>
 
@@ -45,7 +46,7 @@ export default function FeaturesPage() {
                 </div>
                 <h2 className="text-3xl font-black text-slate-900">Automated State Standards Mapping</h2>
                 <p className="text-lg text-slate-600 font-medium leading-relaxed">
-                  One of the most stressful parts of homeschooling is ensuring your curriculum meets local legal requirements. MiSpark completely removes this burden. When you generate a lesson plan, our AI automatically cross-references your topics with your state's specific educational standards.
+                  One of the most exhausting parts of lesson design is ensuring your curriculum meets legal or district standards. MiSpark completely removes this burden. When you generate a lesson plan, our AI automatically cross-references your topics with your state's specific educational requirements.
                 </p>
                 <ul className="space-y-4 text-slate-700 font-bold">
                   <li className="flex items-start gap-3">
@@ -54,13 +55,19 @@ export default function FeaturesPage() {
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="w-6 h-6 text-blue-500 shrink-0"/> 
-                    <span><strong>Evaluator-Ready Vocabulary:</strong> We translate standard educational concepts into the official terminology state evaluators look for.</span>
+                    <span><strong>Evaluator-Ready Vocabulary:</strong> We translate standard educational concepts into the official terminology state evaluators and school admins look for.</span>
                   </li>
                 </ul>
               </div>
-              <div className="flex-1 bg-slate-50 rounded-2xl p-6 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center min-h-[300px]">
-                <Library className="w-16 h-16 text-slate-300 mb-4" />
-                <p className="text-slate-500 font-bold">SEO Optimization: Search engines index this rich text to rank you for "homeschool state standards planner."</p>
+              <div className="flex-1 w-full bg-slate-100 rounded-3xl p-4 shadow-inner border border-slate-200 flex items-center justify-center overflow-hidden relative">
+                <div className="aspect-video w-full relative rounded-2xl overflow-hidden shadow-md">
+                  <Image 
+                    src="/screenshots/state-aligned.png" 
+                    alt="State standards compliance mapping dashboard showing curriculum alignment for educators" 
+                    fill 
+                    className="object-cover" 
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -76,7 +83,7 @@ export default function FeaturesPage() {
                 </div>
                 <h2 className="text-3xl font-black text-slate-900">Hyper-Personalized Curriculum Design</h2>
                 <p className="text-lg text-slate-600 font-medium leading-relaxed">
-                  Generic workbooks lead to frustration. MiSpark takes your learner's unique profile—their grade level, attention span, interests, and sensory needs—and crafts a multi-sensory lesson plan designed specifically for how their brain works.
+                  Generic workbooks lead to disengagement. MiSpark takes your student's unique profile—their grade level, attention span, interests, and sensory needs—and crafts a multi-sensory lesson plan designed specifically for how their brain works.
                 </p>
                 <ul className="space-y-4 text-slate-700 font-bold">
                   <li className="flex items-start gap-3">
@@ -89,9 +96,15 @@ export default function FeaturesPage() {
                   </li>
                 </ul>
               </div>
-              <div className="flex-1 bg-slate-50 rounded-2xl p-6 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center min-h-[300px]">
-                <Blocks className="w-16 h-16 text-slate-300 mb-4" />
-                <p className="text-slate-500 font-bold">SEO Optimization: Ranks for "customized homeschool curriculum" and "neurodivergent lesson planner."</p>
+              <div className="flex-1 w-full bg-slate-100 rounded-3xl p-4 shadow-inner border border-slate-200 flex items-center justify-center overflow-hidden relative">
+                <div className="aspect-video w-full relative rounded-2xl overflow-hidden shadow-md">
+                  <Image 
+                    src="/screenshots/learner-aligned.png" 
+                    alt="Hyper-personalized student profile and multi-sensory lesson plan configuration interface" 
+                    fill 
+                    className="object-cover" 
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -105,9 +118,9 @@ export default function FeaturesPage() {
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-100 text-teal-800 font-bold text-xs uppercase tracking-wider">
                   <FileCheck className="w-4 h-4" /> Portfolios
                 </div>
-                <h2 className="text-3xl font-black text-slate-900">Instant, Printable Homeschool Portfolios</h2>
+                <h2 className="text-3xl font-black text-slate-900">Instant, Printable Academic Portfolios</h2>
                 <p className="text-lg text-slate-600 font-medium leading-relaxed">
-                  Stop scrambling at the end of the year to organize a binder. With MiSpark's evidence uploader, you can snap a photo of your learner's work and instantly attach it to a specific state standard. When it's time for your review, generate a professional portfolio with one click.
+                  Stop scrambling at the end of the term to organize binders and loose papers. With MiSpark's evidence uploader, you can snap a photo of your student's work and instantly attach it to a specific state standard. When review time arrives, generate a professional portfolio with one click.
                 </p>
                 <ul className="space-y-4 text-slate-700 font-bold">
                   <li className="flex items-start gap-3">
@@ -120,9 +133,15 @@ export default function FeaturesPage() {
                   </li>
                 </ul>
               </div>
-              <div className="flex-1 bg-slate-50 rounded-2xl p-6 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center min-h-[300px]">
-                <FileCheck className="w-16 h-16 text-slate-300 mb-4" />
-                <p className="text-slate-500 font-bold">SEO Optimization: Ranks for "homeschool portfolio app" and "state evaluator report builder."</p>
+              <div className="flex-1 w-full bg-slate-100 rounded-3xl p-4 shadow-inner border border-slate-200 flex items-center justify-center overflow-hidden relative">
+                <div className="aspect-video w-full relative rounded-2xl overflow-hidden shadow-md">
+                  <Image 
+                    src="/screenshots/portfolio-view.png" 
+                    alt="Printable student portfolio report generator with evidence logs and mastery ratings" 
+                    fill 
+                    className="object-cover" 
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -138,25 +157,31 @@ export default function FeaturesPage() {
                 </div>
                 <h2 className="text-3xl font-black text-slate-900">An Engine That Learns With You</h2>
                 <p className="text-lg text-slate-600 font-medium leading-relaxed">
-                  MiSpark isn't just a static planner. Our proprietary dual-rating system allows you to log both your learner's academic mastery (for the state) and their enjoyment level (for the AI). If a kid loves a specific game or book, MiSpark learns to recommend similar activities in the future.
+                  MiSpark isn't just a static planner. Our proprietary dual-rating system allows you to log both your student's academic mastery (for state compliance) and their enjoyment level (for the AI). If a learner loves a specific game or book, MiSpark learns to recommend similar activities in the future.
                 </p>
                 <ul className="space-y-4 text-slate-700 font-bold">
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="w-6 h-6 text-rose-500 shrink-0"/> 
-                    <span><strong>Continuous Improvement:</strong> The longer you use MiSpark, the more accurate and engaging the lesson plans become.</span>
+                    <span><strong>Continuous Improvement:</strong> The longer you use MiSpark, the more accurate and engaging your lesson plans become.</span>
                   </li>
                 </ul>
               </div>
-              <div className="flex-1 bg-slate-50 rounded-2xl p-6 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center min-h-[300px]">
-                <BrainCircuit className="w-16 h-16 text-slate-300 mb-4" />
-                <p className="text-slate-500 font-bold">SEO Optimization: Ranks for "adaptive homeschool curriculum AI."</p>
+              <div className="flex-1 w-full bg-slate-100 rounded-3xl p-4 shadow-inner border border-slate-200 flex items-center justify-center overflow-hidden relative">
+                <div className="aspect-video w-full relative rounded-2xl overflow-hidden shadow-md">
+                  <Image 
+                    src="/screenshots/feedback-loop.png" 
+                    alt="Dual rating system featuring hearts and stars for adaptive AI curriculum recommendations" 
+                    fill 
+                    className="object-cover" 
+                  />
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         {/* BOTTOM CTA */}
-        <section className="w-full bg-teal-900 py-24 px-6 text-center mt-12 rounded-3xl max-w-5xl">
+        <section className="w-full bg-teal-900 py-24 px-6 text-center mt-12 rounded-3xl max-w-5xl shadow-xl">
           <h2 className="text-4xl md:text-5xl font-black text-white mb-6">Experience the Features Live</h2>
           <p className="text-xl text-teal-100 font-medium mb-10 max-w-2xl mx-auto">Create your first personalized, state-aligned lesson plan in under 60 seconds.</p>
           

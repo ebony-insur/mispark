@@ -177,7 +177,7 @@ export default function Home() {
           <div className="flex-1 w-full bg-white rounded-3xl p-4 shadow-xl border border-slate-200">
             <div className="aspect-video bg-slate-100 rounded-2xl border border-slate-200 flex items-center justify-center overflow-hidden relative">
               <span className="text-slate-400 font-bold absolute z-0">Screenshot: Learner Profile / Let's Play Section</span>
-              <Image src="/screenshots/learner-plans.png" alt="Learner Aligned" fill className="object-cover relative z-10" />
+              <Image src="/screenshots/learner-aligned.png" alt="Learner Aligned" fill className="object-cover relative z-10" />
             </div>
           </div>
         </div>
