@@ -106,13 +106,21 @@ export default function PortfolioPage() {
         })
       );
 
-      // Filter: overlap logic
+      // Filter: overlap logic & strict inclusion of only rated/noted/artifacted items
       const filtered = enriched.filter((item: any) => {
         const sDate = item.week_start;
         const eDate = item.week_end;
-        return (sDate >= startDate && sDate <= endDate) || 
-               (eDate >= startDate && eDate <= endDate) || 
-               (sDate <= startDate && eDate >= endDate);
+        const inDateRange = (sDate >= startDate && sDate <= endDate) || 
+                            (eDate >= startDate && eDate <= endDate) || 
+                            (sDate <= startDate && eDate >= endDate);
+
+        // Check if item has a rating, note, or file artifact
+        const hasRating = Boolean(item.rating);
+        const hasNotes = Boolean(item.notes && item.notes.trim().length > 0);
+        const hasHistoryNotes = Boolean(item.feedback_history && item.feedback_history.some((h: any) => h.note?.trim() || h.rating));
+        const hasFiles = Boolean((item.file_urls && item.file_urls.length > 0) || item.image_url);
+
+        return inDateRange && (hasRating || hasNotes || hasHistoryNotes || hasFiles);
       });
 
       filtered.sort((a: any, b: any) => {
@@ -151,7 +159,6 @@ export default function PortfolioPage() {
   const formattedStart = new Date(startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const formattedEnd = new Date(endDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-  // Group by Week / Date Range
   const groupedByWeek = artifacts.reduce((acc: any, item: any) => {
     const weekKey = item.week_assigned || "General Weekly Assignments";
     if (!acc[weekKey]) acc[weekKey] = [];
@@ -269,7 +276,7 @@ export default function PortfolioPage() {
           ) : artifacts.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 print:hidden">
               <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <p className="text-xl font-bold text-slate-500">No lessons or evidence found within this date range.</p>
+              <p className="text-xl font-bold text-slate-500">No rated lessons or evidence found within this date range.</p>
             </div>
           ) : (
             <div className="space-y-8">
@@ -327,7 +334,7 @@ export default function PortfolioPage() {
   );
 }
 
-// Component to handle individual Week Section with concise, non-repeating structure
+// Component to handle individual Week Section grouping Standards and Reading together
 function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setEditingArtifact }: any) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -335,7 +342,7 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
     setIsOpen(allExpanded);
   }, [allExpanded]);
 
-  // Deduplicate standards for this week group so each standard is listed once concisely
+  // Deduplicate standards
   const uniqueStandardsMap = new Map();
   weekItems.forEach((item: any) => {
     if (!uniqueStandardsMap.has(item.standard_text)) {
@@ -344,7 +351,6 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
   });
   const uniqueStandards = Array.from(uniqueStandardsMap.values());
 
-  // Extract plan_data from the first available item in this week group
   const samplePlanData = weekItems.find((i: any) => i.plan_data)?.plan_data;
 
   return (
@@ -375,9 +381,9 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
             </div>
           )}
 
-          {/* STANDARDS ASSESSED (Listed once each) */}
+          {/* GROUP 1: STANDARDS MASTERY (Listed Together) */}
           <div className="space-y-6">
-            <h4 className="text-xs font-black text-teal-700 uppercase tracking-wider">Standards Assessed & Mastery Progressions</h4>
+            <h4 className="text-xs font-black text-teal-700 uppercase tracking-wider">Standards Mastery & Progressions</h4>
             
             {uniqueStandards.map((item: any) => {
               const files: string[] = item.file_urls?.length > 0 ? item.file_urls : (item.image_url ? [item.image_url] : []);
@@ -403,7 +409,6 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                     {feedbackHistory.map((historyItem: any, hIdx: number) => (
                       <div key={hIdx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-start justify-between">
                         
-                        {/* Left Column: Mastery Level */}
                         <div className="w-full md:w-1/3 space-y-1">
                           <span className="text-[11px] font-black text-slate-400 uppercase block">Mastery Level</span>
                           <div className="flex items-center gap-1">
@@ -413,7 +418,6 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                           </div>
                         </div>
 
-                        {/* Right Column: Notes & Far Right Timestamp */}
                         <div className="w-full md:w-2/3 space-y-1">
                           <div className="flex justify-between items-start gap-4">
                             <span className="text-[11px] font-bold text-teal-700 uppercase">Update #{hIdx + 1}</span>
@@ -459,24 +463,29 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
             })}
           </div>
 
-          {/* ADDITIONAL ASSESSED SECTIONS (Concise Listing) */}
-          {samplePlanData && (
+          {/* GROUP 2: RECOMMENDED READING (Listed Together) */}
+          {samplePlanData?.readingList && samplePlanData.readingList.length > 0 && (
             <div className="space-y-6 pt-6 border-t border-slate-200">
-              <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Assessed Learning Tools & Activities</h4>
+              <h4 className="text-xs font-black text-indigo-700 uppercase tracking-wider">Recommended Reading</h4>
               
-              {/* Recommended Reading */}
-              {samplePlanData.readingList && samplePlanData.readingList.map((book: any, rIdx: number) => (
-                <div key={rIdx} className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
+              {samplePlanData.readingList.map((book: any, rIdx: number) => (
+                <div key={rIdx} className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-black bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md uppercase">Recommended Reading</span>
+                    <span className="text-xs font-black bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md uppercase">{book.type || "Book"}</span>
                     <span className="text-xs font-bold text-slate-700">{book.title}</span>
                   </div>
-                  <p className="text-sm text-slate-600 font-medium">{book.prompt || book.type}</p>
+                  <p className="text-sm text-slate-600 font-medium leading-relaxed">{book.prompt || "Summary and reading engagement notes."}</p>
                 </div>
               ))}
+            </div>
+          )}
 
-              {/* Let's Play */}
-              {samplePlanData.letsPlay && samplePlanData.letsPlay.map((game: any, gIdx: number) => (
+          {/* GROUP 3: ACTIVITIES & EXPERIMENTS (Listed Together) */}
+          {(samplePlanData?.letsPlay?.length > 0 || samplePlanData?.householdExperiments?.length > 0 || samplePlanData?.outAndAbout) && (
+            <div className="space-y-6 pt-6 border-t border-slate-200">
+              <h4 className="text-xs font-black text-emerald-700 uppercase tracking-wider">Learning Activities & Experiments</h4>
+              
+              {samplePlanData?.letsPlay?.map((game: any, gIdx: number) => (
                 <div key={gIdx} className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-black bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md uppercase">Let's Play Activity</span>
@@ -486,8 +495,7 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                 </div>
               ))}
 
-              {/* Hands-On Experiments */}
-              {samplePlanData.householdExperiments && samplePlanData.householdExperiments.map((exp: any, eIdx: number) => (
+              {samplePlanData?.householdExperiments?.map((exp: any, eIdx: number) => (
                 <div key={eIdx} className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-black bg-amber-50 text-amber-700 px-2.5 py-1 rounded-md uppercase">Hands-On Experiment</span>
@@ -497,8 +505,7 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                 </div>
               ))}
 
-              {/* Local Field Trip */}
-              {samplePlanData.outAndAbout && (
+              {samplePlanData?.outAndAbout && (
                 <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-black bg-teal-50 text-teal-700 px-2.5 py-1 rounded-md uppercase">Local Field Trip</span>
@@ -507,9 +514,20 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                   <p className="text-sm text-slate-600 font-medium">{samplePlanData.outAndAbout.instructions}</p>
                 </div>
               )}
-
             </div>
-          )}
+          )}{samplePlanData?.endOfWeekReview && (
+                <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-black bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md uppercase">End of Week Review</span>
+                    <span className="text-xs font-bold text-slate-700">{samplePlanData.endOfWeekReview.worksheetTitle}</span>
+                  </div>
+                  <ol className="list-decimal pl-5 text-sm text-slate-600 space-y-1">
+                    {samplePlanData.endOfWeekReview.questions.map((q: string, qIdx: number) => (
+                      <li key={qIdx}>{q}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
 
         </div>
       )}
