@@ -168,7 +168,7 @@ export default function EvidenceUploader({
             }
           ];
         } else {
-          finalHistory = previousHistory; // Keep history intact if only files or toggles changed
+          finalHistory = previousHistory; 
         }
       } else {
         finalHistory = [{ 
@@ -178,6 +178,7 @@ export default function EvidenceUploader({
         }];
       }
 
+      // Payload strictly matches existing columns (removed updated_at)
       const payload = {
         parent_id: user.id,
         student_id: studentId,
@@ -188,8 +189,7 @@ export default function EvidenceUploader({
         notes: notes,
         file_urls: finalFileUrls,
         include_in_portfolio: includeInPortfolio,
-        feedback_history: finalHistory, // <--- Stored directly in portfolio_artifacts
-        updated_at: new Date().toISOString()
+        feedback_history: finalHistory
       };
 
       let dbError;
