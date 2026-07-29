@@ -20,6 +20,9 @@ export default function EvidenceUploader({
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // NEW: State to track exactly what the database currently holds to prevent duplicate saves
+  const [originalData, setOriginalData] = useState({ rating: 0, enjoyment_rating: 0, notes: "" });
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -33,6 +36,13 @@ export default function EvidenceUploader({
       setEnjoymentRating(existingArtifact.enjoyment_rating || 0);
       setNotes(existingArtifact.notes || "");
       setExistingFiles(existingArtifact.file_urls || (existingArtifact.image_url ? [existingArtifact.image_url] : []));
+      
+      // Memorize starting state
+      setOriginalData({
+        rating: existingArtifact.rating || 0,
+        enjoyment_rating: existingArtifact.enjoyment_rating || 0,
+        notes: existingArtifact.notes || ""
+      });
     } else {
       const fetchExistingData = async () => {
         if (!studentId || !lessonPlanId || !standardText) return;
@@ -49,6 +59,13 @@ export default function EvidenceUploader({
           setEnjoymentRating(data.enjoyment_rating || 0);
           setNotes(data.notes || "");
           setExistingFiles(data.file_urls || (data.image_url ? [data.image_url] : []));
+
+          // Memorize fetched state
+          setOriginalData({
+            rating: data.rating || 0,
+            enjoyment_rating: data.enjoyment_rating || 0,
+            notes: data.notes || ""
+          });
         }
       };
       fetchExistingData();
@@ -60,6 +77,22 @@ export default function EvidenceUploader({
       toast.error("Missing learner or plan ID.");
       return;
     }
+
+    // --- STRICT CHANGE DETECTION ---
+    const currentNotes = notes.trim();
+    const originalNotes = originalData.notes.trim();
+
+    const hasChanges = 
+      masteryRating !== originalData.rating ||
+      enjoymentRating !== originalData.enjoyment_rating ||
+      currentNotes !== originalNotes ||
+      pendingFiles.length > 0;
+
+    if (!hasChanges) {
+      toast.info("This assessment was already documented.");
+      return; // Abort the save entirely
+    }
+    // --- END CHANGE DETECTION ---
 
     setIsUploading(true);
     let newUploadedUrls: string[] = [];
@@ -106,7 +139,7 @@ export default function EvidenceUploader({
         include_in_portfolio: true // Ensure it gets included when they leave a rating/note
       };
 
-      // 2. Foolproof Check: See if a row already exists (e.g. from the checkbox toggle)
+      // 2. Foolproof Check: See if a row already exists
       const { data: currentRecord } = await (supabase as any)
         .from("portfolio_artifacts")
         .select("id")
@@ -117,7 +150,7 @@ export default function EvidenceUploader({
 
       let dbError;
 
-      // 3. Update if exists, Insert if new (Bypasses all constraint errors)
+      // 3. Update if exists, Insert if new
       if (currentRecord) {
         const { error } = await (supabase as any)
           .from("portfolio_artifacts")
@@ -133,9 +166,17 @@ export default function EvidenceUploader({
 
       if (dbError) throw dbError;
 
-      // 4. Update UI State
+      // 4. Update UI State & Memorize the new baseline
       setExistingFiles(finalFileUrls);
       setPendingFiles([]);
+      
+      // Update originalData so immediate subsequent clicks without changes are blocked
+      setOriginalData({
+        rating: masteryRating,
+        enjoyment_rating: enjoymentRating,
+        notes: notes
+      });
+
       setSuccessMessage("Changes saved successfully!");
       toast.success("Evidence saved successfully!");
       

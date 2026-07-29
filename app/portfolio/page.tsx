@@ -19,10 +19,8 @@ export default function PortfolioPage() {
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<string>("");
   
-  // Controls state
-  const [showFeedbackDate, setShowFeedbackDate] = useState<boolean>(false); // Default off
+  const [showFeedbackDate, setShowFeedbackDate] = useState<boolean>(false);
   
-  // Date range filters for portfolio creation
   const todayStr = new Date().toISOString().split('T')[0];
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -31,9 +29,8 @@ export default function PortfolioPage() {
 
   const [artifacts, setArtifacts] = useState<any[]>([]);
   const [hasGenerated, setHasGenerated] = useState<boolean>(false);
-  const [allExpanded, setAllExpanded] = useState<boolean>(false); // Default collapsed
+  const [allExpanded, setAllExpanded] = useState<boolean>(false);
 
-  // 1. Fetch Students on load
   useEffect(() => {
     const fetchStudents = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -57,12 +54,10 @@ export default function PortfolioPage() {
     fetchStudents();
   }, [router, supabase]);
 
-  // 2. Fetch and Generate Report based on date range overlap and include_in_portfolio flag
   const handleGenerateReport = useCallback(async () => {
     if (!selectedStudent || !startDate || !endDate) return;
     setIsFetching(true);
     
-    // Explicitly filter for items flagged for portfolio inclusion on the database side
     const { data: artData, error: artError } = await (supabase as any)
       .from("portfolio_artifacts")
       .select("*")
@@ -108,7 +103,6 @@ export default function PortfolioPage() {
         })
       );
 
-      // Filter: date overlap only (inclusion status handled by DB)
       const filtered = enriched.filter((item: any) => {
         const sDate = item.week_start;
         const eDate = item.week_end;
@@ -166,7 +160,6 @@ export default function PortfolioPage() {
       <div className="w-full flex-1 flex flex-col items-center py-12 px-6 space-y-8 mb-24 print:mb-0 print:px-0 print:py-0">
         <SiteHeader />
 
-        {/* CONTROLS SECTION */}
         <div className="w-full max-w-5xl bg-white p-6 rounded-3xl border border-slate-200 shadow-sm print:hidden">
           <h1 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2">
             <Award className="w-6 h-6 text-teal-600" /> State Compliance Portfolio Builder
@@ -212,7 +205,6 @@ export default function PortfolioPage() {
             </Button>
           </div>
 
-          {/* TOGGLE CONTROLS */}
           <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <input 
@@ -249,7 +241,6 @@ export default function PortfolioPage() {
           </div>
         </div>
 
-        {/* PRINTABLE PORTFOLIO VIEW */}
         <div className="w-full max-w-5xl space-y-12 pb-20 print:pb-0">
           
           {hasGenerated && artifacts.length > 0 && (
@@ -290,7 +281,6 @@ export default function PortfolioPage() {
 
       </div>
 
-      {/* EDIT MODAL OVERLAY WITH INCLUDE IN PORTFOLIO TOGGLE */}
       {editingArtifact && (
         <EditArtifactModal 
           artifact={editingArtifact} 
@@ -304,7 +294,6 @@ export default function PortfolioPage() {
   );
 }
 
-// Edit Modal Component featuring the explicit Portfolio Toggle
 function EditArtifactModal({ artifact, onClose, supabase }: any) {
   const [includeInPortfolio, setIncludeInPortfolio] = useState(artifact.include_in_portfolio ?? false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -345,7 +334,6 @@ function EditArtifactModal({ artifact, onClose, supabase }: any) {
             <p className="text-slate-800 font-bold">{artifact.standard_text}</p>
           </div>
 
-          {/* Explicit Include in Portfolio Toggle */}
           <div className="bg-teal-50 border border-teal-200 p-4 rounded-2xl flex items-center justify-between">
             <div>
               <p className="font-black text-teal-900 text-sm">Include in State Portfolio Report</p>
@@ -373,7 +361,6 @@ function EditArtifactModal({ artifact, onClose, supabase }: any) {
   );
 }
 
-// Week Section Component
 function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setEditingArtifact }: any) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -381,6 +368,7 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
     setIsOpen(allExpanded);
   }, [allExpanded]);
 
+  // Group items by lesson plan first
   const plansMap = new Map();
   weekItems.forEach((item: any) => {
     const planKey = item.lesson_plan_id || `standalone-${item.id}`;
@@ -415,7 +403,15 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
         <div className="p-6 md:p-8 space-y-8">
           {groupedPlans.map((planGroup: any, pIdx: number) => {
             const samplePlanData = planGroup.planData;
-            const planItems = planGroup.items;
+            
+            // Re-group raw items by standard_text to merge duplicate records 
+            const standardsMap = new Map();
+            planGroup.items.forEach((item: any) => {
+              if (!standardsMap.has(item.standard_text)) {
+                standardsMap.set(item.standard_text, []);
+              }
+              standardsMap.get(item.standard_text).push(item);
+            });
 
             return (
               <div key={pIdx} className="space-y-6 pb-8 border-b border-slate-200 last:border-none last:pb-0">
@@ -427,45 +423,67 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                   </div>
                 )}
 
-                {/* STANDARDS ASSESSED */}
                 <div className="space-y-4">
                   <h4 className="text-xs font-black text-teal-700 uppercase tracking-wider">Standards Mastery & All Recorded Updates</h4>
                   
-                  {planItems.map((item: any) => {
-                    const files: string[] = item.file_urls?.length > 0 ? item.file_urls : (item.image_url ? [item.image_url] : []);
-                    const hasFiles = files.length > 0;
-                    const feedbackHistory = item.feedback_history || [
-                      { date: item.updated_at || item.created_at, note: item.notes, rating: item.rating }
-                    ];
+                  {Array.from(standardsMap.entries()).map(([standardText, standardRows]: [string, any[]]) => {
+                    
+                    // Condense duplicate records across multiple rows and JSON histories
+                    let rawFeedback: any[] = [];
+                    let combinedFiles: string[] = [];
+                    let latestItem = standardRows[standardRows.length - 1]; // Use last row as base entity for editing
+
+                    standardRows.forEach((row) => {
+                      const files = row.file_urls?.length > 0 ? row.file_urls : (row.image_url ? [row.image_url] : []);
+                      combinedFiles.push(...files);
+
+                      const history = row.feedback_history || [
+                        { date: row.updated_at || row.created_at, note: row.notes, rating: row.rating }
+                      ];
+                      rawFeedback.push(...history);
+                    });
+
+                    combinedFiles = Array.from(new Set(combinedFiles));
+                    rawFeedback.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+                    // Deduplicate identical sequential entries (filters out duplicate 'saves' where nothing changed)
+                    const cleanFeedback = rawFeedback.filter((fb, idx, arr) => {
+                      if (idx === 0) return true;
+                      const prev = arr[idx - 1];
+                      const currentNote = (fb.note || "").trim();
+                      const prevNote = (prev.note || "").trim();
+                      const currentRating = fb.rating || 0;
+                      const prevRating = prev.rating || 0;
+                      return currentNote !== prevNote || currentRating !== prevRating;
+                    });
 
                     return (
                       <div 
-                        key={item.id} 
-                        onClick={() => setEditingArtifact(item)}
+                        key={standardText} 
+                        onClick={() => setEditingArtifact(latestItem)}
                         className="bg-white rounded-2xl p-6 border border-slate-200 hover:border-teal-400 cursor-pointer transition-all shadow-sm space-y-4 group print:break-inside-avoid print:border-slate-300 print:shadow-none"
                       >
-                        <h5 className="text-base font-black text-slate-800">{item.standard_text}</h5>
+                        <h5 className="text-base font-black text-slate-800">{standardText}</h5>
 
                         <div className="space-y-4">
-                          {feedbackHistory.map((historyItem: any, hIdx: number) => (
+                          {cleanFeedback.map((historyItem: any, hIdx: number) => (
                             <div key={hIdx} className="flex flex-col md:flex-row gap-6 items-start justify-between border-t border-slate-100 pt-4 first:border-0 first:pt-0">
                               
-                              {/* Left Side: Mastery & Evidence next to each other */}
                               <div className="w-full md:w-5/12 flex items-start gap-8">
                                 <div className="space-y-1 shrink-0">
                                   <span className="text-[11px] font-black text-slate-400 uppercase block tracking-wider">Mastery Level</span>
                                   <div className="flex items-center gap-1">
                                     {[1, 2, 3, 4, 5].map((star) => (
-                                      <Star key={star} className={`w-4 h-4 ${(historyItem.rating || item.rating) >= star ? "fill-amber-500 text-amber-500" : "text-amber-200"}`} />
+                                      <Star key={star} className={`w-4 h-4 ${(historyItem.rating) >= star ? "fill-amber-500 text-amber-500" : "text-amber-200"}`} />
                                     ))}
                                   </div>
                                 </div>
 
-                                {hasFiles && hIdx === 0 && (
+                                {combinedFiles.length > 0 && hIdx === 0 && (
                                   <div className="space-y-1">
                                     <span className="text-[11px] font-black text-slate-400 uppercase block tracking-wider">Evidence</span>
                                     <div className="flex flex-wrap gap-2">
-                                      {files.map((url, index) => (
+                                      {combinedFiles.map((url, index) => (
                                         <div key={index} className="h-10 w-14 rounded-md border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
                                           {url.includes(".pdf") ? (
                                             <FileText className="w-4 h-4 text-teal-600" />
@@ -479,18 +497,17 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                                 )}
                               </div>
 
-                              {/* Right Side: Update Record, Date, Edit Button, Notes */}
                               <div className="w-full md:w-7/12 space-y-1.5">
                                 <div className="flex justify-between items-center gap-4">
                                   <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider">Update Record #{hIdx + 1}</span>
                                   <div className="flex items-center gap-2">
                                     {showFeedbackDate && (
                                       <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
-                                        Feedback Recorded: {new Date(historyItem.date || item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                        Feedback Recorded: {new Date(historyItem.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                       </span>
                                     )}
                                     <button 
-                                      onClick={(e) => { e.stopPropagation(); setEditingArtifact(item); }} 
+                                      onClick={(e) => { e.stopPropagation(); setEditingArtifact(latestItem); }} 
                                       className="text-slate-300 hover:text-teal-500 transition-colors print:hidden ml-1"
                                       title="Edit Record"
                                     >
@@ -498,7 +515,7 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                                     </button>
                                   </div>
                                 </div>
-                                <p className="text-slate-700 font-medium text-sm leading-relaxed">{historyItem.note || item.notes || "No notes logged for this update."}</p>
+                                <p className="text-slate-700 font-medium text-sm leading-relaxed">{historyItem.note || "No notes logged for this update."}</p>
                               </div>
 
                             </div>
@@ -509,7 +526,6 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                   })}
                 </div>
 
-                {/* ADDITIONAL ASSESSED SECTIONS */}
                 {samplePlanData && (
                   <div className="space-y-4 pt-4">
                     <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Assessed Learning Tools & Activities</h4>
@@ -567,16 +583,13 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                         </ol>
                       </div>
                     )}
-
                   </div>
                 )}
-
               </div>
             );
           })}
         </div>
       )}
-
     </div>
   );
 }
