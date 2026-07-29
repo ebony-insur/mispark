@@ -84,7 +84,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // --- STUDENT MEMORY & PLAN REVIEW DISLIKES INJECTION ---
+    // --- STUDENT MEMORY & ELEMENT-LEVEL DISLIKES INJECTION ---
     let studentMemoryContext = "";
     let studentDislikes = "None specified";
 
@@ -96,10 +96,19 @@ export async function POST(req: Request) {
         .limit(15);
 
       const { data: pastPlans } = await (supabaseAdmin.from('lesson_plans') as any)
-        .select('plan_data, status, dislikes')
+        .select('plan_data, status')
         .eq('student_id', studentId)
         .order('created_at', { ascending: false })
         .limit(15);
+
+      // Query element-level dislikes from the student_dislikes table
+      const { data: dislikesData } = await (supabaseAdmin.from('student_dislikes') as any)
+        .select('item_text')
+        .eq('student_id', studentId);
+
+      if (dislikesData && dislikesData.length > 0) {
+        studentDislikes = dislikesData.map((d: any) => d.item_text).join(", ");
+      }
 
       if (pastArtifacts && pastArtifacts.length > 0) {
         studentMemoryContext += "\n\nPAST STUDENT PERFORMANCE & EDUCATOR FEEDBACK HISTORY:\n";
@@ -109,15 +118,6 @@ export async function POST(req: Request) {
       }
 
       if (pastPlans && pastPlans.length > 0) {
-        const allDislikes = pastPlans
-          .map((p: any) => p.dislikes)
-          .filter(Boolean)
-          .join(", ");
-        
-        if (allDislikes) {
-          studentDislikes = allDislikes;
-        }
-
         const skippedPlans = pastPlans.filter((p: any) => p.status === 'skipped');
         if (skippedPlans.length > 0) {
           studentMemoryContext += "\nSKIPPED / DID NOT ATTEMPT PLANS (Avoid over-indexing on these topics):\n";
@@ -248,11 +248,11 @@ export async function POST(req: Request) {
     State Compliance Standard: ${stateResidence}
     Interests: ${specialInterests}
     Sensory Needs: ${sensoryNeeds}
-    STRICTLY FORBIDDEN TOPICS / DISLIKES (Do NOT recommend these books, games, topics, or activities under any circumstances): ${studentDislikes}
+    STRICTLY FORBIDDEN TOPICS / BANNED ELEMENTS (Do NOT recommend these specific books, standards, activities, or items under any circumstances): ${studentDislikes}
     ${studentMemoryContext}
 
     CRITICAL INSTRUCTIONS:
-    1. ABSOLUTE EXCLUSION: Never suggest anything matching or related to the student's DISLIKES list above.
+    1. ABSOLUTE EXCLUSION: Never suggest anything matching or related to the student's BANNED ELEMENTS list above.
     2. ADAPT TO PAST PERFORMANCE: Review past mastery ratings and educator feedback notes to scaffold or deepen content appropriately.
     3. FLEXIBILITY OVER SCHEDULES: Do NOT assign tasks to specific days of the week.
     4. APPLICABLE STANDARDS: Map topics to the closest applicable ${stateResidence} state standard. 
