@@ -114,7 +114,6 @@ export default function PortfolioPage() {
                             (eDate >= startDate && eDate <= endDate) || 
                             (sDate <= startDate && eDate >= endDate);
 
-        // Check if item has a rating, note, or file artifact
         const hasRating = Boolean(item.rating);
         const hasNotes = Boolean(item.notes && item.notes.trim().length > 0);
         const hasHistoryNotes = Boolean(item.feedback_history && item.feedback_history.some((h: any) => h.note?.trim() || h.rating));
@@ -334,7 +333,7 @@ export default function PortfolioPage() {
   );
 }
 
-// Component to handle individual Week Section grouping Standards and Reading together
+// Component to handle individual Week Section grouping by lesson plan ID
 function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setEditingArtifact }: any) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -342,21 +341,23 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
     setIsOpen(allExpanded);
   }, [allExpanded]);
 
-  // Deduplicate standards
-  const uniqueStandardsMap = new Map();
+  const plansMap = new Map();
   weekItems.forEach((item: any) => {
-    if (!uniqueStandardsMap.has(item.standard_text)) {
-      uniqueStandardsMap.set(item.standard_text, item);
+    const planKey = item.lesson_plan_id || `standalone-${item.id}`;
+    if (!plansMap.has(planKey)) {
+      plansMap.set(planKey, {
+        planData: item.plan_data,
+        items: []
+      });
     }
+    plansMap.get(planKey).items.push(item);
   });
-  const uniqueStandards = Array.from(uniqueStandardsMap.values());
 
-  const samplePlanData = weekItems.find((i: any) => i.plan_data)?.plan_data;
+  const groupedPlans = Array.from(plansMap.values());
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:border-slate-300 print:shadow-none print:break-inside-avoid">
       
-      {/* WEEK / LEARNING HEADER TOGGLE */}
       <div 
         onClick={() => setIsOpen(!isOpen)}
         className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center cursor-pointer hover:bg-slate-800 transition-colors print:bg-slate-100 print:text-slate-900 print:border print:border-slate-300"
@@ -366,169 +367,171 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
           <h3 className="text-xl font-black">{weekTitle}</h3>
         </div>
         <span className="text-xs font-bold uppercase tracking-wider bg-slate-800 text-teal-400 px-3 py-1 rounded-full print:bg-white print:text-slate-700">
-          {uniqueStandards.length} Standard{uniqueStandards.length === 1 ? '' : 's'} Assessed
+          {groupedPlans.length} Lesson Plan{groupedPlans.length === 1 ? '' : 's'}
         </span>
       </div>
 
       {isOpen && (
         <div className="p-6 md:p-8 space-y-8">
-          
-          {/* Topics Covered */}
-          {samplePlanData?.assessedFoundation && (
-            <div className="space-y-2 border-b border-slate-200 pb-4">
-              <span className="text-xs font-black text-slate-400 uppercase">Topics Covered & Foundational Standard Alignment</span>
-              <p className="text-slate-700 font-medium leading-relaxed">{samplePlanData.assessedFoundation}</p>
-            </div>
-          )}
+          {groupedPlans.map((planGroup: any, pIdx: number) => {
+            const samplePlanData = planGroup.planData;
+            const planItems = planGroup.items;
 
-          {/* GROUP 1: STANDARDS MASTERY (Listed Together) */}
-          <div className="space-y-6">
-            <h4 className="text-xs font-black text-teal-700 uppercase tracking-wider">Standards Mastery & Progressions</h4>
-            
-            {uniqueStandards.map((item: any) => {
-              const files: string[] = item.file_urls?.length > 0 ? item.file_urls : (item.image_url ? [item.image_url] : []);
-              const hasFiles = files.length > 0;
-              const feedbackHistory = item.feedback_history || [
-                { date: item.updated_at || item.created_at, note: item.notes, rating: item.rating }
-              ];
-
-              return (
-                <div 
-                  key={item.id} 
-                  onClick={() => setEditingArtifact(item)}
-                  className="bg-slate-50/50 rounded-2xl p-6 border-2 border-slate-200 hover:border-teal-400 cursor-pointer transition-all space-y-4 relative group"
-                >
-                  <div className="absolute top-6 right-6 text-slate-300 group-hover:text-teal-500 transition-colors print:hidden">
-                    <Edit3 className="w-5 h-5" />
+            return (
+              <div key={pIdx} className="space-y-6 pb-8 border-b border-slate-200 last:border-none last:pb-0">
+                
+                {samplePlanData?.assessedFoundation && (
+                  <div className="space-y-2">
+                    <span className="text-xs font-black text-slate-400 uppercase">Topics Covered & Foundational Standard Alignment</span>
+                    <p className="text-slate-700 font-medium leading-relaxed">{samplePlanData.assessedFoundation}</p>
                   </div>
+                )}
 
-                  <h5 className="text-base font-black text-slate-800 pr-8">{item.standard_text}</h5>
+                {/* STANDARDS ASSESSED */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-black text-teal-700 uppercase tracking-wider">Standards Mastery & All Recorded Updates</h4>
+                  
+                  {planItems.map((item: any) => {
+                    const files: string[] = item.file_urls?.length > 0 ? item.file_urls : (item.image_url ? [item.image_url] : []);
+                    const hasFiles = files.length > 0;
+                    const feedbackHistory = item.feedback_history || [
+                      { date: item.updated_at || item.created_at, note: item.notes, rating: item.rating }
+                    ];
 
-                  {/* Mastery on Left, Notes on Right, Timestamp Far Right */}
-                  <div className="space-y-3 pt-1">
-                    {feedbackHistory.map((historyItem: any, hIdx: number) => (
-                      <div key={hIdx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-start justify-between">
-                        
-                        <div className="w-full md:w-1/3 space-y-1">
-                          <span className="text-[11px] font-black text-slate-400 uppercase block">Mastery Level</span>
-                          <div className="flex items-center gap-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star key={star} className={`w-4 h-4 ${(historyItem.rating || item.rating) >= star ? "fill-amber-500 text-amber-500" : "text-amber-200"}`} />
-                            ))}
-                          </div>
+                    return (
+                      <div 
+                        key={item.id} 
+                        onClick={() => setEditingArtifact(item)}
+                        className="bg-slate-50/50 rounded-2xl p-6 border-2 border-slate-200 hover:border-teal-400 cursor-pointer transition-all space-y-4 relative group"
+                      >
+                        <div className="absolute top-6 right-6 text-slate-300 group-hover:text-teal-500 transition-colors print:hidden">
+                          <Edit3 className="w-5 h-5" />
                         </div>
 
-                        <div className="w-full md:w-2/3 space-y-1">
-                          <div className="flex justify-between items-start gap-4">
-                            <span className="text-[11px] font-bold text-teal-700 uppercase">Update #{hIdx + 1}</span>
-                            {showFeedbackDate && (
-                              <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
-                                Feedback Recorded: {new Date(historyItem.date || item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-slate-700 font-medium text-sm leading-relaxed">{historyItem.note || item.notes || "No notes logged for this update."}</p>
-                        </div>
+                        <h5 className="text-base font-black text-slate-800 pr-8">{item.standard_text}</h5>
 
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Artifact Thumbnails */}
-                  {hasFiles && (
-                    <div className="space-y-2 pt-2">
-                      <span className="text-[11px] font-black text-slate-500 uppercase">Evidence Artifacts</span>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                        {files.map((url, index) => (
-                          <div key={index} className="bg-white border-2 border-slate-200 rounded-xl p-2 flex flex-col items-center justify-center gap-1">
-                            {url.includes(".pdf") ? (
-                              <a href={url} target="_blank" rel="noreferrer" className="flex flex-col items-center text-teal-600 hover:text-teal-700 py-4" onClick={(e) => e.stopPropagation()}>
-                                <FileText className="w-8 h-8 mb-1" />
-                                <span className="font-bold text-[10px] flex items-center">PDF File <ExternalLink className="w-2.5 h-2.5 ml-1"/></span>
-                              </a>
-                            ) : (
-                              <div className="relative w-full h-20 rounded-lg overflow-hidden bg-slate-200 shadow-sm">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={url} alt={`Evidence ${index + 1}`} className="w-full h-full object-cover" />
+                        <div className="space-y-3 pt-1">
+                          {feedbackHistory.map((historyItem: any, hIdx: number) => (
+                            <div key={hIdx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-start justify-between">
+                              
+                              <div className="w-full md:w-1/3 space-y-1">
+                                <span className="text-[11px] font-black text-slate-400 uppercase block">Mastery Level</span>
+                                <div className="flex items-center gap-1">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <Star key={star} className={`w-4 h-4 ${(historyItem.rating || item.rating) >= star ? "fill-amber-500 text-amber-500" : "text-amber-200"}`} />
+                                  ))}
+                                </div>
                               </div>
-                            )}
+
+                              <div className="w-full md:w-2/3 space-y-1">
+                                <div className="flex justify-between items-start gap-4">
+                                  <span className="text-[11px] font-bold text-teal-700 uppercase">Update Record #{hIdx + 1}</span>
+                                  {showFeedbackDate && (
+                                    <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
+                                      Feedback Recorded: {new Date(historyItem.date || item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-slate-700 font-medium text-sm leading-relaxed">{historyItem.note || item.notes || "No notes logged for this update."}</p>
+                              </div>
+
+                            </div>
+                          ))}
+                        </div>
+
+                        {hasFiles && (
+                          <div className="space-y-2 pt-2">
+                            <span className="text-[11px] font-black text-slate-500 uppercase">Evidence Artifacts</span>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                              {files.map((url, index) => (
+                                <div key={index} className="bg-white border-2 border-slate-200 rounded-xl p-2 flex flex-col items-center justify-center gap-1">
+                                  {url.includes(".pdf") ? (
+                                    <a href={url} target="_blank" rel="noreferrer" className="flex flex-col items-center text-teal-600 hover:text-teal-700 py-4" onClick={(e) => e.stopPropagation()}>
+                                      <FileText className="w-8 h-8 mb-1" />
+                                      <span className="font-bold text-[10px] flex items-center">PDF File <ExternalLink className="w-2.5 h-2.5 ml-1"/></span>
+                                    </a>
+                                  ) : (
+                                    <div className="relative w-full h-20 rounded-lg overflow-hidden bg-slate-200 shadow-sm">
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img src={url} alt={`Evidence ${index + 1}`} className="w-full h-full object-cover" />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        ))}
+                        )}
+
                       </div>
-                    </div>
-                  )}
-
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
 
-          {/* GROUP 2: RECOMMENDED READING (Listed Together) */}
-          {samplePlanData?.readingList && samplePlanData.readingList.length > 0 && (
-            <div className="space-y-6 pt-6 border-t border-slate-200">
-              <h4 className="text-xs font-black text-indigo-700 uppercase tracking-wider">Recommended Reading</h4>
-              
-              {samplePlanData.readingList.map((book: any, rIdx: number) => (
-                <div key={rIdx} className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-black bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md uppercase">{book.type || "Book"}</span>
-                    <span className="text-xs font-bold text-slate-700">{book.title}</span>
-                  </div>
-                  <p className="text-sm text-slate-600 font-medium leading-relaxed">{book.prompt || "Summary and reading engagement notes."}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* GROUP 3: ACTIVITIES & EXPERIMENTS (Listed Together) */}
-          {(samplePlanData?.letsPlay?.length > 0 || samplePlanData?.householdExperiments?.length > 0 || samplePlanData?.outAndAbout) && (
-            <div className="space-y-6 pt-6 border-t border-slate-200">
-              <h4 className="text-xs font-black text-emerald-700 uppercase tracking-wider">Learning Activities & Experiments</h4>
-              
-              {samplePlanData?.letsPlay?.map((game: any, gIdx: number) => (
-                <div key={gIdx} className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-black bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md uppercase">Let's Play Activity</span>
-                    <span className="text-xs font-bold text-slate-700">{game.gameName}</span>
-                  </div>
-                  <p className="text-sm text-slate-600 font-medium">{game.description}</p>
-                </div>
-              ))}
-
-              {samplePlanData?.householdExperiments?.map((exp: any, eIdx: number) => (
-                <div key={eIdx} className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-black bg-amber-50 text-amber-700 px-2.5 py-1 rounded-md uppercase">Hands-On Experiment</span>
-                    <span className="text-xs font-bold text-slate-700">{exp.title}</span>
-                  </div>
-                  <p className="text-sm text-slate-600 font-medium">{exp.instructions}</p>
-                </div>
-              ))}
-
-              {samplePlanData?.outAndAbout && (
-                <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-black bg-teal-50 text-teal-700 px-2.5 py-1 rounded-md uppercase">Local Field Trip</span>
-                    <span className="text-xs font-bold text-slate-700">{samplePlanData.outAndAbout.title}</span>
-                  </div>
-                  <p className="text-sm text-slate-600 font-medium">{samplePlanData.outAndAbout.instructions}</p>
-                </div>
-              )}
-            </div>
-          )}{samplePlanData?.endOfWeekReview && (
-                <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-black bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md uppercase">End of Week Review</span>
-                    <span className="text-xs font-bold text-slate-700">{samplePlanData.endOfWeekReview.worksheetTitle}</span>
-                  </div>
-                  <ol className="list-decimal pl-5 text-sm text-slate-600 space-y-1">
-                    {samplePlanData.endOfWeekReview.questions.map((q: string, qIdx: number) => (
-                      <li key={qIdx}>{q}</li>
+                {/* ADDITIONAL ASSESSED SECTIONS */}
+                {samplePlanData && (
+                  <div className="space-y-4 pt-4">
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Assessed Learning Tools & Activities</h4>
+                    
+                    {samplePlanData.readingList && samplePlanData.readingList.map((book: any, rIdx: number) => (
+                      <div key={rIdx} className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-black bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md uppercase">Recommended Reading</span>
+                          <span className="text-xs font-bold text-slate-700">{book.title}</span>
+                        </div>
+                        <p className="text-sm text-slate-600 font-medium">{book.prompt || book.type}</p>
+                      </div>
                     ))}
-                  </ol>
-                </div>
-              )}
 
+                    {samplePlanData.letsPlay && samplePlanData.letsPlay.map((game: any, gIdx: number) => (
+                      <div key={gIdx} className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-black bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md uppercase">Let's Play Activity</span>
+                          <span className="text-xs font-bold text-slate-700">{game.gameName}</span>
+                        </div>
+                        <p className="text-sm text-slate-600 font-medium">{game.description}</p>
+                      </div>
+                    ))}
+
+                    {samplePlanData.householdExperiments && samplePlanData.householdExperiments.map((exp: any, eIdx: number) => (
+                      <div key={eIdx} className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-black bg-amber-50 text-amber-700 px-2.5 py-1 rounded-md uppercase">Hands-On Experiment</span>
+                          <span className="text-xs font-bold text-slate-700">{exp.title}</span>
+                        </div>
+                        <p className="text-sm text-slate-600 font-medium">{exp.instructions}</p>
+                      </div>
+                    ))}
+
+                    {samplePlanData.outAndAbout && (
+                      <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-black bg-teal-50 text-teal-700 px-2.5 py-1 rounded-md uppercase">Local Field Trip</span>
+                          <span className="text-xs font-bold text-slate-700">{samplePlanData.outAndAbout.title}</span>
+                        </div>
+                        <p className="text-sm text-slate-600 font-medium">{samplePlanData.outAndAbout.instructions}</p>
+                      </div>
+                    )}
+
+                    {samplePlanData.endOfWeekReview && (
+                      <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-black bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md uppercase">End of Week Review</span>
+                          <span className="text-xs font-bold text-slate-700">{samplePlanData.endOfWeekReview.worksheetTitle}</span>
+                        </div>
+                        <ol className="list-decimal pl-5 text-sm text-slate-600 space-y-1">
+                          {samplePlanData.endOfWeekReview.questions.map((q: string, qIdx: number) => (
+                            <li key={qIdx}>{q}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+
+                  </div>
+                )}
+
+              </div>
+            );
+          })}
         </div>
       )}
 
