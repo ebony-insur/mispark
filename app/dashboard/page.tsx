@@ -71,7 +71,11 @@ export default function Dashboard() {
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [allExpanded, setAllExpanded] = useState(true);
   const [printMode, setPrintMode] = useState<string | null>(null);
-  const [weekAssigned, setWeekAssigned] = useState("Week 1: General Focus");
+
+  // Required Date Range State for Portfolio Tracking
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [startDateAssigned, setStartDateAssigned] = useState(todayStr);
+  const [endDateAssigned, setEndDateAssigned] = useState(todayStr);
 
   // New Account & Billing State
   const [sparks, setSparks] = useState<number | null>(null);
@@ -180,7 +184,7 @@ export default function Dashboard() {
       } else {
         toast.error(data.error || "Failed to apply promo.");
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred.");
     } finally {
       setIsRedeeming(false);
@@ -201,13 +205,18 @@ export default function Dashboard() {
       } else {
         throw new Error(data.error);
       }
-    } catch (error) {
+    } catch {
       toast.error("Checkout failed to load. Please try again.");
       setIsUpgrading(false);
     }
   };
 
   const handleIgnite = async () => {
+    if (!startDateAssigned || !endDateAssigned) {
+      toast.error("Please provide both start and end dates for the assigned timeframe.");
+      return;
+    }
+
     setIsLoading(true); setGeneratedData(null); setAllExpanded(true);
     abortControllerRef.current = new AbortController();
     
@@ -229,7 +238,9 @@ export default function Dashboard() {
           studentProfile,
           studentId: selectedStudentId,
           userId: user?.id,
-          weekAssigned // <--- Bundled here to save in plan_data
+          weekAssigned: `${startDateAssigned} to ${endDateAssigned}`,
+          weekStartDate: startDateAssigned,
+          weekEndDate: endDateAssigned
         }),
         signal: abortControllerRef.current.signal
       });
@@ -318,7 +329,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* INPUT GRID & WEEK ASSIGNED SELECTOR */}
+          {/* INPUT GRID & REQUIRED DATE RANGE SELECTOR */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div onClick={() => fileInputRef.current?.click()} className="md:col-span-1 border-2 border-dashed border-slate-300 bg-white hover:bg-slate-50 transition-colors rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer min-h-[125px]">
               <input type="file" accept=".pdf, .png, .jpg, .docx, .txt" className="hidden" ref={fileInputRef} onChange={(e) => {const f = e.target.files?.[0]; if(f) processPdf(f)}} />
@@ -329,18 +340,32 @@ export default function Dashboard() {
 
             <div className="md:col-span-2 flex flex-col bg-white p-4 rounded-2xl border-2 border-slate-200 shadow-sm space-y-4">
               
-              {/* WEEK ASSIGNED INPUT FOR MONTHLY/WEEKLY PLANNING */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-black text-slate-500 uppercase flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-teal-600" /> Week Assigned / Date Frame
-                </label>
-                <Input 
-                  type="text"
-                  value={weekAssigned}
-                  onChange={(e) => setWeekAssigned(e.target.value)}
-                  placeholder="e.g., Week 1: September Focus"
-                  className="font-bold border-slate-200 bg-slate-50"
-                />
+              {/* ASSIGNED DATE RANGE PICKERS */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-black text-slate-500 uppercase flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-teal-600" /> Start Date (Required)
+                  </label>
+                  <Input 
+                    type="date"
+                    value={startDateAssigned}
+                    onChange={(e) => setStartDateAssigned(e.target.value)}
+                    className="font-bold border-slate-200 bg-slate-50 text-slate-800"
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-black text-slate-500 uppercase flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-teal-600" /> End Date (Required)
+                  </label>
+                  <Input 
+                    type="date"
+                    value={endDateAssigned}
+                    onChange={(e) => setEndDateAssigned(e.target.value)}
+                    className="font-bold border-slate-200 bg-slate-50 text-slate-800"
+                    required
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col flex-1">
