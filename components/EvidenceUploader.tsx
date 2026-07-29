@@ -21,7 +21,7 @@ export default function EvidenceUploader({
   const [isUploading, setIsUploading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // NEW: State to track exactly what the database currently holds to prevent duplicate saves
+  // State to track exactly what the database currently holds to prevent duplicate saves
   const [originalData, setOriginalData] = useState({ rating: 0, enjoyment_rating: 0, notes: "" });
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -52,7 +52,7 @@ export default function EvidenceUploader({
           .eq("student_id", studentId)
           .eq("lesson_plan_id", lessonPlanId)
           .eq("standard_text", standardText)
-          .maybeSingle(); // Safe fetch that won't throw errors if missing
+          .maybeSingle(); 
         
         if (data) {
           setMasteryRating(data.rating || 0);
@@ -127,6 +127,47 @@ export default function EvidenceUploader({
 
       const finalFileUrls = [...existingFiles, ...newUploadedUrls];
 
+      // 2. Fetch current record to get the existing feedback_history array
+      const { data: currentRecord } = await (supabase as any)
+        .from("portfolio_artifacts")
+        .select("id, feedback_history, notes, rating, created_at")
+        .eq("student_id", studentId)
+        .eq("lesson_plan_id", lessonPlanId)
+        .eq("standard_text", standardText)
+        .maybeSingle();
+
+      // 3. Build chronological history array to feed the Portfolio Page
+      let finalHistory = [];
+      if (currentRecord) {
+        let previousHistory = currentRecord.feedback_history || [];
+        
+        // Edge case: if they have old notes but no history array yet, migrate it into the array first
+        if (previousHistory.length === 0 && (currentRecord.notes || currentRecord.rating)) {
+          previousHistory.push({
+            date: currentRecord.created_at || new Date().toISOString(),
+            note: currentRecord.notes,
+            rating: currentRecord.rating
+          });
+        }
+        
+        // Append the brand new save to the timeline
+        finalHistory = [
+          ...previousHistory, 
+          { 
+            date: new Date().toISOString(), 
+            note: notes, 
+            rating: masteryRating > 0 ? masteryRating : null 
+          }
+        ];
+      } else {
+        // First time saving
+        finalHistory = [{ 
+          date: new Date().toISOString(), 
+          note: notes, 
+          rating: masteryRating > 0 ? masteryRating : null 
+        }];
+      }
+
       const payload = {
         parent_id: user.id,
         student_id: studentId,
@@ -136,21 +177,14 @@ export default function EvidenceUploader({
         enjoyment_rating: enjoymentRating > 0 ? enjoymentRating : null,
         notes: notes,
         file_urls: finalFileUrls,
-        include_in_portfolio: true // Ensure it gets included when they leave a rating/note
+        include_in_portfolio: true,
+        feedback_history: finalHistory, // <--- THIS is what fixes the Portfolio UI
+        updated_at: new Date().toISOString()
       };
-
-      // 2. Foolproof Check: See if a row already exists
-      const { data: currentRecord } = await (supabase as any)
-        .from("portfolio_artifacts")
-        .select("id")
-        .eq("student_id", studentId)
-        .eq("lesson_plan_id", lessonPlanId)
-        .eq("standard_text", standardText)
-        .maybeSingle();
 
       let dbError;
 
-      // 3. Update if exists, Insert if new
+      // 4. Update if exists, Insert if new
       if (currentRecord) {
         const { error } = await (supabase as any)
           .from("portfolio_artifacts")
@@ -166,11 +200,10 @@ export default function EvidenceUploader({
 
       if (dbError) throw dbError;
 
-      // 4. Update UI State & Memorize the new baseline
+      // 5. Update UI State & Memorize the new baseline
       setExistingFiles(finalFileUrls);
       setPendingFiles([]);
       
-      // Update originalData so immediate subsequent clicks without changes are blocked
       setOriginalData({
         rating: masteryRating,
         enjoyment_rating: enjoymentRating,
