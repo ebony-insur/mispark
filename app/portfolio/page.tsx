@@ -106,7 +106,7 @@ export default function PortfolioPage() {
         })
       );
 
-      // Filter: if either date is within the range [startDate, endDate], include it
+      // Filter: overlap logic
       const filtered = enriched.filter((item: any) => {
         const sDate = item.week_start;
         const eDate = item.week_end;
@@ -151,6 +151,7 @@ export default function PortfolioPage() {
   const formattedStart = new Date(startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const formattedEnd = new Date(endDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
+  // Group by Week / Date Range
   const groupedByWeek = artifacts.reduce((acc: any, item: any) => {
     const weekKey = item.week_assigned || "General Weekly Assignments";
     if (!acc[weekKey]) acc[weekKey] = [];
@@ -326,13 +327,25 @@ export default function PortfolioPage() {
   );
 }
 
-// Component to handle individual Week Section with collapse toggle and comprehensive curriculum rendering
+// Component to handle individual Week Section with concise, non-repeating structure
 function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setEditingArtifact }: any) {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     setIsOpen(allExpanded);
   }, [allExpanded]);
+
+  // Deduplicate standards for this week group so each standard is listed once concisely
+  const uniqueStandardsMap = new Map();
+  weekItems.forEach((item: any) => {
+    if (!uniqueStandardsMap.has(item.standard_text)) {
+      uniqueStandardsMap.set(item.standard_text, item);
+    }
+  });
+  const uniqueStandards = Array.from(uniqueStandardsMap.values());
+
+  // Extract plan_data from the first available item in this week group
+  const samplePlanData = weekItems.find((i: any) => i.plan_data)?.plan_data;
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:border-slate-300 print:shadow-none print:break-inside-avoid">
@@ -347,47 +360,48 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
           <h3 className="text-xl font-black">{weekTitle}</h3>
         </div>
         <span className="text-xs font-bold uppercase tracking-wider bg-slate-800 text-teal-400 px-3 py-1 rounded-full print:bg-white print:text-slate-700">
-          {weekItems.length} Assignment{weekItems.length === 1 ? '' : 's'}
+          {uniqueStandards.length} Standard{uniqueStandards.length === 1 ? '' : 's'} Assessed
         </span>
       </div>
 
       {isOpen && (
         <div className="p-6 md:p-8 space-y-8">
-          {weekItems.map((item: any) => {
-            const files: string[] = item.file_urls?.length > 0 ? item.file_urls : (item.image_url ? [item.image_url] : []);
-            const hasFiles = files.length > 0;
-            const planData = item.plan_data;
+          
+          {/* Topics Covered */}
+          {samplePlanData?.assessedFoundation && (
+            <div className="space-y-2 border-b border-slate-200 pb-4">
+              <span className="text-xs font-black text-slate-400 uppercase">Topics Covered & Foundational Standard Alignment</span>
+              <p className="text-slate-700 font-medium leading-relaxed">{samplePlanData.assessedFoundation}</p>
+            </div>
+          )}
 
-            const feedbackHistory = item.feedback_history || [
-              { date: item.updated_at || item.created_at, note: item.notes, rating: item.rating }
-            ];
+          {/* STANDARDS ASSESSED (Listed once each) */}
+          <div className="space-y-6">
+            <h4 className="text-xs font-black text-teal-700 uppercase tracking-wider">Standards Assessed & Mastery Progressions</h4>
+            
+            {uniqueStandards.map((item: any) => {
+              const files: string[] = item.file_urls?.length > 0 ? item.file_urls : (item.image_url ? [item.image_url] : []);
+              const hasFiles = files.length > 0;
+              const feedbackHistory = item.feedback_history || [
+                { date: item.updated_at || item.created_at, note: item.notes, rating: item.rating }
+              ];
 
-            return (
-              <div 
-                key={item.id} 
-                onClick={() => setEditingArtifact(item)}
-                className="bg-slate-50/50 rounded-2xl p-6 border-2 border-slate-200 hover:border-teal-400 cursor-pointer transition-all space-y-6 relative group"
-              >
-                <div className="absolute top-6 right-6 text-slate-300 group-hover:text-teal-500 transition-colors print:hidden">
-                  <Edit3 className="w-5 h-5" />
-                </div>
-
-                {/* 1. Topics covered aligned with state standards */}
-                {planData?.assessedFoundation && (
-                  <div className="space-y-2 border-b border-slate-200 pb-4 pr-8">
-                    <span className="text-xs font-black text-slate-400 uppercase">Topics Covered & Foundational Standard Alignment</span>
-                    <p className="text-slate-700 font-medium leading-relaxed">{planData.assessedFoundation}</p>
+              return (
+                <div 
+                  key={item.id} 
+                  onClick={() => setEditingArtifact(item)}
+                  className="bg-slate-50/50 rounded-2xl p-6 border-2 border-slate-200 hover:border-teal-400 cursor-pointer transition-all space-y-4 relative group"
+                >
+                  <div className="absolute top-6 right-6 text-slate-300 group-hover:text-teal-500 transition-colors print:hidden">
+                    <Edit3 className="w-5 h-5" />
                   </div>
-                )}
 
-                {/* 2. State Standard & Chronological Mastery & Notes (Mastery Left, Updates Right, Timestamp Far Right) */}
-                <div className="space-y-4">
-                  <span className="text-xs font-black text-teal-700 uppercase tracking-wider">Standard Assessed</span>
-                  <h4 className="text-lg font-black text-slate-800">{item.standard_text}</h4>
+                  <h5 className="text-base font-black text-slate-800 pr-8">{item.standard_text}</h5>
 
-                  <div className="space-y-4 pt-2">
+                  {/* Mastery on Left, Notes on Right, Timestamp Far Right */}
+                  <div className="space-y-3 pt-1">
                     {feedbackHistory.map((historyItem: any, hIdx: number) => (
-                      <div key={hIdx} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-start justify-between">
+                      <div key={hIdx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-start justify-between">
                         
                         {/* Left Column: Mastery Level */}
                         <div className="w-full md:w-1/3 space-y-1">
@@ -400,9 +414,9 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                         </div>
 
                         {/* Right Column: Notes & Far Right Timestamp */}
-                        <div className="w-full md:w-2/3 space-y-2">
+                        <div className="w-full md:w-2/3 space-y-1">
                           <div className="flex justify-between items-start gap-4">
-                            <span className="text-[11px] font-bold text-teal-700 uppercase">Progression Update #{hIdx + 1}</span>
+                            <span className="text-[11px] font-bold text-teal-700 uppercase">Update #{hIdx + 1}</span>
                             {showFeedbackDate && (
                               <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
                                 Feedback Recorded: {new Date(historyItem.date || item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -415,114 +429,88 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                       </div>
                     ))}
                   </div>
-                </div>
 
-                {/* 3. Medium thumbnails of file artifacts */}
-                {hasFiles && (
-                  <div className="space-y-3 pt-2">
-                    <span className="text-xs font-black text-slate-500 uppercase">Attached Evidence Artifacts</span>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                      {files.map((url, index) => (
-                        <div key={index} className="bg-white border-2 border-slate-200 rounded-xl p-2 flex flex-col items-center justify-center gap-2">
-                          {url.includes(".pdf") ? (
-                            <a href={url} target="_blank" rel="noreferrer" className="flex flex-col items-center text-teal-600 hover:text-teal-700 py-6" onClick={(e) => e.stopPropagation()}>
-                              <FileText className="w-10 h-10 mb-1" />
-                              <span className="font-bold text-xs flex items-center">PDF File <ExternalLink className="w-3 h-3 ml-1"/></span>
-                            </a>
-                          ) : (
-                            <div className="relative w-full h-24 rounded-lg overflow-hidden bg-slate-200 shadow-sm">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={url} alt={`Evidence ${index + 1}`} className="w-full h-full object-cover" />
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                  {/* Artifact Thumbnails */}
+                  {hasFiles && (
+                    <div className="space-y-2 pt-2">
+                      <span className="text-[11px] font-black text-slate-500 uppercase">Evidence Artifacts</span>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        {files.map((url, index) => (
+                          <div key={index} className="bg-white border-2 border-slate-200 rounded-xl p-2 flex flex-col items-center justify-center gap-1">
+                            {url.includes(".pdf") ? (
+                              <a href={url} target="_blank" rel="noreferrer" className="flex flex-col items-center text-teal-600 hover:text-teal-700 py-4" onClick={(e) => e.stopPropagation()}>
+                                <FileText className="w-8 h-8 mb-1" />
+                                <span className="font-bold text-[10px] flex items-center">PDF File <ExternalLink className="w-2.5 h-2.5 ml-1"/></span>
+                              </a>
+                            ) : (
+                              <div className="relative w-full h-20 rounded-lg overflow-hidden bg-slate-200 shadow-sm">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={url} alt={`Evidence ${index + 1}`} className="w-full h-full object-cover" />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                  )}
+
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ADDITIONAL ASSESSED SECTIONS (Concise Listing) */}
+          {samplePlanData && (
+            <div className="space-y-6 pt-6 border-t border-slate-200">
+              <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Assessed Learning Tools & Activities</h4>
+              
+              {/* Recommended Reading */}
+              {samplePlanData.readingList && samplePlanData.readingList.map((book: any, rIdx: number) => (
+                <div key={rIdx} className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-black bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md uppercase">Recommended Reading</span>
+                    <span className="text-xs font-bold text-slate-700">{book.title}</span>
                   </div>
-                )}
+                  <p className="text-sm text-slate-600 font-medium">{book.prompt || book.type}</p>
+                </div>
+              ))}
 
-                {/* 4. Complete listing of all remaining assessed sections of work (Reading, Play, Experiments, Field Trips, Discussion, Reviews) */}
-                {planData && (
-                  <div className="space-y-6 pt-6 border-t border-slate-200">
-                    <h5 className="text-xs font-black text-slate-400 uppercase tracking-wider">Additional Assessed Sections of Work</h5>
-                    
-                    {/* Recommended Reading */}
-                    {planData.readingList && planData.readingList.map((book: any, rIdx: number) => (
-                      <div key={rIdx} className="bg-white p-5 rounded-xl border border-slate-200 space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-black bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md uppercase">Recommended Reading</span>
-                          <span className="text-xs font-bold text-slate-600">{book.title}</span>
-                        </div>
-                        <p className="text-sm text-slate-600 font-medium">{book.prompt || book.type}</p>
-                      </div>
-                    ))}
-
-                    {/* Let's Play */}
-                    {planData.letsPlay && planData.letsPlay.map((game: any, gIdx: number) => (
-                      <div key={gIdx} className="bg-white p-5 rounded-xl border border-slate-200 space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-black bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md uppercase">Let's Play Activity</span>
-                          <span className="text-xs font-bold text-slate-600">{game.gameName}</span>
-                        </div>
-                        <p className="text-sm text-slate-600 font-medium">{game.description}</p>
-                      </div>
-                    ))}
-
-                    {/* Hands-On Experiments */}
-                    {planData.householdExperiments && planData.householdExperiments.map((exp: any, eIdx: number) => (
-                      <div key={eIdx} className="bg-white p-5 rounded-xl border border-slate-200 space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-black bg-amber-50 text-amber-700 px-2.5 py-1 rounded-md uppercase">Hands-On Experiment</span>
-                          <span className="text-xs font-bold text-slate-600">{exp.title}</span>
-                        </div>
-                        <p className="text-sm text-slate-600 font-medium">{exp.instructions}</p>
-                      </div>
-                    ))}
-
-                    {/* Local Field Trip */}
-                    {planData.outAndAbout && (
-                      <div className="bg-white p-5 rounded-xl border border-slate-200 space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-black bg-teal-50 text-teal-700 px-2.5 py-1 rounded-md uppercase">Local Field Trip</span>
-                          <span className="text-xs font-bold text-slate-600">{planData.outAndAbout.title}</span>
-                        </div>
-                        <p className="text-sm text-slate-600 font-medium">{planData.outAndAbout.instructions}</p>
-                      </div>
-                    )}
-
-                    {/* Discussion Prompts */}
-                    {planData.letsTalk && planData.letsTalk.length > 0 && (
-                      <div className="bg-white p-5 rounded-xl border border-slate-200 space-y-2">
-                        <span className="text-xs font-black bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md uppercase inline-block">Discussion Prompts</span>
-                        <ul className="list-disc pl-5 text-sm text-slate-700 space-y-1">
-                          {planData.letsTalk.map((prompt: string, pIdx: number) => (
-                            <li key={pIdx}>{prompt}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* End of Week Review */}
-                    {planData.endOfWeekReview && (
-                      <div className="bg-white p-5 rounded-xl border border-slate-200 space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-black bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md uppercase">End of Week Review</span>
-                          <span className="text-xs font-bold text-slate-600">{planData.endOfWeekReview.worksheetTitle}</span>
-                        </div>
-                        <ol className="list-decimal pl-5 text-sm text-slate-700 space-y-1">
-                          {planData.endOfWeekReview.questions.map((q: string, qIdx: number) => (
-                            <li key={qIdx}>{q}</li>
-                          ))}
-                        </ol>
-                      </div>
-                    )}
-
+              {/* Let's Play */}
+              {samplePlanData.letsPlay && samplePlanData.letsPlay.map((game: any, gIdx: number) => (
+                <div key={gIdx} className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-black bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md uppercase">Let's Play Activity</span>
+                    <span className="text-xs font-bold text-slate-700">{game.gameName}</span>
                   </div>
-                )}
+                  <p className="text-sm text-slate-600 font-medium">{game.description}</p>
+                </div>
+              ))}
 
-              </div>
-            );
-          })}
+              {/* Hands-On Experiments */}
+              {samplePlanData.householdExperiments && samplePlanData.householdExperiments.map((exp: any, eIdx: number) => (
+                <div key={eIdx} className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-black bg-amber-50 text-amber-700 px-2.5 py-1 rounded-md uppercase">Hands-On Experiment</span>
+                    <span className="text-xs font-bold text-slate-700">{exp.title}</span>
+                  </div>
+                  <p className="text-sm text-slate-600 font-medium">{exp.instructions}</p>
+                </div>
+              ))}
+
+              {/* Local Field Trip */}
+              {samplePlanData.outAndAbout && (
+                <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-black bg-teal-50 text-teal-700 px-2.5 py-1 rounded-md uppercase">Local Field Trip</span>
+                    <span className="text-xs font-bold text-slate-700">{samplePlanData.outAndAbout.title}</span>
+                  </div>
+                  <p className="text-sm text-slate-600 font-medium">{samplePlanData.outAndAbout.instructions}</p>
+                </div>
+              )}
+
+            </div>
+          )}
+
         </div>
       )}
 
