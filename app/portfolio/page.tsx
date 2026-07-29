@@ -33,7 +33,7 @@ export default function PortfolioPage() {
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<string>("");
   
-  const [showFeedbackDate, setShowFeedbackDate] = useState<boolean>(true); // Default to true for compliance visibility
+  const [showFeedbackDate, setShowFeedbackDate] = useState<boolean>(true);
   
   const todayStr = new Date().toISOString().split('T')[0];
   const thirtyDaysAgo = new Date();
@@ -72,10 +72,13 @@ export default function PortfolioPage() {
     if (!selectedStudent || !startDate || !endDate) return;
     setIsFetching(true);
     
-    // Explicitly pull ONLY items marked for inclusion
+    // NEW: Pull master items AND relational evaluations in one query
     const { data: artData, error: artError } = await (supabase as any)
       .from("portfolio_artifacts")
-      .select("*")
+      .select(`
+        *,
+        artifact_evaluations (*)
+      `)
       .eq("student_id", selectedStudent)
       .eq("include_in_portfolio", true);
 
@@ -118,7 +121,6 @@ export default function PortfolioPage() {
         })
       );
 
-      // Filter by overlapping dates
       const filtered = enriched.filter((item: any) => {
         const sDate = item.week_start;
         const eDate = item.week_end;
@@ -127,7 +129,6 @@ export default function PortfolioPage() {
                (sDate <= startDate && eDate >= endDate);
       });
 
-      // Sort by week start date
       filtered.sort((a: any, b: any) => {
         if (a.week_assigned.includes("General")) return -1;
         if (b.week_assigned.includes("General")) return 1;
@@ -144,7 +145,7 @@ export default function PortfolioPage() {
 
   const handleCloseEdit = () => {
     setEditingArtifact(null);
-    handleGenerateReport(); // Refresh data smoothly after edit
+    handleGenerateReport(); 
   };
 
   const handlePrint = () => {
@@ -164,7 +165,6 @@ export default function PortfolioPage() {
   const formattedStart = new Date(startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const formattedEnd = new Date(endDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-  // Group by week to organize the rendering blocks
   const groupedByWeek = artifacts.reduce((acc: any, item: any) => {
     const weekKey = item.week_assigned || "General Weekly Assignments";
     if (!acc[weekKey]) acc[weekKey] = [];
@@ -312,6 +312,7 @@ export default function PortfolioPage() {
 }
 
 function EditArtifactModal({ artifact, onClose, supabase }: any) {
+  // Legacy toggle logic remains safely attached to the modal wrapper
   const [includeInPortfolio, setIncludeInPortfolio] = useState(artifact.include_in_portfolio ?? false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -349,20 +350,6 @@ function EditArtifactModal({ artifact, onClose, supabase }: any) {
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
             <span className="text-xs font-black text-slate-500 uppercase block mb-1">Standard Assessed</span>
             <p className="text-slate-800 font-bold">{artifact.standard_text}</p>
-          </div>
-
-          <div className="bg-teal-50 border border-teal-200 p-4 rounded-2xl flex items-center justify-between">
-            <div>
-              <p className="font-black text-teal-900 text-sm">Include in State Portfolio Report</p>
-              <p className="text-xs text-teal-700 font-medium">Toggle on to display this item on generated compliance reports.</p>
-            </div>
-            <input 
-              type="checkbox" 
-              checked={includeInPortfolio} 
-              disabled={isUpdating}
-              onChange={(e) => handleToggleChange(e.target.checked)}
-              className="w-5 h-5 rounded text-teal-600 focus:ring-teal-500 cursor-pointer"
-            />
           </div>
 
           <EvidenceUploader 
@@ -420,7 +407,6 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
           {groupedPlans.map((planGroup: any, pIdx: number) => {
             const samplePlanData = planGroup.planData;
             
-            // 1. Group items by exact Standard Text to prevent duplicate headers
             const standardsMap = new Map();
             planGroup.items.forEach((item: any) => {
               if (!standardsMap.has(item.standard_text)) {
@@ -429,7 +415,6 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
               standardsMap.get(item.standard_text).push(item);
             });
 
-            // 2. Sort the grouped standards array by the custom weight so it exactly matches the plan flow
             const sortedStandards = Array.from(standardsMap.entries()).sort((a, b) => {
               return getSortWeight(a[0]) - getSortWeight(b[0]);
             });
@@ -453,17 +438,29 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                     let combinedFiles: string[] = [];
                     let latestItem = standardRows[0]; 
 
-                    // Extract all notes, files, and histories from any potential duplicates in the data lake
                     standardRows.forEach((row) => {
-                      const files = row.file_urls?.length > 0 ? row.file_urls : (row.image_url ? [row.image_url] : []);
-                      combinedFiles.push(...files);
+                      let rowFiles = row.file_urls?.length > 0 ? row.file_urls : (row.image_url ? [row.image_url] : []);
+                      combinedFiles.push(...rowFiles);
 
-                      const history = row.feedback_history || [
-                        { date: row.updated_at || row.created_at, note: row.notes, rating: row.rating }
-                      ];
-                      rawFeedback.push(...history);
+                      // NEW: Map history from the relational table if it exists
+                      if (row.artifact_evaluations && row.artifact_evaluations.length > 0) {
+                        const relationalHistory = row.artifact_evaluations.map((ev: any) => {
+                          if (ev.file_urls?.length) combinedFiles.push(...ev.file_urls);
+                          return {
+                            date: ev.created_at,
+                            note: ev.notes,
+                            rating: ev.mastery_rating
+                          };
+                        });
+                        rawFeedback.push(...relationalHistory);
+                      } else {
+                        // Fallback to old JSON history for legacy data
+                        const legacyHistory = row.feedback_history || [
+                          { date: row.updated_at || row.created_at, note: row.notes, rating: row.rating }
+                        ];
+                        rawFeedback.push(...legacyHistory);
+                      }
 
-                      // Track latest record to pass into edit modal
                       const rowDate = new Date(row.updated_at || row.created_at);
                       const latestDate = new Date(latestItem.updated_at || latestItem.created_at);
                       if (rowDate > latestDate) {
@@ -473,10 +470,8 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
 
                     combinedFiles = Array.from(new Set(combinedFiles));
                     
-                    // Chronologically sort all updates
                     rawFeedback.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-                    // Strictly filter out "phantom" updates where no notes or ratings changed
                     const cleanFeedback = rawFeedback.filter((fb, idx, arr) => {
                       if (idx === 0) return true;
                       const prev = arr[idx - 1];
@@ -499,7 +494,6 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                           {cleanFeedback.map((historyItem: any, hIdx: number) => (
                             <div key={hIdx} className="flex flex-col md:flex-row gap-6 items-start justify-between border-t border-slate-100 pt-4 first:border-0 first:pt-0">
                               
-                              {/* Left Side: Mastery Level & Evidence side by side */}
                               <div className="w-full md:w-5/12 flex items-start gap-8">
                                 <div className="space-y-1 shrink-0">
                                   <span className="text-[11px] font-black text-slate-400 uppercase block tracking-wider">Mastery Level</span>
@@ -528,7 +522,6 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                                 )}
                               </div>
 
-                              {/* Right Side: Update Tracker, Date, Edit Pencil, and Notes */}
                               <div className="w-full md:w-7/12 space-y-1.5">
                                 <div className="flex justify-between items-center gap-4">
                                   <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider">Update Record #{hIdx + 1}</span>
@@ -539,7 +532,6 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                                         Feedback Recorded: {new Date(historyItem.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                       </span>
                                     )}
-                                    {/* Edit Button specifically bound right next to the date per instructions */}
                                     <button 
                                       onClick={(e) => { e.stopPropagation(); setEditingArtifact(latestItem); }} 
                                       className="text-slate-300 hover:text-teal-500 transition-colors print:hidden ml-1"
@@ -560,6 +552,66 @@ function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setE
                     );
                   })}
                 </div>
+
+                {samplePlanData && (
+                  <div className="space-y-4 pt-4">
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Assessed Learning Tools & Activities</h4>
+                    
+                    {samplePlanData.readingList && samplePlanData.readingList.map((book: any, rIdx: number) => (
+                      <div key={rIdx} className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-black bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md uppercase">Recommended Reading</span>
+                          <span className="text-xs font-bold text-slate-700">{book.title}</span>
+                        </div>
+                        <p className="text-sm text-slate-600 font-medium">{book.prompt || book.type}</p>
+                      </div>
+                    ))}
+
+                    {samplePlanData.letsPlay && samplePlanData.letsPlay.map((game: any, gIdx: number) => (
+                      <div key={gIdx} className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-black bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md uppercase">Let's Play Activity</span>
+                          <span className="text-xs font-bold text-slate-700">{game.gameName}</span>
+                        </div>
+                        <p className="text-sm text-slate-600 font-medium">{game.description}</p>
+                      </div>
+                    ))}
+
+                    {samplePlanData.householdExperiments && samplePlanData.householdExperiments.map((exp: any, eIdx: number) => (
+                      <div key={eIdx} className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-black bg-amber-50 text-amber-700 px-2.5 py-1 rounded-md uppercase">Hands-On Experiment</span>
+                          <span className="text-xs font-bold text-slate-700">{exp.title}</span>
+                        </div>
+                        <p className="text-sm text-slate-600 font-medium">{exp.instructions}</p>
+                      </div>
+                    ))}
+
+                    {samplePlanData.outAndAbout && (
+                      <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-black bg-teal-50 text-teal-700 px-2.5 py-1 rounded-md uppercase">Local Field Trip</span>
+                          <span className="text-xs font-bold text-slate-700">{samplePlanData.outAndAbout.title}</span>
+                        </div>
+                        <p className="text-sm text-slate-600 font-medium">{samplePlanData.outAndAbout.instructions}</p>
+                      </div>
+                    )}
+
+                    {samplePlanData.endOfWeekReview && (
+                      <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-200 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-black bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md uppercase">End of Week Review</span>
+                          <span className="text-xs font-bold text-slate-700">{samplePlanData.endOfWeekReview.worksheetTitle}</span>
+                        </div>
+                        <ol className="list-decimal pl-5 text-sm text-slate-600 space-y-1">
+                          {samplePlanData.endOfWeekReview.questions.map((q: string, qIdx: number) => (
+                            <li key={qIdx}>{q}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
