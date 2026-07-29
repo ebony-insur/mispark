@@ -18,12 +18,12 @@ export default function Home() {
       </div>
 
       {/* HERO SECTION (70/30 Split) */}
-      <section className="w-full max-w-6xl px-6 pt-12 pb-24 flex flex-col md:flex-row items-center justify-between gap-12 animate-in fade-in slide-in-from-bottom-8">
+      <section className="w-full max-w-6xl px-6 pt-12 pb-16 flex flex-col md:flex-row items-center justify-between gap-12 animate-in fade-in slide-in-from-bottom-8">
         
         {/* 70% Text Column */}
         <div className="w-full md:w-[70%] flex flex-col items-center md:items-start text-center md:text-left">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-100 text-teal-800 font-bold text-sm mb-8 border border-teal-200">
-            <Sparkles className="w-4 h-4" /> Stop planning. Start teaching.
+            <Sparkles className="w-4 h-4" /> The AI Engine for Educators
           </div>
           
           <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-tight mb-6">
@@ -34,10 +34,10 @@ export default function Home() {
           </h1>
           
           <p className="text-xl md:text-2xl text-slate-600 font-medium max-w-2xl mb-10 leading-relaxed">
-            Upload your syllabus or type a few topics, and MiSpark instantly generates a flexible, state-aligned curriculum tailored exactly to your learner's needs.
+            Turn any topic, syllabus, or PDF into a state-aligned, multi-sensory lesson plan in seconds. Built for homeschool parents, microschools, and classroom teachers.
           </p>
 
-          {/* BUTTON GROUP WITH FIXED FLEX LAYOUT */}
+          {/* BUTTON GROUP */}
           <div className="flex flex-col sm:flex-row items-start gap-4 w-full justify-center md:justify-start flex-wrap">
             
             <div className="flex flex-col items-center gap-2 w-full sm:w-auto">
@@ -53,12 +53,11 @@ export default function Home() {
             </div>
             
             <Button 
-              onClick={() => router.push("/how-it-works")} 
+              onClick={() => router.push("/features")} 
               variant="outline"
               className="h-16 px-8 w-full sm:w-auto text-xl border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-100"
             >
-              <HelpCircle className="w-6 h-6 mr-2 text-teal-600" />
-              How It Works
+              See All Features
             </Button>
             
             <Button 
@@ -93,7 +92,7 @@ export default function Home() {
             { label: "Hours Saved Weekly", value: "10+" },
             { label: "State Standards", value: "Aligned" },
             { label: "Portfolio Creation", value: "Instant" },
-            { label: "Learner Engagement", value: "Curated" },
+            { label: "Student Engagement", value: "Curated" },
           ].map((stat, i) => (
             <div key={i} className="flex flex-col items-center">
               <span className="text-3xl md:text-4xl font-black text-white mb-2">{stat.value}</span>
@@ -102,6 +101,24 @@ export default function Home() {
           ))}
         </div>
       </div>
+
+      {/* AUDIENCE SWITCHER */}
+      <section className="w-full bg-white py-20 px-6 border-b border-slate-100">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-8">
+          <div className="bg-slate-50 p-10 rounded-[2rem] border border-slate-200 hover:border-teal-300 transition-colors shadow-sm">
+            <h3 className="text-3xl font-black text-slate-800 mb-4">For Homeschool Parents</h3>
+            <p className="text-lg text-slate-600 font-medium leading-relaxed">
+              Ditch the Sunday planning scramble. Tailor lessons to your child's exact attention span and interests, while generating immediate portfolios for state compliance evaluators.
+            </p>
+          </div>
+          <div className="bg-slate-50 p-10 rounded-[2rem] border border-slate-200 hover:border-orange-300 transition-colors shadow-sm">
+            <h3 className="text-3xl font-black text-slate-800 mb-4">For Classroom Teachers</h3>
+            <p className="text-lg text-slate-600 font-medium leading-relaxed">
+              Differentiate instruction instantly. Generate hands-on activities, centers, and remedial or advanced pathways for diverse neurodivergent classrooms in seconds.
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* THE 4 PILLARS OF MEMBERSHIP */}
       <section className="w-full max-w-6xl px-6 py-24 space-y-32">
@@ -112,8 +129,8 @@ export default function Home() {
             <div className="w-16 h-16 bg-rose-100 rounded-2xl flex items-center justify-center">
               <HeartHandshake className="w-8 h-8 text-rose-600" />
             </div>
-            <h2 className="text-4xl font-black text-slate-900 leading-tight">An engine that learns what your child loves.</h2>
-            <p className="text-xl text-slate-600 font-medium">Rate how much your learner enjoyed an activity. Our AI feedback loop ensures that every recommended book, game, and video is a hit moving forward.</p>
+            <h2 className="text-4xl font-black text-slate-900 leading-tight">An engine that learns what your students love.</h2>
+            <p className="text-xl text-slate-600 font-medium">Rate how much your learners enjoyed an activity. Our AI feedback loop ensures that every recommended book, game, and video is a hit moving forward.</p>
           </div>
           <div className="flex-1 w-full bg-white rounded-3xl p-4 shadow-xl border border-slate-200">
             <div className="aspect-video bg-slate-100 rounded-2xl border border-slate-200 flex items-center justify-center overflow-hidden relative">
@@ -150,8 +167,8 @@ export default function Home() {
             <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center">
               <Sparkles className="w-8 h-8 text-orange-600" />
             </div>
-            <h2 className="text-4xl font-black text-slate-900 leading-tight">Every child is different. Their plan should be too.</h2>
-            <p className="text-xl text-slate-600 font-medium">Lessons are automatically scaled to your learner's specific grade level, attention span, interests, and sensory needs. No more fighting through generic workbooks.</p>
+            <h2 className="text-4xl font-black text-slate-900 leading-tight">Every learner is different. Their plan should be too.</h2>
+            <p className="text-xl text-slate-600 font-medium">Lessons are automatically scaled to your student's specific grade level, attention span, interests, and sensory needs. No more fighting through generic workbooks.</p>
             <ul className="space-y-3 text-slate-700 font-bold">
               <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-orange-500"/> Tactile & visual tool recommendations</li>
               <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-orange-500"/> Video, reading, and hands-on modalities</li>
@@ -205,7 +222,7 @@ export default function Home() {
                 Why not just use ChatGPT?
               </h2>
               <p className="text-lg text-slate-400 font-medium">
-                Public AI models aggregate everything you type into the open web. We built MiSpark to keep your family safe.
+                Public AI models aggregate everything you type into the open web. We built MiSpark to keep your family and classroom safe.
               </p>
             </div>
 
@@ -218,7 +235,7 @@ export default function Home() {
                 <ul className="space-y-4">
                   <li className="flex items-start gap-3">
                     <span className="mt-1 text-slate-500">❌</span>
-                    <p className="text-slate-400 font-medium text-sm leading-relaxed">Your child's personal data, struggles, and schedule can be used to train public models.</p>
+                    <p className="text-slate-400 font-medium text-sm leading-relaxed">Your student's personal data, struggles, and schedule can be used to train public models.</p>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="mt-1 text-slate-500">❌</span>
@@ -226,7 +243,7 @@ export default function Home() {
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="mt-1 text-slate-500">❌</span>
-                    <p className="text-slate-400 font-medium text-sm leading-relaxed">It forgets what your child enjoys and starts from scratch every time.</p>
+                    <p className="text-slate-400 font-medium text-sm leading-relaxed">It forgets what your learners enjoy and starts from scratch every time.</p>
                   </li>
                 </ul>
               </div>
@@ -248,7 +265,7 @@ export default function Home() {
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-teal-500 shrink-0 mt-0.5"/>
-                    <p className="text-teal-50 font-medium text-sm leading-relaxed"><span className="font-bold">Continuous Customization:</span> Our closed-loop rating system learns what your child loves over time, entirely securely.</p>
+                    <p className="text-teal-50 font-medium text-sm leading-relaxed"><span className="font-bold">Continuous Customization:</span> Our closed-loop rating system learns what your students love over time, entirely securely.</p>
                   </li>
                 </ul>
               </div>
@@ -261,7 +278,7 @@ export default function Home() {
       <section className="w-full bg-teal-900 py-24 px-6 text-center">
         <div className="max-w-2xl mx-auto flex flex-col items-center">
           <h2 className="text-4xl md:text-5xl font-black text-white mb-6">Ready to get your weekends back?</h2>
-          <p className="text-xl text-teal-100 font-medium mb-10">Join the families using MiSpark to turn hours of curriculum planning into minutes of joyful learning.</p>
+          <p className="text-xl text-teal-100 font-medium mb-10">Join the parents and educators using MiSpark to turn hours of curriculum planning into minutes of joyful learning.</p>
           
           <div className="flex flex-col items-center gap-3">
             <Button 

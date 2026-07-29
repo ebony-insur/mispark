@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -50,12 +50,33 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
   };
 
   return (
-    <header className="w-full max-w-5xl flex items-center justify-between bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-200 mb-6 print:hidden">
-      <Link href={hasUser ? "/dashboard" : "/"} className="flex items-center gap-2">
+    <header className="w-full max-w-6xl flex items-center justify-between bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-200 mb-6 print:hidden">
+      
+      {/* LOGO */}
+      <Link href={hasUser ? "/dashboard" : "/"} className="flex items-center gap-2 shrink-0">
         <Image src="/MiSpark.svg" alt="MiSpark Logo" width={120} height={35} priority />
       </Link>
 
-      <div className="flex items-center gap-4">
+      {/* DYNAMIC NAVIGATION LINKS (Hidden on Mobile) */}
+      <nav className="hidden md:flex items-center gap-8">
+        {isLoaded && hasUser ? (
+          <>
+            <Link href="/dashboard" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Planner</Link>
+            <Link href="/history" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">History</Link>
+            <Link href="/portfolio" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Portfolios</Link>
+            <Link href="/help" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Help</Link>
+          </>
+        ) : isLoaded ? (
+          <>
+            <Link href="/features" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Features</Link>
+            <Link href="/dashboard" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Live Demo</Link>
+            <Link href="/help" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Success Guide</Link>
+          </>
+        ) : null}
+      </nav>
+
+      {/* AUTH BUTTONS */}
+      <div className="flex items-center gap-4 shrink-0">
         {isLoaded && hasUser ? (
           <div className="flex items-center gap-3">
             {dbFirstName && (
@@ -69,12 +90,12 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
               size="sm" 
               className="border-slate-200 hover:bg-slate-50 font-bold text-slate-600"
             >
-              <LogOut className="w-4 h-4 mr-1.5" /> Logout
+              <LogOut className="w-4 h-4 sm:mr-1.5" /> <span className="hidden sm:inline">Logout</span>
             </Button>
           </div>
         ) : isLoaded ? (
           <div className="flex items-center gap-3">
-            <Link href="/login">
+            <Link href="/login" className="hidden sm:block">
               <Button variant="ghost" className="font-bold text-slate-600 hover:text-slate-900">
                 Log In
               </Button>
