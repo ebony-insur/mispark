@@ -33,53 +33,52 @@ export default function EvidenceUploader({
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
-    const fetchRelationalData = async () => {
-      if (!studentId || !standardText) return;
+    if (existingArtifact) {
+      setMasteryRating(existingArtifact.rating || 0);
+      setEnjoymentRating(existingArtifact.enjoyment_rating || 0);
+      setNotes(existingArtifact.notes || "");
+      setIncludeInPortfolio(existingArtifact.include_in_portfolio || false);
+      setExistingFiles(existingArtifact.file_urls || (existingArtifact.image_url ? [existingArtifact.image_url] : []));
       
-      // 1. Get the Master Artifact
-      let query = (supabase as any)
-        .from("portfolio_artifacts")
-        .select("id, include_in_portfolio")
-        .eq("student_id", studentId)
-        .eq("standard_text", standardText);
+      setOriginalData({
+        rating: existingArtifact.rating || 0,
+        enjoyment_rating: existingArtifact.enjoyment_rating || 0,
+        notes: existingArtifact.notes || "",
+        include_in_portfolio: existingArtifact.include_in_portfolio || false
+      });
+    } else {
+      const fetchExistingData = async () => {
+        if (!studentId || !standardText) return;
         
-      if (lessonPlanId) query = query.eq("lesson_plan_id", lessonPlanId);
-      else query = query.is("lesson_plan_id", null);
-
-      const { data: master } = await query.maybeSingle(); 
-      
-      if (master) {
-        setIncludeInPortfolio(master.include_in_portfolio || false);
-
-        // 2. Get the latest relational evaluation
-        const { data: evals } = await (supabase as any)
-          .from("artifact_evaluations")
+        let query = (supabase as any)
+          .from("portfolio_artifacts")
           .select("*")
-          .eq("artifact_id", master.id)
-          .order("created_at", { ascending: false })
-          .limit(1);
+          .eq("student_id", studentId)
+          .eq("standard_text", standardText);
+          
+        if (lessonPlanId) query = query.eq("lesson_plan_id", lessonPlanId);
+        else query = query.is("lesson_plan_id", null);
 
-        if (evals && evals.length > 0) {
-          const latest = evals[0];
-          setMasteryRating(latest.mastery_rating || 0);
-          setEnjoymentRating(latest.enjoyment_rating || 0);
-          setNotes(latest.notes || "");
-          setExistingFiles(latest.file_urls || []);
+        const { data } = await query.maybeSingle(); 
+        
+        if (data) {
+          setMasteryRating(data.rating || 0);
+          setEnjoymentRating(data.enjoyment_rating || 0);
+          setNotes(data.notes || "");
+          setIncludeInPortfolio(data.include_in_portfolio || false);
+          setExistingFiles(data.file_urls || (data.image_url ? [data.image_url] : []));
 
           setOriginalData({
-            rating: latest.mastery_rating || 0,
-            enjoyment_rating: latest.enjoyment_rating || 0,
-            notes: latest.notes || "",
-            include_in_portfolio: master.include_in_portfolio || false
+            rating: data.rating || 0,
+            enjoyment_rating: data.enjoyment_rating || 0,
+            notes: data.notes || "",
+            include_in_portfolio: data.include_in_portfolio || false
           });
-        } else {
-          setOriginalData(prev => ({ ...prev, include_in_portfolio: master.include_in_portfolio }));
         }
-      }
-    };
-
-    fetchRelationalData();
-  }, [studentId, lessonPlanId, standardText, supabase]);
+      };
+      fetchExistingData();
+    }
+  }, [studentId, lessonPlanId, standardText, existingArtifact, supabase]);
 
   const handleSave = async () => {
     if (!studentId) {
@@ -90,13 +89,12 @@ export default function EvidenceUploader({
     const currentNotes = notes.trim();
     const originalNotes = originalData.notes.trim();
 
-    const textOrRatingChanged = 
+    const hasChanges = 
       masteryRating !== originalData.rating ||
       enjoymentRating !== originalData.enjoyment_rating ||
       currentNotes !== originalNotes ||
+      includeInPortfolio !== originalData.include_in_portfolio ||
       pendingFiles.length > 0;
-
-    const hasChanges = textOrRatingChanged || includeInPortfolio !== originalData.include_in_portfolio;
 
     if (!hasChanges) {
       toast.info("No changes to save.");
@@ -110,6 +108,7 @@ export default function EvidenceUploader({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Must be logged in to save evidence.");
 
+      // 1. Upload new files if any
       if (pendingFiles.length > 0) {
         const uploadPromises = pendingFiles.map(async (file) => {
           const safeOriginalName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
@@ -133,10 +132,10 @@ export default function EvidenceUploader({
 
       const finalFileUrls = [...existingFiles, ...newUploadedUrls];
 
-      // 1. Find or Create Master Record
+      // 2. Query the single table to see if record exists
       let query = (supabase as any)
         .from("portfolio_artifacts")
-        .select("id")
+        .select("id, feedback_history, notes, rating, created_at")
         .eq("student_id", studentId)
         .eq("standard_text", standardText);
         
@@ -144,38 +143,72 @@ export default function EvidenceUploader({
       else query = query.is("lesson_plan_id", null);
 
       const { data: currentRecord } = await query.maybeSingle();
-      let masterArtifactId = currentRecord?.id;
 
-      if (!currentRecord) {
-        const { data: newRecord, error: insertError } = await (supabase as any)
-          .from("portfolio_artifacts")
-          .insert({
-            parent_id: user.id,
-            student_id: studentId,
-            lesson_plan_id: lessonPlanId || null,
-            standard_text: standardText,
-            include_in_portfolio: includeInPortfolio,
-          }).select("id").single();
-        if (insertError) throw insertError;
-        masterArtifactId = newRecord.id;
+      // 3. Build feedback_history JSON array inside portfolio_artifacts
+      let finalHistory = [];
+      const textOrRatingChanged = masteryRating !== originalData.rating || currentNotes !== originalNotes;
+
+      if (currentRecord) {
+        let previousHistory = currentRecord.feedback_history || [];
+        
+        if (textOrRatingChanged) {
+          if (previousHistory.length === 0 && (currentRecord.notes || currentRecord.rating)) {
+            previousHistory.push({
+              date: currentRecord.created_at || new Date().toISOString(),
+              note: currentRecord.notes,
+              rating: currentRecord.rating
+            });
+          }
+          finalHistory = [
+            ...previousHistory, 
+            { 
+              date: new Date().toISOString(), 
+              note: notes, 
+              rating: masteryRating > 0 ? masteryRating : null 
+            }
+          ];
+        } else {
+          finalHistory = previousHistory; // Keep history intact if only files or toggles changed
+        }
       } else {
-        await (supabase as any).from("portfolio_artifacts").update({ include_in_portfolio: includeInPortfolio }).eq("id", masterArtifactId);
+        finalHistory = [{ 
+          date: new Date().toISOString(), 
+          note: notes, 
+          rating: masteryRating > 0 ? masteryRating : null 
+        }];
       }
 
-      // 2. Insert clean relational row for the timeline (only if data actually changed)
-      if (textOrRatingChanged) {
-        const { error: evalError } = await (supabase as any)
-          .from("artifact_evaluations")
-          .insert({
-            artifact_id: masterArtifactId,
-            parent_id: user.id,
-            mastery_rating: masteryRating > 0 ? masteryRating : null,
-            enjoyment_rating: enjoymentRating > 0 ? enjoymentRating : null,
-            notes: notes,
-            file_urls: finalFileUrls
-          });
-        if (evalError) throw evalError;
+      const payload = {
+        parent_id: user.id,
+        student_id: studentId,
+        lesson_plan_id: lessonPlanId || null,
+        standard_text: standardText,
+        rating: masteryRating > 0 ? masteryRating : null,
+        enjoyment_rating: enjoymentRating > 0 ? enjoymentRating : null,
+        notes: notes,
+        file_urls: finalFileUrls,
+        include_in_portfolio: includeInPortfolio,
+        feedback_history: finalHistory, // <--- Stored directly in portfolio_artifacts
+        updated_at: new Date().toISOString()
+      };
+
+      let dbError;
+
+      // 4. Update or Insert strictly on portfolio_artifacts
+      if (currentRecord) {
+        const { error } = await (supabase as any)
+          .from("portfolio_artifacts")
+          .update(payload)
+          .eq("id", currentRecord.id);
+        dbError = error;
+      } else {
+        const { error } = await (supabase as any)
+          .from("portfolio_artifacts")
+          .insert(payload);
+        dbError = error;
       }
+
+      if (dbError) throw dbError;
 
       setExistingFiles(finalFileUrls);
       setPendingFiles([]);
