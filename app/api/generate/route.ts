@@ -12,6 +12,9 @@ interface GenerateRequestPayload {
   lessonText?: string;
   studentId?: string;
   userId?: string;
+  weekAssigned?: string;
+  weekStartDate?: string;
+  weekEndDate?: string;
   studentProfile?: {
     grade?: string;
     focus_duration?: string;
@@ -19,6 +22,7 @@ interface GenerateRequestPayload {
     zip_code?: string;
     interests?: string; 
     sensory_needs?: string; 
+    dislikes?: string;
   };
   subscriptions?: string[];
 }
@@ -26,13 +30,10 @@ interface GenerateRequestPayload {
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as GenerateRequestPayload;
-    const { promptText, lessonText, studentId, studentProfile, subscriptions } = body;
+    const { promptText, lessonText, studentId, studentProfile, subscriptions, weekAssigned, weekStartDate, weekEndDate } = body;
     
-    // Support both payload formats (Dashboard vs Legacy)
     const contentToAnalyze = promptText || lessonText || "";
 
-    // --- FIX 1: The Vercel URL Sledgehammer ---
-    // Clean the URL to ensure Vercel's '/rest/v1/' injection doesn't break Auth
     const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
     const cleanUrl = rawUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
 
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized: Invalid session." }, { status: 401 });
     }
 
-    // 2. Initialize Admin Client to bypass RLS for guaranteed backend saves
+    // 2. Initialize Admin Client to bypass RLS
     const supabaseAdmin = createClient(
       cleanUrl,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Out of Sparks. Please upgrade or purchase a Spark Pack to continue." }, { status: 403 });
     }
 
-    // 4. Fetch Student Profile Data
+    // 4. Fetch Student Profile Data & Historical Performance / Memory
     let activeStudentProfile: any = studentProfile || {};
     if (studentId) {
       const { data: studentData } = await (supabaseAdmin.from('children_profiles') as any)
@@ -84,16 +85,43 @@ export async function POST(req: Request) {
       }
     }
 
+    // --- STUDENT MEMORY & DISLIKES INJECTION ---
+    let studentMemoryContext = "";
+    if (studentId) {
+      const { data: pastArtifacts } = await (supabaseAdmin.from('portfolio_artifacts') as any)
+        .select('standard_text, rating, notes, feedback_history')
+        .eq('student_id', studentId)
+        .order('created_at', { ascending: false })
+        .limit(15);
+
+      const { data: skippedPlans } = await (supabaseAdmin.from('lesson_plans') as any)
+        .select('plan_data, status')
+        .eq('student_id', studentId)
+        .eq('status', 'skipped')
+        .limit(10);
+
+      if (pastArtifacts && pastArtifacts.length > 0) {
+        studentMemoryContext += "\n\nPAST STUDENT PERFORMANCE & EDUCATOR FEEDBACK HISTORY:\n";
+        pastArtifacts.forEach((art: any) => {
+          studentMemoryContext += `- Standard/Topic: "${art.standard_text}" | Mastery Rating (1-5): ${art.rating || 'N/A'} | Notes/Feedback: "${art.notes || 'None'}"\n`;
+        });
+      }
+
+      if (skippedPlans && skippedPlans.length > 0) {
+        studentMemoryContext += "\nSKIPPED / DID NOT ATTEMPT PLANS (Avoid over-indexing on these topics):\n";
+        skippedPlans.forEach((p: any) => {
+          studentMemoryContext += `- Skipped Topic/Theme: "${p.plan_data?.weekAssigned || p.plan_data?.weekTheme || 'General Plan'}"\n`;
+        });
+      }
+    }
+
     const focusDuration = activeStudentProfile?.focus_duration || "20 mins";
     const stateResidence = activeStudentProfile?.state_residence || "General US";
     const zipCode = activeStudentProfile?.zip_code || "None provided";
     const grade = activeStudentProfile?.grade || "Elementary";
     const specialInterests = activeStudentProfile?.interests || "None specified";
     const sensoryNeeds = activeStudentProfile?.sensory_needs || "None specified";
-
-    const activeSubsList = subscriptions && subscriptions.length > 0 
-      ? subscriptions.join(", ") 
-      : "None listed. Rely on free or public resources.";
+    const studentDislikes = activeStudentProfile?.dislikes || "None specified";
 
     const jsonSchema = {
       type: "object",
@@ -127,7 +155,7 @@ export async function POST(req: Request) {
           items: {
             type: "object",
             properties: {
-              item: { type: "string", description: "Real, physical products that can be purchased in a store (e.g., Fraction Tiles, Magnatiles)." },
+              item: { type: "string", description: "Real, physical products that can be purchased in a store." },
               howToUse: { type: "string", description: "How to use this physically in the lesson." },
               searchQuery: { type: "string", description: "Best Amazon search term for this item." }
             },
@@ -143,8 +171,8 @@ export async function POST(req: Request) {
               modality: { type: "string" },
               skillsReinforced: { type: "string" },
               description: { type: "string" },
-              isBuyable: { type: "boolean", description: "True if this is a real store-bought game. False if it is a made-up game." },
-              searchQuery: { type: "string", description: "If buyable, the Amazon search term. If not, leave blank." }
+              isBuyable: { type: "boolean" },
+              searchQuery: { type: "string" }
             },
             required: ["gameName", "modality", "skillsReinforced", "description", "isBuyable"]
           }
@@ -168,7 +196,7 @@ export async function POST(req: Request) {
             properties: {
               title: { type: "string" },
               materials: { type: "string", description: "Comma separated list of household supplies." },
-              instructions: { type: "string", description: "Full, step-by-step instructions on how to do this." }
+              instructions: { type: "string", description: "Full, step-by-step instructions." }
             },
             required: ["title", "materials", "instructions"]
           }
@@ -202,33 +230,40 @@ export async function POST(req: Request) {
 
     const systemPrompt = `You are MiSpark, a master homeschool educator. You design flexible, highly engaging, and non-obvious lesson plans.
 
+    STUDENT LEARNING PROFILE & PREFERENCES:
+    Grade: ${grade}
+    Focus Duration: ${focusDuration}
+    State Compliance Standard: ${stateResidence}
+    Interests: ${specialInterests}
+    Sensory Needs: ${sensoryNeeds}
+    STRICTLY FORBIDDEN TOPICS / DISLIKES (Do NOT recommend these books, games, topics, or activities under any circumstances): ${studentDislikes}
+    ${studentMemoryContext}
+
     CRITICAL INSTRUCTIONS:
-    1. FLEXIBILITY OVER SCHEDULES: Homeschoolers hate strict schedules. Do NOT assign any tasks, worksheets, or standards to specific "days of the week". Everything is fluid.
-    2. APPLICABLE STANDARDS: Map their topics to the closest applicable ${stateResidence} state standard for a ${grade} student. 
-    3. AMAZON AFFILIATE RULES: For "buyableTools", ONLY include actual, real physical products that can be purchased in a store. Do NOT put made-up games here.
-    4. HOUSEHOLD EXPERIMENTS: For "householdExperiments", provide FULL, detailed instructions so the parent knows exactly how to execute it without Googling.
-    5. LOCAL FIELD TRIPS (Zip Code ${zipCode}): You MUST name a REAL, physical museum, park, historical site, or local business near this zip code. 
-    6. NO FAKE URLS: Provide exact titles only for media.
-    7. END OF WEEK REVIEW: Generate ONE comprehensive "End of Week Review" consisting of deep-thinking questions.
+    1. ABSOLUTE EXCLUSION: Never suggest anything matching or related to the student's DISLIKES list above.
+    2. ADAPT TO PAST PERFORMANCE: Review past mastery ratings and educator feedback notes to scaffold or deepen content appropriately.
+    3. FLEXIBILITY OVER SCHEDULES: Do NOT assign tasks to specific days of the week.
+    4. APPLICABLE STANDARDS: Map topics to the closest applicable ${stateResidence} state standard. 
+    5. AMAZON AFFILIATE RULES: For "buyableTools" and games, ONLY include real physical products.
+    6. HOUSEHOLD EXPERIMENTS: Provide full, detailed instructions.
+    7. LOCAL FIELD TRIPS (Zip Code ${zipCode}): Name a REAL local business, museum, or park near this zip code.
+    8. END OF WEEK REVIEW: Generate ONE comprehensive review with deep-thinking questions.
     
-    🛡️ THE ACADEMIC AUTONOMY OVERRIDE:
-    8. ACADEMIC OBJECTIVITY: The parent has absolute autonomy over their curriculum. You MUST generate comprehensive, objective lesson plans for ALL requested topics. Do not censor, moralize, or water down the academic content.
-    9. NO DISCLAIMERS: You are strictly forbidden from generating trigger warnings, safety disclaimers, or conversational apologies.
-    10. CONCISENESS OVERRIDE: Keep descriptions, prompts, and questions punchy and direct to conserve tokens.
+    ACADEMIC AUTONOMY:
+    9. Generate comprehensive, objective lesson plans without disclaimers or apologies.
+    10. Keep descriptions and prompts direct and punchy.
 
     You MUST output ONLY valid JSON matching this exact schema:
     ${JSON.stringify(jsonSchema)}`;
 
-    // Pass the AbortSignal from Next.js directly to Anthropic so the Stop Button works
     const msg = await anthropic.messages.create({
-      // --- RESTORED: The correct current Anthropic model ---
       model: "claude-sonnet-5",
       max_tokens: 8192,
       system: systemPrompt,
       messages: [
         { 
           role: "user", 
-          content: `Here is the curriculum text to analyze:\n\n${contentToAnalyze}\n\nTarget Student Profile: ${JSON.stringify({ grade, specialInterests, sensoryNeeds, focusDuration })}\n\nOutput strictly valid JSON starting with { and ending with } with no preamble or conversational text.` 
+          content: `Here is the new curriculum text to analyze:\n\n${contentToAnalyze}\n\nOutput strictly valid JSON starting with { and ending with } with no preamble.` 
         }
       ]
     }, { signal: req.signal });
@@ -242,12 +277,16 @@ export async function POST(req: Request) {
     const endIndex = responseText.lastIndexOf('}');
 
     if (startIndex === -1 || endIndex === -1) {
-      console.error("Raw Claude Output (No JSON found):", responseText);
       throw new Error("Claude failed to format the response as JSON.");
     }
 
     const cleanJsonString = responseText.substring(startIndex, endIndex + 1);
     const parsedData = JSON.parse(cleanJsonString);
+    
+    // Bundle assigned dates into plan_data so the portfolio page can read them correctly
+    parsedData.weekAssigned = weekAssigned || "General Weekly Assignments";
+    parsedData.weekStartDate = weekStartDate || new Date().toISOString().split('T')[0];
+    parsedData.weekEndDate = weekEndDate || new Date().toISOString().split('T')[0];
     
     // 5. Save to lesson_plans
     const { data: savedPlan, error: insertError } = await (supabaseAdmin.from('lesson_plans') as any)
@@ -270,7 +309,6 @@ export async function POST(req: Request) {
       .update({ sparks_remaining: profile.sparks_remaining - 1 })
       .eq('id', user.id);
 
-    // Return the generated data and the DB planId for redirecting
     return NextResponse.json({ data: parsedData, planId: savedPlan.id }, { status: 200 });
     
   } catch (error: any) {

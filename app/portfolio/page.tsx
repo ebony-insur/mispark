@@ -57,7 +57,7 @@ export default function PortfolioPage() {
     fetchStudents();
   }, [router, supabase]);
 
-  // 2. Fetch and Generate Report based on date range overlap
+  // 2. Fetch and Generate Report based on date range overlap and include_in_portfolio flag
   const handleGenerateReport = useCallback(async () => {
     if (!selectedStudent || !startDate || !endDate) return;
     setIsFetching(true);
@@ -106,7 +106,7 @@ export default function PortfolioPage() {
         })
       );
 
-      // Filter: overlap logic & strict inclusion of only rated/noted/artifacted items
+      // Filter: date overlap + strict check that include_in_portfolio is true
       const filtered = enriched.filter((item: any) => {
         const sDate = item.week_start;
         const eDate = item.week_end;
@@ -114,12 +114,10 @@ export default function PortfolioPage() {
                             (eDate >= startDate && eDate <= endDate) || 
                             (sDate <= startDate && eDate >= endDate);
 
-        const hasRating = Boolean(item.rating);
-        const hasNotes = Boolean(item.notes && item.notes.trim().length > 0);
-        const hasHistoryNotes = Boolean(item.feedback_history && item.feedback_history.some((h: any) => h.note?.trim() || h.rating));
-        const hasFiles = Boolean((item.file_urls && item.file_urls.length > 0) || item.image_url);
+        // Must be explicitly opted into portfolio (default false unless updated/evaluated)
+        const isIncluded = item.include_in_portfolio === true;
 
-        return inDateRange && (hasRating || hasNotes || hasHistoryNotes || hasFiles);
+        return inDateRange && isIncluded;
       });
 
       filtered.sort((a: any, b: any) => {
@@ -275,7 +273,7 @@ export default function PortfolioPage() {
           ) : artifacts.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 print:hidden">
               <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <p className="text-xl font-bold text-slate-500">No rated lessons or evidence found within this date range.</p>
+              <p className="text-xl font-bold text-slate-500">No included portfolio evidence found within this date range.</p>
             </div>
           ) : (
             <div className="space-y-8">
@@ -295,37 +293,13 @@ export default function PortfolioPage() {
 
       </div>
 
-      {/* EDIT MODAL OVERLAY */}
+      {/* EDIT MODAL OVERLAY WITH INCLUDE IN PORTFOLIO TOGGLE */}
       {editingArtifact && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 print:hidden">
-          <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-xl relative border border-slate-200">
-            
-            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex justify-between items-center z-10">
-              <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">Edit Portfolio Entry</h2>
-              <button 
-                onClick={handleCloseEdit}
-                className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6">
-              <div className="mb-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <span className="text-xs font-black text-slate-500 uppercase block mb-1">Standard Assessed</span>
-                <p className="text-slate-800 font-bold">{editingArtifact.standard_text}</p>
-              </div>
-
-              <EvidenceUploader 
-                studentId={editingArtifact.student_id} 
-                lessonPlanId={editingArtifact.lesson_plan_id}
-                standardText={editingArtifact.standard_text}
-                existingArtifact={editingArtifact}
-              />
-            </div>
-
-          </div>
-        </div>
+        <EditArtifactModal 
+          artifact={editingArtifact} 
+          onClose={handleCloseEdit} 
+          supabase={supabase} 
+        />
       )}
 
       <SiteFooter />
@@ -333,7 +307,76 @@ export default function PortfolioPage() {
   );
 }
 
-// Component to handle individual Week Section grouping by lesson plan ID
+// Edit Modal Component featuring the explicit Portfolio Toggle
+function EditArtifactModal({ artifact, onClose, supabase }: any) {
+  const [includeInPortfolio, setIncludeInPortfolio] = useState(artifact.include_in_portfolio ?? false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleToggleChange = async (checked: boolean) => {
+    setIncludeInPortfolio(checked);
+    setIsUpdating(true);
+    const { error } = await supabase
+      .from("portfolio_artifacts")
+      .update({ include_in_portfolio: checked })
+      .eq("id", artifact.id);
+
+    if (error) {
+      toast.error("Failed to update portfolio status.");
+    } else {
+      toast.success(checked ? "Included in state portfolio" : "Excluded from state portfolio");
+    }
+    setIsUpdating(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 print:hidden">
+      <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-xl relative border border-slate-200">
+        
+        <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex justify-between items-center z-10">
+          <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">Edit Portfolio Entry</h2>
+          <button 
+            onClick={onClose}
+            className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <span className="text-xs font-black text-slate-500 uppercase block mb-1">Standard Assessed</span>
+            <p className="text-slate-800 font-bold">{artifact.standard_text}</p>
+          </div>
+
+          {/* Explicit Include in Portfolio Toggle */}
+          <div className="bg-teal-50 border border-teal-200 p-4 rounded-2xl flex items-center justify-between">
+            <div>
+              <p className="font-black text-teal-900 text-sm">Include in State Portfolio Report</p>
+              <p className="text-xs text-teal-700 font-medium">Toggle on to display this item on generated compliance reports.</p>
+            </div>
+            <input 
+              type="checkbox" 
+              checked={includeInPortfolio} 
+              disabled={isUpdating}
+              onChange={(e) => handleToggleChange(e.target.checked)}
+              className="w-5 h-5 rounded text-teal-600 focus:ring-teal-500 cursor-pointer"
+            />
+          </div>
+
+          <EvidenceUploader 
+            studentId={artifact.student_id} 
+            lessonPlanId={artifact.lesson_plan_id}
+            standardText={artifact.standard_text}
+            existingArtifact={artifact}
+          />
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+// Week Section Component
 function WeekSection({ weekTitle, weekItems, allExpanded, showFeedbackDate, setEditingArtifact }: any) {
   const [isOpen, setIsOpen] = useState(false);
 

@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import SiteHeader from "@/components/SiteHeader";
-import SiteFooter from "@/components/SiteFooter"; // NEW: Imported the global site footer
+import SiteFooter from "@/components/SiteFooter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, CalendarDays, ArrowRight } from "lucide-react";
+import { Loader2, CalendarDays, ArrowRight, XCircle } from "lucide-react";
+import { toast } from "sonner";
 
 export default function HistoryPage() {
   const router = useRouter();
@@ -46,10 +47,27 @@ export default function HistoryPage() {
     fetchHistory();
   }, [supabase, router]);
 
+  // Handler for marking a plan as "Didn't Attempt"
+  const handleDidNotAttempt = async (planId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const { error } = await supabase
+      .from("lesson_plans")
+      .update({ status: "skipped", evaluated: true }) // Flags as evaluated so reminder queues skip it
+      .eq("id", planId);
+
+    if (error) {
+      toast.error("Failed to update plan status.");
+    } else {
+      toast.success("Plan marked as skipped. Future AI recommendations won't factor this in.");
+      // Update local state to reflect change instantly
+      setPlans(prev => prev.map(p => p.id === planId ? { ...p, status: "skipped" } : p));
+    }
+  };
+
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col justify-between">
       
-      {/* INNER CONTENT WRAPPER */}
       <div className="w-full flex-1 flex flex-col items-center pb-24">
         <div className="w-full px-6 pt-6 flex justify-center">
           <SiteHeader firstName={firstName} /> 
@@ -85,32 +103,56 @@ export default function HistoryPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {plans.map((plan) => (
-                <Card key={plan.id} className="border border-slate-200 shadow-sm hover:shadow-md transition-shadow bg-white flex flex-col">
-                  <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
-                    <CardTitle className="text-lg font-bold text-slate-800 line-clamp-1">
-                      {plan.plan_data?.weekTheme || "Weekly Lesson Plan"}
-                    </CardTitle>
-                    <p className="text-xs text-slate-500 font-medium">
-                      {new Date(plan.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </p>
-                  </CardHeader>
-                  <CardContent className="p-5 flex-1 flex flex-col justify-between">
-                    <div className="space-y-2 mb-6">
-                      <p className="text-sm text-slate-600 line-clamp-3">
-                        Plan successfully generated and mapped to state standards.
+              {plans.map((plan) => {
+                const isSkipped = plan.status === "skipped";
+
+                return (
+                  <Card key={plan.id} className={`border border-slate-200 shadow-sm hover:shadow-md transition-shadow bg-white flex flex-col relative overflow-hidden ${isSkipped ? 'opacity-75 bg-slate-50' : ''}`}>
+                    
+                    {isSkipped && (
+                      <div className="absolute top-0 right-0 bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-bl-xl">
+                        Didn't Attempt
+                      </div>
+                    )}
+
+                    <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+                      <CardTitle className="text-lg font-bold text-slate-800 line-clamp-1 pr-16">
+                        {plan.plan_data?.weekAssigned || plan.plan_data?.weekTheme || "Weekly Lesson Plan"}
+                      </CardTitle>
+                      <p className="text-xs text-slate-500 font-medium">
+                        {new Date(plan.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                       </p>
-                    </div>
-                    <Button 
-                      onClick={() => router.push(`/history/${plan.id}`)}
-                      variant="outline" 
-                      className="w-full border-teal-200 text-teal-700 hover:bg-teal-50 font-bold"
-                    >
-                      View Plan <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardHeader>
+                    
+                    <CardContent className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                      <div className="space-y-2">
+                        <p className="text-sm text-slate-600 line-clamp-3">
+                          Plan successfully generated and mapped to state standards.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2 pt-2 border-t border-slate-100">
+                        <Button 
+                          onClick={() => router.push(`/history/${plan.id}`)}
+                          variant="outline" 
+                          className="w-full border-teal-200 text-teal-700 hover:bg-teal-50 font-bold"
+                        >
+                          View Plan <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+
+                        {!isSkipped && (
+                          <button 
+                            onClick={(e) => handleDidNotAttempt(plan.id, e)}
+                            className="w-full text-center text-xs font-bold text-slate-400 hover:text-red-600 transition-colors py-1 flex items-center justify-center gap-1"
+                          >
+                            <XCircle className="w-3.5 h-3.5" /> Mark as Didn't Attempt
+                          </button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
 

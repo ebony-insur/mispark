@@ -4,18 +4,17 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import SiteHeader from "@/components/SiteHeader";
-import SiteFooter from "@/components/SiteFooter"; // NEW: Imported the global site footer
+import SiteFooter from "@/components/SiteFooter";
 import PortfolioUploader from "@/components/EvidenceUploader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Printer, ArrowLeft, Lightbulb, Shapes, BookHeart, 
   Gamepad2, PlayCircle, FlaskConical, FileText, 
-  ChevronRight, ChevronsUpDown, Loader2, ExternalLink 
+  ChevronRight, ChevronsUpDown, Loader2, ExternalLink, Ban 
 } from "lucide-react";
 import { toast } from "sonner";
 
-// Reusable Collapsible Section (Mirrors Dashboard UI)
 const CollapsibleSection = ({ title, icon, children, colorClass, forceOpen }: any) => {
   const [isOpen, setIsOpen] = useState(true);
   
@@ -62,7 +61,6 @@ export default function HistoryDetailPage() {
         return;
       }
 
-      // Fetch the specific lesson plan
       const { data: planData, error } = await (supabase as any)
         .from("lesson_plans")
         .select("*")
@@ -78,7 +76,6 @@ export default function HistoryDetailPage() {
 
       setPlan(planData);
 
-      // Fetch the student's name using 'as any' to bypass the strict checks
       if ((planData as any).student_id) {
         const { data: studentData } = await (supabase as any)
           .from("children_profiles")
@@ -97,7 +94,34 @@ export default function HistoryDetailPage() {
     fetchPlanDetails();
   }, [params.id, router, supabase]);
 
-  // Handle Print formatting
+  // Handler to permanently add an item/topic to the student's dislikes list
+  const handleDoNotRecommend = async (itemText: string) => {
+    if (!plan?.student_id) return;
+
+    // Fetch current student profile dislikes
+    const { data: studentProfile } = await supabase
+      .from("children_profiles")
+      .select("dislikes")
+      .eq("id", plan.student_id)
+      .single();
+
+    const existingDislikes = (studentProfile as any)?.dislikes || "";
+    const updatedDislikes = existingDislikes 
+      ? `${existingDislikes}, ${itemText}` 
+      : itemText;
+
+    const { error } = await supabase
+      .from("children_profiles")
+      .update({ dislikes: updatedDislikes })
+      .eq("id", plan.student_id);
+
+    if (error) {
+      toast.error("Failed to update preferences.");
+    } else {
+      toast.success(`"${itemText}" added to Do Not Recommend list. Future plans will exclude it.`);
+    }
+  };
+
   useEffect(() => {
     if (printMode) {
       setAllExpanded(true);
@@ -119,12 +143,10 @@ export default function HistoryDetailPage() {
     <main className="flex min-h-screen flex-col justify-between bg-slate-50 print:bg-white print:py-0 print:px-0">
       
       <div className="w-full flex flex-col items-center py-12 px-6 space-y-8">
-        {/* Universal Navbar */}
         <SiteHeader />
 
         <div className="w-full max-w-5xl space-y-4 animate-in fade-in slide-in-from-bottom-8 pb-20 print:space-y-6">
           
-          {/* Page Header */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm print:border-none print:shadow-none">
             <Button onClick={() => router.push("/history")} variant="ghost" className="text-slate-500 hover:text-slate-800 -ml-4 mb-4 print:hidden">
               <ArrowLeft className="w-4 h-4 mr-2" /> Back to History
@@ -133,7 +155,6 @@ export default function HistoryDetailPage() {
             <p className="text-slate-500 font-bold mt-1">Generated on {dateStr}</p>
           </div>
 
-          {/* Controls */}
           <div className="flex justify-between items-center mb-6 print:hidden bg-slate-800 p-3 rounded-2xl text-white shadow-lg">
             <Button variant="ghost" onClick={() => setAllExpanded(!allExpanded)} className="text-slate-300 hover:text-white hover:bg-slate-700 font-bold rounded-xl">
               <ChevronsUpDown className="w-5 h-5 mr-2"/> {allExpanded ? "Collapse All" : "Expand All"}
@@ -143,21 +164,27 @@ export default function HistoryDetailPage() {
             </Button>
           </div>
 
-          {/* --- CURRICULUM SECTIONS --- */}
-
-          {/* 1. Standards (With Uploader) */}
+          {/* 1. Standards */}
           <CollapsibleSection title="Applicable Standards" icon={<Lightbulb className="w-6 h-6 text-blue-600"/>} colorClass="border-t-blue-500" forceOpen={allExpanded}>
             <p className="text-slate-700 leading-relaxed font-medium bg-blue-50/50 p-5 rounded-xl border border-blue-100 text-lg">
               {generatedData.assessedFoundation}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               {generatedData.outlinedStandards?.map((std: any, idx: number) => (
-                <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
+                <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-4">
                   <div>
-                    <p className="font-bold text-slate-800 text-base">{std.subject}</p>
+                    <div className="flex justify-between items-start">
+                      <p className="font-bold text-slate-800 text-base">{std.subject}</p>
+                      <button 
+                        onClick={() => handleDoNotRecommend(`${std.subject}: ${std.topic}`)}
+                        className="text-slate-400 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
+                        title="Never recommend this standard/topic again"
+                      >
+                        <Ban className="w-3.5 h-3.5" /> Do Not Recommend
+                      </button>
+                    </div>
                     <p className="text-slate-600 text-sm mt-1">{std.topic}</p>
                   </div>
-                  {/* INJECTED UPLOADER */}
                   <PortfolioUploader 
                     studentId={plan.student_id} 
                     lessonPlanId={plan.id} 
@@ -168,18 +195,26 @@ export default function HistoryDetailPage() {
             </div>
           </CollapsibleSection>
 
-          {/* 2. Reading List (With Uploader) */}
+          {/* 2. Reading List */}
           {generatedData.readingList && (
             <CollapsibleSection title="Recommended Reading" icon={<BookHeart className="w-6 h-6 text-rose-600"/>} colorClass="border-t-rose-500" forceOpen={allExpanded}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {generatedData.readingList.map((book: any, idx: number) => (
-                  <div key={idx} className="p-5 rounded-xl border border-slate-200 flex flex-col justify-between">
+                  <div key={idx} className="p-5 rounded-xl border border-slate-200 flex flex-col justify-between space-y-4">
                     <div>
-                      <span className="text-xs font-black uppercase text-indigo-500 block bg-indigo-50 w-max px-2 py-1 rounded mb-2">{book.type}</span>
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-xs font-black uppercase text-indigo-500 block bg-indigo-50 w-max px-2 py-1 rounded">{book.type}</span>
+                        <button 
+                          onClick={() => handleDoNotRecommend(`Book: ${book.title}`)}
+                          className="text-slate-400 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
+                          title="Never recommend this book again"
+                        >
+                          <Ban className="w-3.5 h-3.5" /> Do Not Recommend
+                        </button>
+                      </div>
                       <h3 className="font-black text-slate-800 text-lg leading-tight">{book.title}</h3>
-                      <p className="text-sm text-slate-600 mt-2 mb-4 font-medium">&quot;{book.prompt}&quot;</p>
+                      <p className="text-sm text-slate-600 mt-2 mb-2 font-medium">&quot;{book.prompt}&quot;</p>
                     </div>
-                    {/* INJECTED UPLOADER */}
                     <PortfolioUploader 
                       studentId={plan.student_id} 
                       lessonPlanId={plan.id} 
@@ -191,15 +226,22 @@ export default function HistoryDetailPage() {
             </CollapsibleSection>
           )}
 
-          {/* 3. Hands-On Learning (With Uploader) */}
+          {/* 3. Hands-On Learning */}
           <CollapsibleSection title="Hands-On Learning" icon={<FlaskConical className="w-6 h-6 text-amber-600"/>} colorClass="border-t-amber-500" forceOpen={allExpanded}>
             <div className="space-y-6">
               {generatedData.handsOnLearning?.aroundTheHouse && (
-                <div className="bg-amber-50 p-6 rounded-2xl border border-amber-200">
-                  <h4 className="font-black text-amber-900 uppercase text-xs mb-2 bg-amber-200/50 w-max px-2 py-1 rounded">Around The House</h4>
-                  <p className="font-black text-xl mb-3 text-amber-950">{generatedData.handsOnLearning.aroundTheHouse.title}</p>
-                  <p className="text-base text-amber-950 font-medium mb-4">{generatedData.handsOnLearning.aroundTheHouse.instructions}</p>
-                  {/* INJECTED UPLOADER */}
+                <div className="bg-amber-50 p-6 rounded-2xl border border-amber-200 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <h4 className="font-black text-amber-900 uppercase text-xs bg-amber-200/50 w-max px-2 py-1 rounded">Around The House</h4>
+                    <button 
+                      onClick={() => handleDoNotRecommend(`Activity: ${generatedData.handsOnLearning.aroundTheHouse.title}`)}
+                      className="text-amber-800/60 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
+                    >
+                      <Ban className="w-3.5 h-3.5" /> Do Not Recommend
+                    </button>
+                  </div>
+                  <p className="font-black text-xl text-amber-950">{generatedData.handsOnLearning.aroundTheHouse.title}</p>
+                  <p className="text-base text-amber-950 font-medium">{generatedData.handsOnLearning.aroundTheHouse.instructions}</p>
                   <PortfolioUploader 
                     studentId={plan.student_id} 
                     lessonPlanId={plan.id} 
@@ -209,11 +251,18 @@ export default function HistoryDetailPage() {
               )}
               
               {generatedData.handsOnLearning?.outAndAbout && (
-                <div className="bg-teal-50 p-6 rounded-2xl border border-teal-200">
-                  <h4 className="font-black text-teal-900 uppercase text-xs mb-2 bg-teal-200/50 w-max px-2 py-1 rounded">Local Field Trip</h4>
-                  <p className="font-black text-xl mb-3 text-teal-950">{generatedData.handsOnLearning.outAndAbout.title}</p>
-                  <p className="text-base text-teal-950 font-medium mb-4">{generatedData.handsOnLearning.outAndAbout.instructions}</p>
-                  {/* INJECTED UPLOADER */}
+                <div className="bg-teal-50 p-6 rounded-2xl border border-teal-200 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <h4 className="font-black text-teal-900 uppercase text-xs bg-teal-200/50 w-max px-2 py-1 rounded">Local Field Trip</h4>
+                    <button 
+                      onClick={() => handleDoNotRecommend(`Field Trip: ${generatedData.handsOnLearning.outAndAbout.title}`)}
+                      className="text-teal-800/60 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
+                    >
+                      <Ban className="w-3.5 h-3.5" /> Do Not Recommend
+                    </button>
+                  </div>
+                  <p className="font-black text-xl text-teal-950">{generatedData.handsOnLearning.outAndAbout.title}</p>
+                  <p className="text-base text-teal-950 font-medium">{generatedData.handsOnLearning.outAndAbout.instructions}</p>
                   <PortfolioUploader 
                     studentId={plan.student_id} 
                     lessonPlanId={plan.id} 
@@ -224,7 +273,7 @@ export default function HistoryDetailPage() {
             </div>
           </CollapsibleSection>
 
-          {/* 4. End of Week Review (With Uploader) */}
+          {/* 4. End of Week Review */}
           {(generatedData.endOfWeekReview || (generatedData.printableWorksheets && generatedData.printableWorksheets[0])) && (
             <CollapsibleSection title="End of Week Review" icon={<FileText className="w-6 h-6 text-teal-600"/>} colorClass="border-t-teal-500" forceOpen={allExpanded}>
                 <h3 className="text-3xl font-black text-slate-800 mb-8 border-b-2 border-slate-100 pb-4">
@@ -238,7 +287,6 @@ export default function HistoryDetailPage() {
                 
                 <div className="mt-8 pt-6 border-t-2 border-slate-100">
                   <p className="text-sm font-bold text-slate-500 mb-2 uppercase tracking-wide">Upload Completed Worksheet</p>
-                  {/* INJECTED UPLOADER */}
                   <PortfolioUploader 
                     studentId={plan.student_id} 
                     lessonPlanId={plan.id} 
