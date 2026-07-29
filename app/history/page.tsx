@@ -47,11 +47,11 @@ export default function HistoryPage() {
     fetchHistory();
   }, [supabase, router]);
 
-  // Handler for marking a plan as "Didn't Attempt"
+// Handler for marking a plan as "Didn't Attempt"
   const handleDidNotAttempt = async (planId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("lesson_plans")
       .update({ status: "skipped", evaluated: true }) // Flags as evaluated so reminder queues skip it
       .eq("id", planId);
