@@ -39,7 +39,7 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
   };
 
   return (
-    <header className="w-full max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200 gap-4">
+    <header className="w-full max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200 gap-4 print:hidden">
       {/* Branding */}
       <div 
         className="flex items-center gap-2 cursor-pointer" 
@@ -54,6 +54,9 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
       <nav className="flex flex-wrap justify-center gap-4 text-sm font-bold text-slate-600">
         <Link href="/dashboard" className="hover:text-teal-600 transition-colors">
           Create A Plan
+        </Link>
+        <Link href="/how-it-works" className="hover:text-teal-600 transition-colors">
+          How It Works
         </Link>
         <Link href="/dashboard/students" className="hover:text-teal-600 transition-colors">
           Learner Profiles

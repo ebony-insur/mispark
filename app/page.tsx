@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Clock, Target, FileCheck, HeartHandshake, ChevronRight, CheckCircle2 } from "lucide-react";
+import { Sparkles, Clock, Target, FileCheck, HeartHandshake, ChevronRight, CheckCircle2, HelpCircle } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 
 export default function Home() {
@@ -36,13 +36,23 @@ export default function Home() {
             Upload your syllabus or type a few topics, and MiSpark instantly generates a flexible, state-aligned curriculum tailored exactly to your learner's needs.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 w-full justify-center md:justify-start">
+          <div className="flex flex-col sm:flex-row gap-4 w-full justify-center md:justify-start flex-wrap">
             <Button 
               onClick={() => router.push("/login?signup=true")} 
               className="h-16 px-8 text-xl bg-teal-600 hover:bg-teal-700 text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
             >
               Start Your Free Trial <ChevronRight className="w-6 h-6 ml-2" />
             </Button>
+            
+            <Button 
+              onClick={() => router.push("/how-it-works")} 
+              variant="outline"
+              className="h-16 px-8 text-xl border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-100"
+            >
+              <HelpCircle className="w-6 h-6 mr-2 text-teal-600" />
+              How It Works
+            </Button>
+            
             <Button 
               onClick={() => router.push("/dashboard")} 
               variant="outline"
@@ -166,9 +176,6 @@ export default function Home() {
             </div>
           </div>
         </div>
-
-       
-
       </section>
 
       {/* BOTTOM CTA */}
