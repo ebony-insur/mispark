@@ -13,14 +13,13 @@ export default function EvidenceUploader({
   standardText, 
   existingArtifact = null 
 }: any) {
-  const [masteryRating, setMasteryRating] = useState<number>(0);
-  const [enjoymentRating, setEnjoymentRating] = useState<number>(0);
-  const [notes, setNotes] = useState("");
-  const [existingFiles, setExistingFiles] = useState<string[]>([]);
+  const [masteryRating, setMasteryRating] = useState<number>(existingArtifact?.rating || 0);
+  const [enjoymentRating, setEnjoymentRating] = useState<number>(existingArtifact?.enjoyment_rating || 0);
+  const [notes, setNotes] = useState(existingArtifact?.notes || "");
+  const [existingFiles, setExistingFiles] = useState<string[]>(existingArtifact?.file_urls || (existingArtifact?.image_url ? [existingArtifact.image_url] : []));
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const [includeInPortfolio, setIncludeInPortfolio] = useState<boolean>(true);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
@@ -31,7 +30,6 @@ export default function EvidenceUploader({
       setEnjoymentRating(existingArtifact.enjoyment_rating || 0);
       setNotes(existingArtifact.notes || "");
       setExistingFiles(existingArtifact.file_urls || (existingArtifact.image_url ? [existingArtifact.image_url] : []));
-      setIncludeInPortfolio(existingArtifact.include_in_portfolio ?? true);
     }
   }, [existingArtifact]);
 
@@ -48,7 +46,6 @@ export default function EvidenceUploader({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Must be logged in to save evidence.");
 
-      // Upload newly selected pending files
       if (pendingFiles.length > 0) {
         const uploadPromises = pendingFiles.map(async (file) => {
           const fileExt = file.name.split('.').pop();
@@ -74,7 +71,6 @@ export default function EvidenceUploader({
 
       const finalFileUrls = [...existingFiles, ...newUploadedUrls];
 
-      // Payload automatically forces include_in_portfolio to true upon any update or review
       const payload = {
         parent_id: user.id,
         student_id: studentId,
@@ -84,7 +80,7 @@ export default function EvidenceUploader({
         enjoyment_rating: enjoymentRating > 0 ? enjoymentRating : null,
         notes: notes,
         file_urls: finalFileUrls,
-        include_in_portfolio: true // Automatically moves element into state portfolio requirements
+        include_in_portfolio: true
       };
 
       let dbError;
@@ -101,10 +97,11 @@ export default function EvidenceUploader({
 
       if (dbError) throw dbError;
 
-      setIsSaved(true);
-      setPendingFiles([]); // Clear pending files on success
-      setIncludeInPortfolio(true);
-      toast.success(existingArtifact ? "Evidence updated & added to portfolio!" : "Evidence saved securely & added to portfolio!");
+      setExistingFiles(finalFileUrls);
+      setPendingFiles([]);
+      setSuccessMessage("Changes saved successfully!");
+      toast.success("Evidence saved successfully!");
+      setTimeout(() => setSuccessMessage(null), 4000);
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || "Failed to save evidence.");
@@ -113,24 +110,14 @@ export default function EvidenceUploader({
     }
   };
 
-  if (isSaved) {
-    return (
-      <div className="mt-4 p-4 bg-teal-50 border border-teal-200 rounded-xl flex items-center justify-center text-teal-700 font-bold print:hidden cursor-pointer" onClick={() => setIsSaved(false)}>
-        <CheckCircle2 className="w-5 h-5 mr-2" /> 
-        {existingArtifact ? "Update Saved & Included in Portfolio" : "Evidence Attached & Included in Portfolio"} 
-        <span className="text-xs ml-2 text-teal-500 font-normal">(Click to edit again)</span>
-      </div>
-    );
-  }
-
   return (
     <div className="mt-4 pt-4 border-t border-slate-200 print:hidden space-y-4">
       
-      {/* State Portfolio Indicator Banner */}
-      <div className="flex items-center justify-between bg-teal-50/60 border border-teal-100 px-3 py-2 rounded-xl">
-        <span className="text-[11px] font-bold text-teal-800">Saving this review automatically includes it in state portfolio compliance.</span>
-        <span className="text-[10px] font-black uppercase bg-teal-200 text-teal-900 px-2 py-0.5 rounded">Active</span>
-      </div>
+      {successMessage && (
+        <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl flex items-center text-teal-700 font-bold text-xs">
+          <CheckCircle2 className="w-4 h-4 mr-2 flex-shrink-0" /> {successMessage}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
         {/* 1. AI Feedback: Learner Enjoyment */}
@@ -146,7 +133,7 @@ export default function EvidenceUploader({
             ))}
           </div>
           <span className="text-[10px] font-bold text-rose-400 mt-2 uppercase text-center leading-tight">
-            Helps MiSpark tailor future recommendations
+            Current: {enjoymentRating > 0 ? `${enjoymentRating}/5` : "Not rated"}
           </span>
         </div>
 
@@ -163,7 +150,7 @@ export default function EvidenceUploader({
             ))}
           </div>
           <span className="text-[10px] font-bold text-amber-400 mt-2 uppercase text-center leading-tight">
-            Appears on printable state portfolios
+            Current: {masteryRating > 0 ? `${masteryRating}/5` : "Not rated"}
           </span>
         </div>
       </div>
@@ -180,12 +167,9 @@ export default function EvidenceUploader({
         <div className="mb-4 flex flex-col gap-2">
           <span className="text-xs font-bold text-slate-500 uppercase">Attached Files</span>
           <div className="flex flex-wrap gap-2">
-            
-            {/* Show already saved files */}
             {existingFiles.map((url, i) => {
                let fileName = url.split('/').pop()?.split('?')[0] || `File ${i + 1}`;
                fileName = fileName.replace(/^[0-9a-z]+_/, ''); 
-
                return (
                  <div key={`existing-${i}`} className="flex items-center text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200" title={fileName}>
                    <ImageIcon className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" /> 
@@ -193,15 +177,12 @@ export default function EvidenceUploader({
                  </div>
                );
             })}
-
-            {/* Show new files waiting to be saved */}
             {pendingFiles.map((file, i) => (
                <div key={`pending-${i}`} className="flex items-center text-xs bg-teal-50 text-teal-700 px-3 py-1.5 rounded-lg border border-teal-200" title={file.name}>
                  <Upload className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" /> 
                  <span className="truncate max-w-[180px] font-bold">{file.name}</span>
                </div>
             ))}
-
           </div>
         </div>
       )}
@@ -233,10 +214,11 @@ export default function EvidenceUploader({
 
         <Button 
           onClick={() => handleSave()} 
-          disabled={isUploading || (!notes && masteryRating === 0 && enjoymentRating === 0 && existingFiles.length === 0 && pendingFiles.length === 0)}
-          className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl"
+          disabled={isUploading}
+          className="flex-1 bg-teal-600/90 hover:bg-teal-700 text-white font-bold rounded-xl shadow-sm"
         >
-          {pendingFiles.length > 0 || existingArtifact ? "Save Updates" : "Save Text Only"}
+          {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+          Save Updates
         </Button>
       </div>
     </div>
