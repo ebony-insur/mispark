@@ -51,14 +51,20 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
         </span>
       </div>
 
-      {/* Primary Navigation */}
-      <nav className="flex flex-wrap justify-center gap-4 text-sm font-bold text-slate-600">
+     {/* Primary Navigation */}
+      <nav className="flex flex-wrap items-center justify-center gap-4 text-sm font-bold text-slate-600">
         <Link href="/dashboard" className="hover:text-teal-600 transition-colors">
           Create A Plan
         </Link>
-        <Link href="/how-it-works" className="hover:text-teal-600 transition-colors">
+        
+        {/* NEW: Highlighted How It Works Link */}
+        <Link 
+          href="/how-it-works" 
+          className="text-orange-600 font-black bg-orange-50 px-3 py-1 rounded-full border border-orange-100 hover:bg-orange-100 transition-colors"
+        >
           How It Works
         </Link>
+
         <Link href="/dashboard/students" className="hover:text-teal-600 transition-colors">
           Learner Profiles
         </Link>

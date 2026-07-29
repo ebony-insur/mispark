@@ -3,8 +3,9 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Clock, Target, FileCheck, HeartHandshake, ChevronRight, CheckCircle2, HelpCircle } from "lucide-react";
+import { Sparkles, Clock, Target, FileCheck, HeartHandshake, ChevronRight, CheckCircle2, HelpCircle, ShieldCheck } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
+import SiteFooter from "@/components/SiteFooter";
 
 export default function Home() {
   const router = useRouter();
@@ -36,18 +37,25 @@ export default function Home() {
             Upload your syllabus or type a few topics, and MiSpark instantly generates a flexible, state-aligned curriculum tailored exactly to your learner's needs.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 w-full justify-center md:justify-start flex-wrap">
-            <Button 
-              onClick={() => router.push("/login?signup=true")} 
-              className="h-16 px-8 text-xl bg-teal-600 hover:bg-teal-700 text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
-            >
-              Start Your Free Trial <ChevronRight className="w-6 h-6 ml-2" />
-            </Button>
+          {/* BUTTON GROUP WITH FIXED FLEX LAYOUT */}
+          <div className="flex flex-col sm:flex-row items-start gap-4 w-full justify-center md:justify-start flex-wrap">
+            
+            <div className="flex flex-col items-center gap-2 w-full sm:w-auto">
+              <Button 
+                onClick={() => router.push("/login?signup=true")} 
+                className="h-16 px-8 w-full text-xl bg-teal-600 hover:bg-teal-700 text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
+              >
+                Start Your Free Trial <ChevronRight className="w-6 h-6 ml-2" />
+              </Button>
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
+                No Credit Card Required
+              </span>
+            </div>
             
             <Button 
               onClick={() => router.push("/how-it-works")} 
               variant="outline"
-              className="h-16 px-8 text-xl border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-100"
+              className="h-16 px-8 w-full sm:w-auto text-xl border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-100"
             >
               <HelpCircle className="w-6 h-6 mr-2 text-teal-600" />
               How It Works
@@ -56,10 +64,11 @@ export default function Home() {
             <Button 
               onClick={() => router.push("/dashboard")} 
               variant="outline"
-              className="h-16 px-8 text-xl border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-100"
+              className="h-16 px-8 w-full sm:w-auto text-xl border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-100"
             >
               View Live Demo
             </Button>
+
           </div>
         </div>
 
@@ -178,33 +187,97 @@ export default function Home() {
         </div>
       </section>
 
-      {/* BOTTOM CTA */}
-      <section className="w-full bg-teal-900 py-24 px-6 text-center">
-        <h2 className="text-4xl md:text-5xl font-black text-white mb-6">Ready to get your weekends back?</h2>
-        <p className="text-xl text-teal-100 font-medium mb-10 max-w-2xl mx-auto">Join the families using MiSpark to turn hours of curriculum planning into minutes of joyful learning.</p>
-        <Button 
-          onClick={() => router.push("/login?signup=true")} 
-          className="h-16 px-10 text-xl bg-orange-500 hover:bg-orange-600 text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
-        >
-          Start Your Free Trial ✨
-        </Button>
+      {/* THE "WHY NOT CHATGPT?" PRIVACY SECTION */}
+      <section className="w-full max-w-5xl px-6 py-24 mx-auto">
+        <div className="bg-slate-900 rounded-[3rem] p-8 md:p-16 relative overflow-hidden shadow-2xl">
+          
+          {/* Background decoration */}
+          <div className="absolute top-0 right-0 p-8 opacity-10">
+            <ShieldCheck className="w-64 h-64 text-white" />
+          </div>
+
+          <div className="relative z-10 space-y-12">
+            <div className="text-center max-w-2xl mx-auto">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-teal-400 font-bold text-xs uppercase tracking-wider mb-6">
+                <ShieldCheck className="w-4 h-4" /> Private & Segmented
+              </div>
+              <h2 className="text-3xl md:text-5xl font-black text-white leading-tight mb-4">
+                Why not just use ChatGPT?
+              </h2>
+              <p className="text-lg text-slate-400 font-medium">
+                Public AI models aggregate everything you type into the open web. We built MiSpark to keep your family safe.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* The "Other Guys" Card */}
+              <div className="bg-slate-800/50 border border-slate-700 p-8 rounded-3xl">
+                <h3 className="text-xl font-black text-slate-300 mb-6 flex items-center gap-2">
+                  Public AI Tools
+                </h3>
+                <ul className="space-y-4">
+                  <li className="flex items-start gap-3">
+                    <span className="mt-1 text-slate-500">❌</span>
+                    <p className="text-slate-400 font-medium text-sm leading-relaxed">Your child's personal data, struggles, and schedule can be used to train public models.</p>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="mt-1 text-slate-500">❌</span>
+                    <p className="text-slate-400 font-medium text-sm leading-relaxed">You have to type out a massive, exhausting prompt every single week.</p>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="mt-1 text-slate-500">❌</span>
+                    <p className="text-slate-400 font-medium text-sm leading-relaxed">It forgets what your child enjoys and starts from scratch every time.</p>
+                  </li>
+                </ul>
+              </div>
+
+              {/* The MiSpark Card */}
+              <div className="bg-teal-900/40 border border-teal-700/50 p-8 rounded-3xl relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 bg-teal-500 h-full"></div>
+                <h3 className="text-xl font-black text-teal-300 mb-6 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5" /> The MiSpark Method
+                </h3>
+                <ul className="space-y-4">
+                  <li className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-teal-500 shrink-0 mt-0.5"/>
+                    <p className="text-teal-50 font-medium text-sm leading-relaxed"><span className="font-bold">Zero Identifying Data:</span> We only ask for nicknames. Your data is enterprise-segmented and never trains public models.</p>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-teal-500 shrink-0 mt-0.5"/>
+                    <p className="text-teal-50 font-medium text-sm leading-relaxed"><span className="font-bold">One-Click Generation:</span> Profiles save your state standards and sensory needs forever. Just type a topic and hit go.</p>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-teal-500 shrink-0 mt-0.5"/>
+                    <p className="text-teal-50 font-medium text-sm leading-relaxed"><span className="font-bold">Continuous Customization:</span> Our closed-loop rating system learns what your child loves over time, entirely securely.</p>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="w-full bg-slate-900 py-8 px-6 text-center border-t border-slate-800">
-        <div className="flex justify-center gap-6 mb-4">
-          <button onClick={() => router.push("/features")} className="text-slate-400 hover:text-white font-medium text-sm transition-colors">
-            Features
-          </button>
-          <button onClick={() => router.push("/help")} className="text-slate-400 hover:text-white font-medium text-sm transition-colors">
-            Help & Best Practices
-          </button>
-          <a href="mailto:mispark@insursuccess.com" className="text-slate-400 hover:text-white font-medium text-sm transition-colors">
-            Contact Support
-          </a>
+      {/* BOTTOM CTA */}
+      <section className="w-full bg-teal-900 py-24 px-6 text-center">
+        <div className="max-w-2xl mx-auto flex flex-col items-center">
+          <h2 className="text-4xl md:text-5xl font-black text-white mb-6">Ready to get your weekends back?</h2>
+          <p className="text-xl text-teal-100 font-medium mb-10">Join the families using MiSpark to turn hours of curriculum planning into minutes of joyful learning.</p>
+          
+          <div className="flex flex-col items-center gap-3">
+            <Button 
+              onClick={() => router.push("/login?signup=true")} 
+              className="h-16 px-10 text-xl bg-orange-500 hover:bg-orange-600 text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 w-full sm:w-auto"
+            >
+              Start Your Free Trial ✨
+            </Button>
+            <span className="text-sm font-bold text-teal-200/70 uppercase tracking-wide">
+              No Credit Card Required
+            </span>
+          </div>
         </div>
-        <p className="text-slate-600 text-sm font-medium">© {new Date().getFullYear()} MiSpark. All rights reserved.</p>
-      </footer>
+      </section>
+
+      <SiteFooter />
 
     </main>
   );

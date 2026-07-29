@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import SiteFooter from "@/components/SiteFooter";
 import { 
   MapPin, Backpack, GraduationCap, Tv, Library, BookOpen, 
   User, Clock, ArrowLeft, BrainCircuit, HeartHandshake, Sparkles, Target, 
-  Plus, Edit, Zap, Users, Lock
+  Plus, Edit, Zap, Users, Lock, ShieldCheck
 } from "lucide-react";
 
 const SUBSCRIPTION_OPTIONS = [
@@ -80,7 +81,6 @@ export default function StudentsPage() {
     setUser(user);
 
     if (user) {
-      // FIX: Added (supabase as any) here
       const { data: profileData } = await (supabase as any)
         .from("profiles")
         .select("subscriptions, subscription_tier")
@@ -90,7 +90,6 @@ export default function StudentsPage() {
       if ((profileData as any)?.subscriptions) setActiveSubscriptions((profileData as any).subscriptions);
       if ((profileData as any)?.subscription_tier) setSubscriptionTier((profileData as any).subscription_tier);
 
-      // FIX: Added (supabase as any) here
       const { data: studentData } = await (supabase as any)
         .from("children_profiles")
         .select("*")
@@ -215,222 +214,229 @@ export default function StudentsPage() {
   if (isLoading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center font-bold text-slate-500">Loading roster...</div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10 px-6 py-4 shadow-sm">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <Button variant="ghost" onClick={() => router.push("/dashboard")} className="text-slate-600 hover:text-slate-900 px-0">
-            <ArrowLeft className="w-5 h-5 mr-2" /> Back to Dashboard
-          </Button>
-          <h1 className="font-extrabold text-xl tracking-tight text-slate-800">Household Profiles</h1>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto p-6 space-y-8 mt-4">
-        
-        {/* BACKPACK */}
-        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <h2 className="text-2xl font-black flex items-center gap-2 text-slate-800">
-                <Backpack className="text-teal-600 w-6 h-6" /> Household Digital Backpack
-              </h2>
-              <p className="text-sm text-slate-500 mt-1 font-medium">Select what you already own. We will prioritize these to save you money!</p>
-            </div>
-            <Button onClick={handleSaveBackpack} disabled={isSavingBackpack} className="bg-teal-600 hover:bg-teal-700 font-bold shrink-0 text-white">
-              {isSavingBackpack ? "Saving..." : "Save Backpack"}
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
+      <div>
+        <div className="bg-white border-b border-slate-200 sticky top-0 z-10 px-6 py-4 shadow-sm">
+          <div className="max-w-4xl mx-auto flex justify-between items-center">
+            <Button variant="ghost" onClick={() => router.push("/dashboard")} className="text-slate-600 hover:text-slate-900 px-0">
+              <ArrowLeft className="w-5 h-5 mr-2" /> Back to Dashboard
             </Button>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {SUBSCRIPTION_OPTIONS.map((sub) => {
-              const isActive = activeSubscriptions.includes(sub.id);
-              return (
-                <button
-                  key={sub.id}
-                  onClick={() => handleToggleSubscription(sub.id)}
-                  className={`flex items-center gap-2 p-3 rounded-xl border text-sm font-bold transition-all ${
-                    isActive ? "bg-teal-50 border-teal-500 text-teal-800 shadow-sm" : "bg-white border-slate-200 text-slate-600 hover:border-teal-300 hover:bg-slate-50"
-                  }`}
-                >
-                  {sub.icon} {sub.id}
-                </button>
-              );
-            })}
+            <h1 className="font-extrabold text-xl tracking-tight text-slate-800">Household Profiles</h1>
           </div>
         </div>
 
-        {/* ROSTER VIEW */}
-        {viewMode === "roster" && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-                <Users className="text-blue-600 w-6 h-6" /> My Students
-              </h2>
+        <div className="max-w-4xl mx-auto p-6 space-y-8 mt-4 mb-16">
+          
+          {/* BACKPACK */}
+          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-2xl font-black flex items-center gap-2 text-slate-800">
+                  <Backpack className="text-teal-600 w-6 h-6" /> Household Digital Backpack
+                </h2>
+                <p className="text-sm text-slate-500 mt-1 font-medium">Select what you already own. We will prioritize these to save you money!</p>
+              </div>
+              <Button onClick={handleSaveBackpack} disabled={isSavingBackpack} className="bg-teal-600 hover:bg-teal-700 font-bold shrink-0 text-white">
+                {isSavingBackpack ? "Saving..." : "Save Backpack"}
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {SUBSCRIPTION_OPTIONS.map((sub) => {
+                const isActive = activeSubscriptions.includes(sub.id);
+                return (
+                  <button
+                    key={sub.id}
+                    onClick={() => handleToggleSubscription(sub.id)}
+                    className={`flex items-center gap-2 p-3 rounded-xl border text-sm font-bold transition-all ${
+                      isActive ? "bg-teal-50 border-teal-500 text-teal-800 shadow-sm" : "bg-white border-slate-200 text-slate-600 hover:border-teal-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    {sub.icon} {sub.id}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ROSTER VIEW */}
+          {viewMode === "roster" && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+                  <Users className="text-blue-600 w-6 h-6" /> My Students
+                </h2>
+                
+                {subscriptionTier === "Solo Scholar" && students.length >= 1 ? (
+                  <Button onClick={() => router.push("/dashboard")} className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-md hover:opacity-90">
+                    <Lock className="w-4 h-4 mr-2" /> Upgrade to Add Kids
+                  </Button>
+                ) : (
+                  <Button onClick={openFormForNew} className="bg-slate-900 hover:bg-slate-800 text-white font-bold">
+                    <Plus className="w-4 h-4 mr-2" /> Add Student
+                  </Button>
+                )}
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                {students.map(student => (
+                  <div key={student.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                    <div>
+                      <h3 className="font-black text-xl text-slate-800 mb-1">{student.nickname}</h3>
+                      <p className="text-sm font-bold text-slate-500">{student.grade} • {student.focus_duration}</p>
+                      {student.interests && <p className="text-xs text-slate-400 mt-2 line-clamp-2">Loves: {student.interests}</p>}
+                    </div>
+                    <div className="flex gap-2 mt-6 pt-4 border-t border-slate-100">
+                      <Button onClick={() => openFormForEdit(student)} variant="outline" className="flex-1 font-bold border-slate-200 hover:bg-slate-50">
+                        <Edit className="w-4 h-4 mr-2" /> Edit Profile
+                      </Button>
+                      <Button onClick={() => router.push("/history")} variant="secondary" className="flex-1 font-bold bg-amber-50 text-amber-700 hover:bg-amber-100">
+                        <Zap className="w-4 h-4 mr-2 fill-amber-500 text-amber-500" /> History
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* FORM VIEW (ADD/EDIT) */}
+          {viewMode === "form" && (
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-4">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+                  <User className="text-blue-600 w-6 h-6" /> {editingId ? "Edit Student Profile" : "Add New Student"}
+                </h2>
+                {students.length > 0 && (
+                  <Button variant="ghost" onClick={() => setViewMode("roster")} className="text-slate-500">Cancel</Button>
+                )}
+              </div>
               
-              {subscriptionTier === "Solo Scholar" && students.length >= 1 ? (
-                <Button onClick={() => router.push("/dashboard")} className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-md hover:opacity-90">
-                  <Lock className="w-4 h-4 mr-2" /> Upgrade to Add Kids
-                </Button>
-              ) : (
-                <Button onClick={openFormForNew} className="bg-slate-900 hover:bg-slate-800 text-white font-bold">
-                  <Plus className="w-4 h-4 mr-2" /> Add Student
-                </Button>
-              )}
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              {students.map(student => (
-                <div key={student.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-black text-xl text-slate-800 mb-1">{student.nickname}</h3>
-                    <p className="text-sm font-bold text-slate-500">{student.grade} • {student.focus_duration}</p>
-                    {student.interests && <p className="text-xs text-slate-400 mt-2 line-clamp-2">Loves: {student.interests}</p>}
-                  </div>
-                  <div className="flex gap-2 mt-6 pt-4 border-t border-slate-100">
-                    <Button onClick={() => openFormForEdit(student)} variant="outline" className="flex-1 font-bold border-slate-200 hover:bg-slate-50">
-                      <Edit className="w-4 h-4 mr-2" /> Edit Profile
-                    </Button>
-                    <Button onClick={() => router.push("/history")} variant="secondary" className="flex-1 font-bold bg-amber-50 text-amber-700 hover:bg-amber-100">
-                      <Zap className="w-4 h-4 mr-2 fill-amber-500 text-amber-500" /> History
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* FORM VIEW (ADD/EDIT) */}
-        {viewMode === "form" && (
-          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-4">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-                <User className="text-blue-600 w-6 h-6" /> {editingId ? "Edit Student Profile" : "Add New Student"}
-              </h2>
-              {students.length > 0 && (
-                <Button variant="ghost" onClick={() => setViewMode("roster")} className="text-slate-500">Cancel</Button>
-              )}
-            </div>
-            
-            <div className="space-y-10">
-              <div>
-                <h3 className="text-sm font-extrabold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2">Basic Info</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="text-sm font-bold text-slate-700 mb-2 block">Student Nickname *</label>
-                    <Input placeholder="e.g. Leo" value={nickname} onChange={(e) => setNickname(e.target.value)} className="bg-slate-50" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-bold text-slate-700 mb-2 block">Age / Overall Grade *</label>
-                    <select value={grade} onChange={(e) => setGrade(e.target.value)} className="w-full flex h-10 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-950">
-                      <option value="" disabled>Select Grade...</option>
-                      {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-extrabold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2 flex items-center gap-2">
-                  <Target className="w-4 h-4"/> Academic Mastery
-                </h3>
-                <div className="space-y-6">
-                  <div>
-                    <label className="text-sm font-bold text-slate-700 mb-2 block">Math Level</label>
-                    <div className="flex bg-slate-100 p-1 rounded-xl">
-                      {MASTERY_LEVELS.map(level => (
-                        <button type="button" key={`math-${level}`} onClick={() => setMathMastery(level)} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${mathMastery === level ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
-                          {level}
-                        </button>
-                      ))}
+              <div className="space-y-10">
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2">Basic Info</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="text-sm font-bold text-slate-700 mb-2 block">Student Nickname *</label>
+                      <Input placeholder="e.g. Leo" value={nickname} onChange={(e) => setNickname(e.target.value)} className="bg-slate-50" />
+                      <p className="text-[10px] text-slate-400 font-bold uppercase mt-1 flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3" /> Use a nickname. No identifying info is captured.
+                      </p>
                     </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-bold text-slate-700 mb-2 block">Reading Level</label>
-                    <div className="flex bg-slate-100 p-1 rounded-xl">
-                      {MASTERY_LEVELS.map(level => (
-                        <button type="button" key={`read-${level}`} onClick={() => setReadingMastery(level)} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${readingMastery === level ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
-                          {level}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-bold text-slate-700 mb-2 block">Science Level</label>
-                    <div className="flex bg-slate-100 p-1 rounded-xl">
-                      {MASTERY_LEVELS.map(level => (
-                        <button type="button" key={`sci-${level}`} onClick={() => setScienceMastery(level)} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${scienceMastery === level ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
-                          {level}
-                        </button>
-                      ))}
+                    <div>
+                      <label className="text-sm font-bold text-slate-700 mb-2 block">Age / Overall Grade *</label>
+                      <select value={grade} onChange={(e) => setGrade(e.target.value)} className="w-full flex h-10 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-950">
+                        <option value="" disabled>Select Grade...</option>
+                        {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
+                      </select>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div>
-                <h3 className="text-sm font-extrabold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2 flex items-center gap-2">
-                  <BrainCircuit className="w-4 h-4"/> Learning Profile
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Clock className="w-4 h-4 text-amber-500"/> Focus Duration *</label>
-                    <select value={focusDuration} onChange={(e) => setFocusDuration(e.target.value)} className="w-full flex h-10 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-950">
-                      <option value="" disabled>Select Attention Span...</option>
-                      <option value="10 mins">10 Minutes (Short bursts)</option>
-                      <option value="20 mins">20 Minutes (Standard)</option>
-                      <option value="45 mins">45 Minutes (Deep dive)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-bold text-slate-700 mb-2 block">Primary Learning Style</label>
-                    <select value={learningStyle} onChange={(e) => setLearningStyle(e.target.value)} className="w-full flex h-10 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-950">
-                      <option value="">Mixed / Not Sure</option>
-                      <option value="Visual">Visual (Seeing)</option>
-                      <option value="Auditory">Auditory (Hearing)</option>
-                      <option value="Kinesthetic">Kinesthetic (Hands-on)</option>
-                    </select>
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><HeartHandshake className="w-4 h-4 text-rose-500"/> Sensory Needs or Accommodations</label>
-                    <Input placeholder="e.g. Needs frequent movement breaks..." value={sensoryNeeds} onChange={(e) => setSensoryNeeds(e.target.value)} className="bg-slate-50" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Sparkles className="w-4 h-4 text-purple-500"/> Anything else we should know?</label>
-                    <Textarea placeholder="Special interests, specific goals, or concerns..." value={interests} onChange={(e) => setInterests(e.target.value)} className="bg-slate-50 min-h-[100px]" />
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2 flex items-center gap-2">
+                    <Target className="w-4 h-4"/> Academic Mastery
+                  </h3>
+                  <div className="space-y-6">
+                    <div>
+                      <label className="text-sm font-bold text-slate-700 mb-2 block">Math Level</label>
+                      <div className="flex bg-slate-100 p-1 rounded-xl">
+                        {MASTERY_LEVELS.map(level => (
+                          <button type="button" key={`math-${level}`} onClick={() => setMathMastery(level)} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${mathMastery === level ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                            {level}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-bold text-slate-700 mb-2 block">Reading Level</label>
+                      <div className="flex bg-slate-100 p-1 rounded-xl">
+                        {MASTERY_LEVELS.map(level => (
+                          <button type="button" key={`read-${level}`} onClick={() => setReadingMastery(level)} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${readingMastery === level ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                            {level}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-bold text-slate-700 mb-2 block">Science Level</label>
+                      <div className="flex bg-slate-100 p-1 rounded-xl">
+                        {MASTERY_LEVELS.map(level => (
+                          <button type="button" key={`sci-${level}`} onClick={() => setScienceMastery(level)} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${scienceMastery === level ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                            {level}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div>
-                <h3 className="text-sm font-extrabold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2">Location & Standards</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><GraduationCap className="w-4 h-4 text-indigo-600"/> Legal State of Residence *</label>
-                    <select value={stateResidence} onChange={(e) => setStateResidence(e.target.value)} className="w-full flex h-10 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-950">
-                      <option value="" disabled>Select State...</option>
-                      {US_STATES.map(state => <option key={state} value={state}>{state}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><MapPin className="w-4 h-4 text-rose-600"/> Physical Zip Code *</label>
-                    <Input placeholder="e.g. 40245" value={zipCode} onChange={(e) => setZipCode(e.target.value)} maxLength={5} className="bg-slate-50" />
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2 flex items-center gap-2">
+                    <BrainCircuit className="w-4 h-4"/> Learning Profile
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Clock className="w-4 h-4 text-amber-500"/> Focus Duration *</label>
+                      <select value={focusDuration} onChange={(e) => setFocusDuration(e.target.value)} className="w-full flex h-10 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-950">
+                        <option value="" disabled>Select Attention Span...</option>
+                        <option value="10 mins">10 Minutes (Short bursts)</option>
+                        <option value="20 mins">20 Minutes (Standard)</option>
+                        <option value="45 mins">45 Minutes (Deep dive)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-bold text-slate-700 mb-2 block">Primary Learning Style</label>
+                      <select value={learningStyle} onChange={(e) => setLearningStyle(e.target.value)} className="w-full flex h-10 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-950">
+                        <option value="">Mixed / Not Sure</option>
+                        <option value="Visual">Visual (Seeing)</option>
+                        <option value="Auditory">Auditory (Hearing)</option>
+                        <option value="Kinesthetic">Kinesthetic (Hands-on)</option>
+                      </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><HeartHandshake className="w-4 h-4 text-rose-500"/> Sensory Needs or Accommodations</label>
+                      <Input placeholder="e.g. Needs frequent movement breaks..." value={sensoryNeeds} onChange={(e) => setSensoryNeeds(e.target.value)} className="bg-slate-50" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Sparkles className="w-4 h-4 text-purple-500"/> Anything else we should know?</label>
+                      <Textarea placeholder="Special interests, specific goals, or concerns..." value={interests} onChange={(e) => setInterests(e.target.value)} className="bg-slate-50 min-h-[100px]" />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-slate-200">
-                <Button onClick={() => handleSaveStudent(false)} disabled={isSavingStudent} variant="outline" className="flex-1 py-6 font-bold border-2 border-slate-200 text-slate-700 hover:bg-slate-50">
-                  Save &amp; View Roster
-                </Button>
-                <Button onClick={() => handleSaveStudent(true)} disabled={isSavingStudent} className="flex-1 py-6 bg-slate-900 hover:bg-slate-800 text-white font-bold">
-                  Save &amp; Go to Dashboard
-                </Button>
-              </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2">Location & Standards</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><GraduationCap className="w-4 h-4 text-indigo-600"/> Legal State of Residence *</label>
+                      <select value={stateResidence} onChange={(e) => setStateResidence(e.target.value)} className="w-full flex h-10 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-950">
+                        <option value="" disabled>Select State...</option>
+                        {US_STATES.map(state => <option key={state} value={state}>{state}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><MapPin className="w-4 h-4 text-rose-600"/> Physical Zip Code *</label>
+                      <Input placeholder="e.g. 40245" value={zipCode} onChange={(e) => setZipCode(e.target.value)} maxLength={5} className="bg-slate-50" />
+                    </div>
+                  </div>
+                </div>
 
+                <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-slate-200">
+                  <Button onClick={() => handleSaveStudent(false)} disabled={isSavingStudent} variant="outline" className="flex-1 py-6 font-bold border-2 border-slate-200 text-slate-700 hover:bg-slate-50">
+                    Save &amp; View Roster
+                  </Button>
+                  <Button onClick={() => handleSaveStudent(true)} disabled={isSavingStudent} className="flex-1 py-6 bg-slate-900 hover:bg-slate-800 text-white font-bold">
+                    Save &amp; Go to Dashboard
+                  </Button>
+                </div>
+
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      <SiteFooter />
     </div>
   );
 }

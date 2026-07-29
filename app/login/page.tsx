@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, Target, FileCheck, HeartHandshake, Sparkles, MailCheck } from "lucide-react";
 import Image from "next/image";
+import SiteFooter from "@/components/SiteFooter";
 
 function AuthForm() {
   const router = useRouter();
@@ -239,78 +240,81 @@ export default function LoginPage() {
   const router = useRouter();
 
   return (
-    <main className="min-h-screen flex flex-col md:flex-row bg-slate-50">
-      
-      {/* LEFT COLUMN: MARKETING & FEATURES */}
-      <div className="w-full md:w-5/12 lg:w-1/2 bg-teal-900 text-white p-8 md:p-16 flex flex-col justify-center relative overflow-hidden">
-        {/* Decorative background circle */}
-        <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-teal-800 rounded-full blur-3xl opacity-50 -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+    <main className="min-h-screen flex flex-col justify-between bg-slate-50">
+      <div className="flex-1 flex flex-col md:flex-row">
         
-        <div className="relative z-10 max-w-lg mx-auto md:mx-0">
-          <Button variant="ghost" onClick={() => router.push("/")} className="mb-12 -ml-4 text-teal-100 hover:text-white hover:bg-teal-800">
-            <ArrowLeft className="w-5 h-5 mr-2" /> Back to Home
-          </Button>
+        {/* LEFT COLUMN: MARKETING & FEATURES */}
+        <div className="w-full md:w-5/12 lg:w-1/2 bg-teal-900 text-white p-8 md:p-16 flex flex-col justify-center relative overflow-hidden">
+          {/* Decorative background circle */}
+          <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-teal-800 rounded-full blur-3xl opacity-50 -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+          
+          <div className="relative z-10 max-w-lg mx-auto md:mx-0">
+            <Button variant="ghost" onClick={() => router.push("/")} className="mb-12 -ml-4 text-teal-100 hover:text-white hover:bg-teal-800">
+              <ArrowLeft className="w-5 h-5 mr-2" /> Back to Home
+            </Button>
 
-          <div className="hidden md:block mb-10">
-            <h1 className="text-4xl lg:text-5xl font-black text-white leading-tight mb-4 tracking-tight">
-              Homeschooling, <br/>
-              <span className="text-teal-300">simplified.</span>
-            </h1>
-            <p className="text-teal-100 text-lg font-medium">Create your free account to unlock the full power of MiSpark's AI curriculum engine.</p>
-          </div>
-
-          <div className="space-y-8">
-            <div className="flex gap-4 items-start">
-              <div className="bg-orange-500/20 p-3 rounded-2xl shrink-0">
-                <Sparkles className="w-6 h-6 text-orange-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white mb-1">Custom Learner Profiles</h3>
-                <p className="text-teal-100/80 font-medium text-sm leading-relaxed">The AI curates books and hands-on activities based on your child's specific grade, interests, and sensory needs.</p>
-              </div>
+            <div className="hidden md:block mb-10">
+              <h1 className="text-4xl lg:text-5xl font-black text-white leading-tight mb-4 tracking-tight">
+                Homeschooling, <br/>
+                <span className="text-teal-300">simplified.</span>
+              </h1>
+              <p className="text-teal-100 text-lg font-medium">Create your free account to unlock the full power of MiSpark's AI curriculum engine.</p>
             </div>
 
-            <div className="flex gap-4 items-start">
-              <div className="bg-blue-500/20 p-3 rounded-2xl shrink-0">
-                <Target className="w-6 h-6 text-blue-400" />
+            <div className="space-y-8">
+              <div className="flex gap-4 items-start">
+                <div className="bg-orange-500/20 p-3 rounded-2xl shrink-0">
+                  <Sparkles className="w-6 h-6 text-orange-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-1">Custom Learner Profiles</h3>
+                  <p className="text-teal-100/80 font-medium text-sm leading-relaxed">The AI curates books and hands-on activities based on your child's specific grade, interests, and sensory needs.</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-white mb-1">Automatic State Standards</h3>
-                <p className="text-teal-100/80 font-medium text-sm leading-relaxed">Never guess if you are compliant. We automatically map your topics directly to your state's specific educational requirements.</p>
-              </div>
-            </div>
 
-            <div className="flex gap-4 items-start">
-              <div className="bg-rose-500/20 p-3 rounded-2xl shrink-0">
-                <FileCheck className="w-6 h-6 text-rose-400" />
+              <div className="flex gap-4 items-start">
+                <div className="bg-blue-500/20 p-3 rounded-2xl shrink-0">
+                  <Target className="w-6 h-6 text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-1">Automatic State Standards</h3>
+                  <p className="text-teal-100/80 font-medium text-sm leading-relaxed">Never guess if you are compliant. We automatically map your topics directly to your state's specific educational requirements.</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-white mb-1">Printable Portfolios</h3>
-                <p className="text-teal-100/80 font-medium text-sm leading-relaxed">Snap a photo of their work, track their progress, and generate evaluator-approved end-of-year reports instantly.</p>
+
+              <div className="flex gap-4 items-start">
+                <div className="bg-rose-500/20 p-3 rounded-2xl shrink-0">
+                  <FileCheck className="w-6 h-6 text-rose-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-1">Printable Portfolios</h3>
+                  <p className="text-teal-100/80 font-medium text-sm leading-relaxed">Snap a photo of their work, track their progress, and generate evaluator-approved end-of-year reports instantly.</p>
+                </div>
               </div>
-            </div>
-            
-            <div className="flex gap-4 items-start">
-              <div className="bg-emerald-500/20 p-3 rounded-2xl shrink-0">
-                <HeartHandshake className="w-6 h-6 text-emerald-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white mb-1">Smart Feedback Loop</h3>
-                <p className="text-teal-100/80 font-medium text-sm leading-relaxed">Rate the activities as you go. The engine learns exactly what your child loves and adapts future lesson plans to match.</p>
+              
+              <div className="flex gap-4 items-start">
+                <div className="bg-emerald-500/20 p-3 rounded-2xl shrink-0">
+                  <HeartHandshake className="w-6 h-6 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-1">Smart Feedback Loop</h3>
+                  <p className="text-teal-100/80 font-medium text-sm leading-relaxed">Rate the activities as you go. The engine learns exactly what your child loves and adapts future lesson plans to match.</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* RIGHT COLUMN: AUTH FORM */}
+        <div className="w-full md:w-7/12 lg:w-1/2 flex items-center justify-center p-6 py-12 md:p-12 relative z-10">
+          <Suspense fallback={<Loader2 className="w-10 h-10 animate-spin text-teal-600" />}>
+            <AuthForm />
+          </Suspense>
+        </div>
+
       </div>
 
-      {/* RIGHT COLUMN: AUTH FORM */}
-      <div className="w-full md:w-7/12 lg:w-1/2 flex items-center justify-center p-6 py-12 md:p-12 relative z-10">
-        <Suspense fallback={<Loader2 className="w-10 h-10 animate-spin text-teal-600" />}>
-          <AuthForm />
-        </Suspense>
-      </div>
-
+      <SiteFooter />
     </main>
   );
 }
-
