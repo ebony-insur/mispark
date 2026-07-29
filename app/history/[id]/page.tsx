@@ -15,6 +15,81 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+// Reusable component for the Include in Portfolio toggle above each Do Not Recommend button
+function ElementPortfolioToggle({ studentId, lessonPlanId, standardText, supabase }: { studentId: string; lessonPlanId: string; standardText: string; supabase: any }) {
+  const [isIncluded, setIsIncluded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!studentId || !lessonPlanId || !standardText) return;
+    const fetchStatus = async () => {
+      const { data } = await (supabase as any)
+        .from("portfolio_artifacts")
+        .select("include_in_portfolio")
+        .eq("student_id", studentId)
+        .eq("lesson_plan_id", lessonPlanId)
+        .eq("standard_text", standardText)
+        .single();
+      
+      if (data) {
+        setIsIncluded(Boolean(data.include_in_portfolio));
+      }
+      setIsLoading(false);
+    };
+    fetchStatus();
+  }, [studentId, lessonPlanId, standardText, supabase]);
+
+  const handleToggle = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    setIsIncluded(checked);
+
+    const { data: existing } = await (supabase as any)
+      .from("portfolio_artifacts")
+      .select("id")
+      .eq("student_id", studentId)
+      .eq("lesson_plan_id", lessonPlanId)
+      .eq("standard_text", standardText)
+      .single();
+
+    if (existing) {
+      const { error } = await (supabase as any)
+        .from("portfolio_artifacts")
+        .update({ include_in_portfolio: checked })
+        .eq("id", existing.id);
+      if (error) toast.error("Failed to update portfolio status");
+      else toast.success(checked ? "Added to state portfolio" : "Removed from state portfolio");
+    } else {
+      const { error } = await (supabase as any)
+        .from("portfolio_artifacts")
+        .insert({
+          student_id: studentId,
+          lesson_plan_id: lessonPlanId,
+          standard_text: standardText,
+          include_in_portfolio: checked
+        });
+      if (error) toast.error("Failed to update portfolio status");
+      else toast.success(checked ? "Added to state portfolio" : "Removed from state portfolio");
+    }
+  };
+
+  if (isLoading) return null;
+
+  return (
+    <div className="flex items-center gap-2 print:hidden mb-1">
+      <input 
+        type="checkbox" 
+        id={`port-toggle-${standardText.replace(/\s+/g, '-')}`}
+        checked={isIncluded}
+        onChange={handleToggle}
+        className="w-3.5 h-3.5 rounded text-teal-600 focus:ring-teal-500 cursor-pointer"
+      />
+      <label htmlFor={`port-toggle-${standardText.replace(/\s+/g, '-')}`} className="text-[11px] font-bold text-slate-600 cursor-pointer">
+        Include in State Portfolio
+      </label>
+    </div>
+  );
+}
+
 const CollapsibleSection = ({ title, icon, children, colorClass, forceOpen }: any) => {
   const [isOpen, setIsOpen] = useState(true);
   
@@ -163,28 +238,34 @@ export default function HistoryDetailPage() {
               {generatedData.assessedFoundation}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              {generatedData.outlinedStandards?.map((std: any, idx: number) => (
-                <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-4">
-                  <div>
-                    <div className="flex justify-between items-start">
-                      <p className="font-bold text-slate-800 text-base">{std.subject}</p>
-                      <button 
-                        onClick={() => handleDoNotRecommend(`${std.subject}: ${std.topic}`)}
-                        className="text-slate-400 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
-                        title="Never recommend this standard/topic again"
-                      >
-                        <Ban className="w-3.5 h-3.5" /> Do Not Recommend
-                      </button>
+              {generatedData.outlinedStandards?.map((std: any, idx: number) => {
+                const standardText = `Standard Mastery: ${std.subject} - ${std.topic}`;
+                return (
+                  <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-4">
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <p className="font-bold text-slate-800 text-base">{std.subject}</p>
+                        <div className="flex flex-col items-end">
+                          <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} supabase={supabase} />
+                          <button 
+                            onClick={() => handleDoNotRecommend(`${std.subject}: ${std.topic}`)}
+                            className="text-slate-400 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
+                            title="Never recommend this standard/topic again"
+                          >
+                            <Ban className="w-3.5 h-3.5" /> Do Not Recommend
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-slate-600 text-sm mt-1">{std.topic}</p>
                     </div>
-                    <p className="text-slate-600 text-sm mt-1">{std.topic}</p>
+                    <PortfolioUploader 
+                      studentId={plan.student_id} 
+                      lessonPlanId={plan.id} 
+                      standardText={standardText} 
+                    />
                   </div>
-                  <PortfolioUploader 
-                    studentId={plan.student_id} 
-                    lessonPlanId={plan.id} 
-                    standardText={`Standard Mastery: ${std.subject} - ${std.topic}`} 
-                  />
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CollapsibleSection>
 
@@ -192,28 +273,34 @@ export default function HistoryDetailPage() {
           {generatedData.buyableTools && generatedData.buyableTools.length > 0 && (
             <CollapsibleSection title="Tactile & Visual Tools" icon={<Shapes className="w-6 h-6 text-purple-600"/>} colorClass="border-t-purple-500" forceOpen={allExpanded}>
               <div className="grid md:grid-cols-2 gap-4">
-                {generatedData.buyableTools.map((item: any, idx: number) => (
-                  <div key={idx} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
-                    <div>
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-black text-purple-800 text-lg">{item.item}</h4>
-                        <button 
-                          onClick={() => handleDoNotRecommend(`Tool: ${item.item}`)}
-                          className="text-slate-400 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
-                        >
-                          <Ban className="w-3.5 h-3.5" /> Do Not Recommend
-                        </button>
+                {generatedData.buyableTools.map((item: any, idx: number) => {
+                  const standardText = `Tool Use: ${item.item}`;
+                  return (
+                    <div key={idx} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-black text-purple-800 text-lg">{item.item}</h4>
+                          <div className="flex flex-col items-end">
+                            <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} supabase={supabase} />
+                            <button 
+                              onClick={() => handleDoNotRecommend(`Tool: ${item.item}`)}
+                              className="text-slate-400 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
+                            >
+                              <Ban className="w-3.5 h-3.5" /> Do Not Recommend
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-sm text-slate-600 font-medium">{item.howToUse}</p>
                       </div>
-                      <p className="text-sm text-slate-600 font-medium">{item.howToUse}</p>
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <a href={`https://www.amazon.com/s?k=${encodeURIComponent(item.searchQuery || item.item)}&tag=mispark0a-20`} target="_blank" className="text-xs font-bold text-slate-700 hover:text-purple-700 flex items-center print:hidden">
+                          Find on Amazon <ExternalLink className="w-3 h-3 ml-1"/>
+                        </a>
+                        <PortfolioUploader studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} />
+                      </div>
                     </div>
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                      <a href={`https://www.amazon.com/s?k=${encodeURIComponent(item.searchQuery || item.item)}&tag=mispark0a-20`} target="_blank" className="text-xs font-bold text-slate-700 hover:text-purple-700 flex items-center print:hidden">
-                        Find on Amazon <ExternalLink className="w-3 h-3 ml-1"/>
-                      </a>
-                      <PortfolioUploader studentId={plan.student_id} lessonPlanId={plan.id} standardText={`Tool Use: ${item.item}`} />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CollapsibleSection>
           )}
@@ -222,28 +309,34 @@ export default function HistoryDetailPage() {
           {generatedData.readingList && generatedData.readingList.length > 0 && (
             <CollapsibleSection title="Recommended Reading" icon={<BookHeart className="w-6 h-6 text-rose-600"/>} colorClass="border-t-rose-500" forceOpen={allExpanded}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {generatedData.readingList.map((book: any, idx: number) => (
-                  <div key={idx} className="p-5 rounded-xl border border-slate-200 flex flex-col justify-between space-y-4">
-                    <div>
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-xs font-black uppercase text-indigo-500 block bg-indigo-50 w-max px-2 py-1 rounded">{book.type}</span>
-                        <button 
-                          onClick={() => handleDoNotRecommend(`Book: ${book.title}`)}
-                          className="text-slate-400 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
-                        >
-                          <Ban className="w-3.5 h-3.5" /> Do Not Recommend
-                        </button>
+                {generatedData.readingList.map((book: any, idx: number) => {
+                  const standardText = `Reading Comprehension: ${book.title}`;
+                  return (
+                    <div key={idx} className="p-5 rounded-xl border border-slate-200 flex flex-col justify-between space-y-4">
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="text-xs font-black uppercase text-indigo-500 block bg-indigo-50 w-max px-2 py-1 rounded">{book.type}</span>
+                          <div className="flex flex-col items-end">
+                            <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} supabase={supabase} />
+                            <button 
+                              onClick={() => handleDoNotRecommend(`Book: ${book.title}`)}
+                              className="text-slate-400 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
+                            >
+                              <Ban className="w-3.5 h-3.5" /> Do Not Recommend
+                            </button>
+                          </div>
+                        </div>
+                        <h3 className="font-black text-slate-800 text-lg leading-tight">{book.title}</h3>
+                        <p className="text-sm text-slate-600 mt-2 mb-2 font-medium">&quot;{book.prompt}&quot;</p>
                       </div>
-                      <h3 className="font-black text-slate-800 text-lg leading-tight">{book.title}</h3>
-                      <p className="text-sm text-slate-600 mt-2 mb-2 font-medium">&quot;{book.prompt}&quot;</p>
+                      <PortfolioUploader 
+                        studentId={plan.student_id} 
+                        lessonPlanId={plan.id} 
+                        standardText={standardText} 
+                      />
                     </div>
-                    <PortfolioUploader 
-                      studentId={plan.student_id} 
-                      lessonPlanId={plan.id} 
-                      standardText={`Reading Comprehension: ${book.title}`} 
-                    />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CollapsibleSection>
           )}
@@ -252,26 +345,32 @@ export default function HistoryDetailPage() {
           {generatedData.letsPlay && generatedData.letsPlay.length > 0 && (
             <CollapsibleSection title="Let's Play" icon={<Gamepad2 className="w-6 h-6 text-emerald-600"/>} colorClass="border-t-emerald-500" forceOpen={allExpanded}>
               <div className="grid md:grid-cols-2 gap-4">
-                {generatedData.letsPlay.map((game: any, idx: number) => (
-                  <div key={idx} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
-                    <div>
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-black text-emerald-800 text-lg">{game.gameName}</h4>
-                        <button 
-                          onClick={() => handleDoNotRecommend(`Game: ${game.gameName}`)}
-                          className="text-slate-400 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
-                        >
-                          <Ban className="w-3.5 h-3.5" /> Do Not Recommend
-                        </button>
+                {generatedData.letsPlay.map((game: any, idx: number) => {
+                  const standardText = `Activity / Game: ${game.gameName}`;
+                  return (
+                    <div key={idx} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-black text-emerald-800 text-lg">{game.gameName}</h4>
+                          <div className="flex flex-col items-end">
+                            <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} supabase={supabase} />
+                            <button 
+                              onClick={() => handleDoNotRecommend(`Game: ${game.gameName}`)}
+                              className="text-slate-400 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
+                            >
+                              <Ban className="w-3.5 h-3.5" /> Do Not Recommend
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-xs font-bold text-emerald-600 mb-2 uppercase bg-emerald-50 inline-block px-2 py-1 rounded">
+                          {game.modality} | {game.skillsReinforced}
+                        </p>
+                        <p className="text-sm text-slate-600 font-medium">{game.description}</p>
                       </div>
-                      <p className="text-xs font-bold text-emerald-600 mb-2 uppercase bg-emerald-50 inline-block px-2 py-1 rounded">
-                        {game.modality} | {game.skillsReinforced}
-                      </p>
-                      <p className="text-sm text-slate-600 font-medium">{game.description}</p>
+                      <PortfolioUploader studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} />
                     </div>
-                    <PortfolioUploader studentId={plan.student_id} lessonPlanId={plan.id} standardText={`Activity / Game: ${game.gameName}`} />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CollapsibleSection>
           )}
@@ -280,22 +379,28 @@ export default function HistoryDetailPage() {
           {generatedData.householdExperiments && generatedData.householdExperiments.length > 0 && (
             <CollapsibleSection title="Hands-On Experiments" icon={<FlaskConical className="w-6 h-6 text-amber-600"/>} colorClass="border-t-amber-500" forceOpen={allExpanded}>
               <div className="space-y-6">
-                {generatedData.householdExperiments.map((exp: any, idx: number) => (
-                  <div key={idx} className="bg-amber-50 p-6 rounded-2xl border border-amber-200 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <h4 className="font-black text-amber-900 text-xl">{exp.title}</h4>
-                      <button 
-                        onClick={() => handleDoNotRecommend(`Experiment: ${exp.title}`)}
-                        className="text-amber-800/60 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
-                      >
-                        <Ban className="w-3.5 h-3.5" /> Do Not Recommend
-                      </button>
+                {generatedData.householdExperiments.map((exp: any, idx: number) => {
+                  const standardText = `Experiment: ${exp.title}`;
+                  return (
+                    <div key={idx} className="bg-amber-50 p-6 rounded-2xl border border-amber-200 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-black text-amber-900 text-xl">{exp.title}</h4>
+                        <div className="flex flex-col items-end">
+                          <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} supabase={supabase} />
+                          <button 
+                            onClick={() => handleDoNotRecommend(`Experiment: ${exp.title}`)}
+                            className="text-amber-800/60 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
+                          >
+                            <Ban className="w-3.5 h-3.5" /> Do Not Recommend
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-sm text-amber-900 font-bold">Materials: <span className="font-medium">{exp.materials}</span></p>
+                      <p className="text-base text-amber-950 font-medium leading-relaxed">{exp.instructions}</p>
+                      <PortfolioUploader studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} />
                     </div>
-                    <p className="text-sm text-amber-900 font-bold">Materials: <span className="font-medium">{exp.materials}</span></p>
-                    <p className="text-base text-amber-950 font-medium leading-relaxed">{exp.instructions}</p>
-                    <PortfolioUploader studentId={plan.student_id} lessonPlanId={plan.id} standardText={`Experiment: ${exp.title}`} />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CollapsibleSection>
           )}
@@ -303,21 +408,29 @@ export default function HistoryDetailPage() {
           {/* 6. Local Field Trip */}
           {generatedData.outAndAbout && (
             <CollapsibleSection title="Local Field Trip" icon={<MapPin className="w-6 h-6 text-teal-600"/>} colorClass="border-t-teal-500" forceOpen={allExpanded}>
-              <div className="bg-teal-50 p-6 rounded-2xl border border-teal-200 space-y-3">
-                <div className="flex justify-between items-start">
-                  <h4 className="font-black text-teal-900 uppercase text-xs bg-teal-200/50 px-2 py-1 rounded">Near You</h4>
-                  <button 
-                    onClick={() => handleDoNotRecommend(`Field Trip: ${generatedData.outAndAbout.title}`)}
-                    className="text-teal-800/60 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
-                  >
-                    <Ban className="w-3.5 h-3.5" /> Do Not Recommend
-                  </button>
-                </div>
-                <p className="font-black text-xl text-teal-950">{generatedData.outAndAbout.title}</p>
-                <p className="text-base text-teal-950 font-medium">{generatedData.outAndAbout.instructions}</p>
-                <p className="text-sm text-teal-800 font-bold">Bring: <span className="font-medium">{generatedData.outAndAbout.supplies.join(", ")}</span></p>
-                <PortfolioUploader studentId={plan.student_id} lessonPlanId={plan.id} standardText={`Field Trip: ${generatedData.outAndAbout.title}`} />
-              </div>
+              {(() => {
+                const standardText = `Field Trip: ${generatedData.outAndAbout.title}`;
+                return (
+                  <div className="bg-teal-50 p-6 rounded-2xl border border-teal-200 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-black text-teal-900 uppercase text-xs bg-teal-200/50 px-2 py-1 rounded">Near You</h4>
+                      <div className="flex flex-col items-end">
+                        <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} supabase={supabase} />
+                        <button 
+                          onClick={() => handleDoNotRecommend(`Field Trip: ${generatedData.outAndAbout.title}`)}
+                          className="text-teal-800/60 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
+                        >
+                          <Ban className="w-3.5 h-3.5" /> Do Not Recommend
+                        </button>
+                      </div>
+                    </div>
+                    <p className="font-black text-xl text-teal-950">{generatedData.outAndAbout.title}</p>
+                    <p className="text-base text-teal-950 font-medium">{generatedData.outAndAbout.instructions}</p>
+                    <p className="text-sm text-teal-800 font-bold">Bring: <span className="font-medium">{generatedData.outAndAbout.supplies.join(", ")}</span></p>
+                    <PortfolioUploader studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} />
+                  </div>
+                );
+              })()}
             </CollapsibleSection>
           )}
 
@@ -325,23 +438,29 @@ export default function HistoryDetailPage() {
           {generatedData.lookAndLearn && generatedData.lookAndLearn.length > 0 && (
             <CollapsibleSection title="Look & Learn" icon={<PlayCircle className="w-6 h-6 text-red-600"/>} colorClass="border-t-red-500" forceOpen={allExpanded}>
               <div className="space-y-4">
-                {generatedData.lookAndLearn.map((media: any, idx: number) => (
-                  <div key={idx} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-black text-slate-800 text-lg">{media.videoTitle}</p>
+                {generatedData.lookAndLearn.map((media: any, idx: number) => {
+                  const standardText = `Video Focus: ${media.videoTitle}`;
+                  return (
+                    <div key={idx} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-black text-slate-800 text-lg">{media.videoTitle}</p>
+                        </div>
+                        <p className="text-sm text-slate-600 font-medium">Focus: {media.topic}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <ElementPortfolioToggle studentId={plan.student_id} lessonPlanId={plan.id} standardText={standardText} supabase={supabase} />
                         <button 
                           onClick={() => handleDoNotRecommend(`Video: ${media.videoTitle}`)}
                           className="text-slate-400 hover:text-red-600 text-xs font-bold flex items-center gap-1 transition-colors print:hidden"
                         >
                           <Ban className="w-3.5 h-3.5" /> Do Not Recommend
                         </button>
+                        <span className="bg-red-50 text-red-700 font-black text-xs px-3 py-1 rounded-full uppercase mt-1">{media.platform}</span>
                       </div>
-                      <p className="text-sm text-slate-600 font-medium">Focus: {media.topic}</p>
                     </div>
-                    <span className="bg-red-50 text-red-700 font-black text-xs px-3 py-1 rounded-full uppercase">{media.platform}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CollapsibleSection>
           )}
