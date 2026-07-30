@@ -135,8 +135,8 @@ export default function HistoryPage() {
               </Button>
             </div>
           ) : (
-            <div className="space-y-12">
-              {Object.entries(groupedPlans).map(([studentName, studentPlans]) => (
+          <div className="space-y-12">
+              {Object.entries(groupedPlans).map(([studentName, studentPlans]: [string, any[]]) => (
                 <div key={studentName} className="space-y-6">
                   <h2 className="text-2xl font-black text-slate-800 border-b-2 border-slate-200 pb-2">
                     {studentName}
