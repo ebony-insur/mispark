@@ -189,7 +189,8 @@ export default function EvidenceUploader({
         notes: notes,
         file_urls: finalFileUrls,
         include_in_portfolio: includeInPortfolio,
-        feedback_history: finalHistory
+        feedback_history: finalHistory,
+        updated_at: new Date().toISOString()
       };
 
       let dbError;
