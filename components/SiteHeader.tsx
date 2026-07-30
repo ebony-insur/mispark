@@ -52,25 +52,29 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
   return (
     <header className="w-full max-w-6xl flex items-center justify-between bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-200 mb-6 print:hidden">
       
-      {/* LOGO */}
-      <Link href={hasUser ? "/dashboard" : "/"} className="flex items-center gap-2 shrink-0">
+      {/* LOGO - Now strictly routes to home page */}
+      <Link href="/" className="flex items-center gap-2 shrink-0">
         <Image src="/MiSpark.svg" alt="MiSpark Logo" width={120} height={35} priority />
       </Link>
 
       {/* DYNAMIC NAVIGATION LINKS (Hidden on Mobile) */}
-      <nav className="hidden md:flex items-center gap-8">
+      <nav className="hidden lg:flex items-center gap-5">
         {isLoaded && hasUser ? (
           <>
             <Link href="/dashboard" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Planner</Link>
+            <Link href="/students" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Learners</Link>
             <Link href="/history" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">History</Link>
             <Link href="/portfolio" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Portfolios</Link>
-            <Link href="/help" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Help</Link>
+            <Link href="/help" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Success Guide</Link>
+            <Link href="/faq" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">FAQ</Link>
+            <Link href="/account" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">My Account</Link>
           </>
         ) : isLoaded ? (
           <>
             <Link href="/features" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Features</Link>
             <Link href="/dashboard" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Live Demo</Link>
             <Link href="/help" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Success Guide</Link>
+            <Link href="/faq" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">FAQ</Link>
           </>
         ) : null}
       </nav>

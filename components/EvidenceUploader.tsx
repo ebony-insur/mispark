@@ -17,6 +17,7 @@ const EvidenceUploader = forwardRef(({
   const [enjoymentRating, setEnjoymentRating] = useState<number>(0);
   const [notes, setNotes] = useState("");
   const [includeInPortfolio, setIncludeInPortfolio] = useState(false);
+  const [isSkipped, setIsSkipped] = useState(false);
   const [existingFiles, setExistingFiles] = useState<string[]>([]);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -26,13 +27,13 @@ const EvidenceUploader = forwardRef(({
     enjoyment_rating: 0, 
     notes: "",
     include_in_portfolio: false,
+    is_skipped: false,
     file_urls: [] as string[]
   });
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = useMemo(() => createClient(), []);
 
-  // Expose the handleSave function to the parent page for the Global Save feature
   useImperativeHandle(ref, () => ({
     save: handleSave
   }));
@@ -44,6 +45,7 @@ const EvidenceUploader = forwardRef(({
       setEnjoymentRating(existingArtifact.enjoyment_rating || 0);
       setNotes(existingArtifact.notes || "");
       setIncludeInPortfolio(existingArtifact.include_in_portfolio || false);
+      setIsSkipped(existingArtifact.is_skipped || false);
       setExistingFiles(initialFiles);
       
       setOriginalData({
@@ -51,6 +53,7 @@ const EvidenceUploader = forwardRef(({
         enjoyment_rating: existingArtifact.enjoyment_rating || 0,
         notes: existingArtifact.notes || "",
         include_in_portfolio: existingArtifact.include_in_portfolio || false,
+        is_skipped: existingArtifact.is_skipped || false,
         file_urls: initialFiles
       });
     } else {
@@ -74,6 +77,7 @@ const EvidenceUploader = forwardRef(({
           setEnjoymentRating(data.enjoyment_rating || 0);
           setNotes(data.notes || "");
           setIncludeInPortfolio(data.include_in_portfolio || false);
+          setIsSkipped(data.is_skipped || false);
           setExistingFiles(initialFiles);
 
           setOriginalData({
@@ -81,6 +85,7 @@ const EvidenceUploader = forwardRef(({
             enjoyment_rating: data.enjoyment_rating || 0,
             notes: data.notes || "",
             include_in_portfolio: data.include_in_portfolio || false,
+            is_skipped: data.is_skipped || false,
             file_urls: initialFiles
           });
         }
@@ -89,16 +94,15 @@ const EvidenceUploader = forwardRef(({
     }
   }, [studentId, lessonPlanId, standardText, existingArtifact, supabase]);
 
-  // Determine if there are unsaved changes
   const hasChanges = 
     masteryRating !== originalData.rating ||
     enjoymentRating !== originalData.enjoyment_rating ||
     notes.trim() !== originalData.notes.trim() ||
     includeInPortfolio !== originalData.include_in_portfolio ||
+    isSkipped !== originalData.is_skipped ||
     pendingFiles.length > 0 ||
     existingFiles.length !== originalData.file_urls.length;
 
-  // Prevent user from leaving the page with unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasChanges) {
@@ -114,7 +118,7 @@ const EvidenceUploader = forwardRef(({
     if (!e.target.files) return;
     const files = Array.from(e.target.files);
     const validFiles: File[] = [];
-    const MAX_SIZE = 5 * 1024 * 1024; // 5MB limit
+    const MAX_SIZE = 5 * 1024 * 1024; 
 
     files.forEach(file => {
       if (file.size > MAX_SIZE) {
@@ -130,7 +134,6 @@ const EvidenceUploader = forwardRef(({
       setPendingFiles(prev => [...prev, ...validFiles]);
     }
     
-    // Reset input so the same file can be selected again if deleted
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -144,7 +147,7 @@ const EvidenceUploader = forwardRef(({
 
   const handleSave = async () => {
     if (!studentId) return;
-    if (!hasChanges) return; // Silently abort if no changes
+    if (!hasChanges) return; 
 
     let newUploadedUrls: string[] = [];
 
@@ -229,6 +232,7 @@ const EvidenceUploader = forwardRef(({
         notes: notes,
         file_urls: finalFileUrls,
         include_in_portfolio: includeInPortfolio,
+        is_skipped: isSkipped,
         feedback_history: finalHistory,
         updated_at: new Date().toISOString()
       };
@@ -258,6 +262,7 @@ const EvidenceUploader = forwardRef(({
         enjoyment_rating: enjoymentRating,
         notes: notes,
         include_in_portfolio: includeInPortfolio,
+        is_skipped: isSkipped,
         file_urls: finalFileUrls
       });
       
@@ -267,10 +272,11 @@ const EvidenceUploader = forwardRef(({
     }
   };
 
+  const safeId = `toggle-${standardText.replace(/[^a-zA-Z0-9]/g, '-')}`;
+
   return (
     <div className="mt-4 pt-4 border-t border-slate-200 print:hidden space-y-4">
       
-      {/* File Preview Modal */}
       {previewUrl && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 print:hidden" onClick={() => setPreviewUrl(null)}>
           <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -291,102 +297,133 @@ const EvidenceUploader = forwardRef(({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-        <div className="bg-rose-50 p-3 rounded-xl border border-rose-100 flex flex-col items-center">
-          <span className="text-xs font-black text-rose-800 uppercase mb-2">Learner Enjoyment</span>
-          <div className="flex gap-1">
-            {[1, 2, 3, 4, 5].map((heart) => (
-              <Heart 
-                key={heart} 
-                onClick={() => setEnjoymentRating(heart)}
-                className={`w-6 h-6 cursor-pointer transition-colors ${enjoymentRating >= heart ? "fill-rose-500 text-rose-500" : "text-rose-200 hover:text-rose-300"}`} 
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-amber-50 p-3 rounded-xl border border-amber-100 flex flex-col items-center">
-          <span className="text-xs font-black text-amber-800 uppercase mb-2">Academic Mastery</span>
-          <div className="flex gap-1">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star 
-                key={star} 
-                onClick={() => setMasteryRating(star)}
-                className={`w-6 h-6 cursor-pointer transition-colors ${masteryRating >= star ? "fill-amber-500 text-amber-500" : "text-amber-200 hover:text-amber-300"}`} 
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3">
-        <div className="flex items-center gap-4 mb-3">
+      {/* PORTFOLIO & SKIPPED TOGGLES */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3 bg-slate-100/70 border border-slate-200 rounded-lg">
+        <div className="flex items-center gap-2">
           <input 
-            type="file" 
-            multiple 
-            accept="image/*, application/pdf" 
-            className="hidden" 
-            ref={fileInputRef} 
-            onChange={handleFileSelect} 
+            type="checkbox" 
+            id={safeId}
+            checked={includeInPortfolio}
+            onChange={(e) => setIncludeInPortfolio(e.target.checked)}
+            className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 cursor-pointer"
           />
-          <Button 
-            onClick={() => fileInputRef.current?.click()} 
-            variant="outline" 
-            size="sm"
-            className="bg-white border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900 font-bold rounded-lg h-8"
-          >
-            <Upload className="w-3.5 h-3.5 mr-1.5" /> Attach Files
-          </Button>
-          <span className="text-xs font-black text-slate-800 uppercase">Educator Notes</span>
+          <label htmlFor={safeId} className="text-sm font-black text-slate-700 cursor-pointer select-none">
+            Include in State Portfolio
+          </label>
         </div>
-        
-        <Textarea 
-          placeholder="Learner grasped this concept quickly..." 
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          className="w-full bg-white border-slate-200 rounded-lg focus-visible:ring-teal-500 resize-none h-20 shadow-sm"
-        />
+        <div className="flex items-center gap-2 sm:ml-auto">
+          <input 
+            type="checkbox" 
+            id={`${safeId}-skip`}
+            checked={isSkipped}
+            onChange={(e) => setIsSkipped(e.target.checked)}
+            className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500 cursor-pointer"
+          />
+          <label htmlFor={`${safeId}-skip`} className="text-sm font-black text-amber-700 cursor-pointer select-none">
+            Didn't Attempt (Skip Assessment)
+          </label>
+        </div>
       </div>
 
-      {(existingFiles.length > 0 || pendingFiles.length > 0) && (
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap gap-2">
-            {existingFiles.map((url, i) => {
-               let fileName = url.split('/').pop()?.split('?')[0] || `File ${i + 1}`;
-               fileName = fileName.replace(/^[0-9a-z]+_/, ''); 
-               const isPdf = url.includes('.pdf');
-               return (
-                 <div key={`existing-${i}`} className="flex items-center text-xs bg-slate-100 text-slate-700 pl-3 pr-1 py-1 rounded-lg border border-slate-200 group">
-                   <div className="flex items-center cursor-pointer hover:text-teal-600 mr-2" onClick={() => handlePreview(url)} title="Click to view file">
-                     {isPdf ? <FileText className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" /> : <ImageIcon className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />}
-                     <span className="truncate max-w-[150px] font-medium">{fileName}</span>
+      {/* ASSESSMENT AREA (Fades out if element was skipped) */}
+      <div className={`space-y-4 transition-opacity duration-200 ${isSkipped ? 'opacity-40 pointer-events-none grayscale' : 'opacity-100'}`}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+          <div className="bg-rose-50 p-3 rounded-xl border border-rose-100 flex flex-col items-center">
+            <span className="text-xs font-black text-rose-800 uppercase mb-2">Learner Enjoyment</span>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((heart) => (
+                <Heart 
+                  key={heart} 
+                  onClick={() => setEnjoymentRating(heart)}
+                  className={`w-6 h-6 cursor-pointer transition-colors ${enjoymentRating >= heart ? "fill-rose-500 text-rose-500" : "text-rose-200 hover:text-rose-300"}`} 
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-amber-50 p-3 rounded-xl border border-amber-100 flex flex-col items-center">
+            <span className="text-xs font-black text-amber-800 uppercase mb-2">Academic Mastery</span>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star 
+                  key={star} 
+                  onClick={() => setMasteryRating(star)}
+                  className={`w-6 h-6 cursor-pointer transition-colors ${masteryRating >= star ? "fill-amber-500 text-amber-500" : "text-amber-200 hover:text-amber-300"}`} 
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3">
+          <div className="flex items-center gap-4 mb-3">
+            <input 
+              type="file" 
+              multiple 
+              accept="image/*, application/pdf" 
+              className="hidden" 
+              ref={fileInputRef} 
+              onChange={handleFileSelect} 
+            />
+            <Button 
+              onClick={() => fileInputRef.current?.click()} 
+              variant="outline" 
+              size="sm"
+              className="bg-white border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900 font-bold rounded-lg h-8"
+            >
+              <Upload className="w-3.5 h-3.5 mr-1.5" /> Attach Files
+            </Button>
+            <span className="text-xs font-black text-slate-800 uppercase">Educator Notes</span>
+          </div>
+          
+          <Textarea 
+            placeholder="Learner grasped this concept quickly..." 
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="w-full bg-white border-slate-200 rounded-lg focus-visible:ring-teal-500 resize-none h-20 shadow-sm"
+          />
+        </div>
+
+        {(existingFiles.length > 0 || pendingFiles.length > 0) && (
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-2">
+              {existingFiles.map((url, i) => {
+                 let fileName = url.split('/').pop()?.split('?')[0] || `File ${i + 1}`;
+                 fileName = fileName.replace(/^[0-9a-z]+_/, ''); 
+                 const isPdf = url.includes('.pdf');
+                 return (
+                   <div key={`existing-${i}`} className="flex items-center text-xs bg-slate-100 text-slate-700 pl-3 pr-1 py-1 rounded-lg border border-slate-200 group">
+                     <div className="flex items-center cursor-pointer hover:text-teal-600 mr-2" onClick={() => handlePreview(url)} title="Click to view file">
+                       {isPdf ? <FileText className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" /> : <ImageIcon className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />}
+                       <span className="truncate max-w-[150px] font-medium">{fileName}</span>
+                     </div>
+                     <button onClick={() => setExistingFiles(prev => prev.filter((_, idx) => idx !== i))} className="p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-red-500 transition-colors" title="Delete file">
+                       <X className="w-3 h-3" />
+                     </button>
                    </div>
-                   <button onClick={() => setExistingFiles(prev => prev.filter((_, idx) => idx !== i))} className="p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-red-500 transition-colors" title="Delete file">
+                 );
+              })}
+              {pendingFiles.map((file, i) => (
+                 <div key={`pending-${i}`} className="flex items-center text-xs bg-teal-50 text-teal-800 pl-3 pr-1 py-1 rounded-lg border border-teal-200 group">
+                   <div className="flex items-center cursor-pointer hover:text-teal-900 mr-2" onClick={() => handlePreview(file)} title="Click to view file">
+                     {file.type === 'application/pdf' ? <FileText className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" /> : <ImageIcon className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />}
+                     <span className="truncate max-w-[150px] font-bold">{file.name}</span>
+                   </div>
+                   <button onClick={() => setPendingFiles(prev => prev.filter((_, idx) => idx !== i))} className="p-1 rounded hover:bg-teal-100 text-teal-600 hover:text-red-500 transition-colors" title="Remove pending file">
                      <X className="w-3 h-3" />
                    </button>
                  </div>
-               );
-            })}
-            {pendingFiles.map((file, i) => (
-               <div key={`pending-${i}`} className="flex items-center text-xs bg-teal-50 text-teal-800 pl-3 pr-1 py-1 rounded-lg border border-teal-200 group">
-                 <div className="flex items-center cursor-pointer hover:text-teal-900 mr-2" onClick={() => handlePreview(file)} title="Click to view file">
-                   {file.type === 'application/pdf' ? <FileText className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" /> : <ImageIcon className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />}
-                   <span className="truncate max-w-[150px] font-bold">{file.name}</span>
-                 </div>
-                 <button onClick={() => setPendingFiles(prev => prev.filter((_, idx) => idx !== i))} className="p-1 rounded hover:bg-teal-100 text-teal-600 hover:text-red-500 transition-colors" title="Remove pending file">
-                   <X className="w-3 h-3" />
-                 </button>
-               </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {includeInPortfolio && (
         <div className="mt-4 p-3 bg-teal-50 border border-teal-200 rounded-xl flex items-center justify-center">
           <p className="text-sm font-bold text-teal-900 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-teal-600" />
-            This element is included in the learner portfolio.
+            This element is saved to the state portfolio.
           </p>
         </div>
       )}

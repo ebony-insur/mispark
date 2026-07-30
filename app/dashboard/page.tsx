@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { type User } from "@supabase/supabase-js"; 
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,8 @@ import {
   Printer, Upload, FileText, FlaskConical, Lightbulb, 
   Gamepad2, PlayCircle, BookHeart, ExternalLink, Loader2, 
   Plus, Shapes, ChevronRight, ChevronsUpDown, XCircle, 
-  Sparkles, MapPin, MessageCircle, Lock, Settings, Calendar
+  Sparkles, MapPin, MessageCircle, Lock, Settings, Calendar,
+  Type
 } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
@@ -72,8 +73,9 @@ export default function Dashboard() {
   const [allExpanded, setAllExpanded] = useState(true);
   const [printMode, setPrintMode] = useState<string | null>(null);
 
-  // Required Date Range State for Portfolio Tracking
+  // Custom Plan Title & Date Range
   const todayStr = new Date().toISOString().split('T')[0];
+  const [planTitle, setPlanTitle] = useState(`Weekly Plan : ${new Date().toLocaleDateString()}`);
   const [startDateAssigned, setStartDateAssigned] = useState(todayStr);
   const [endDateAssigned, setEndDateAssigned] = useState(todayStr);
 
@@ -152,15 +154,49 @@ export default function Dashboard() {
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate Size (5MB)
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      toast.error("File exceeds the 5MB size limit.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    // Validate Type
+    const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+    const validExtensions = /\.(pdf|jpg|jpeg|png)$/i;
+    
+    if (!validTypes.includes(file.type) && !file.name.match(validExtensions)) {
+      toast.error("Unsupported file format. Please upload JPG, PNG, or PDF.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    processPdf(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const processPdf = async (file: File) => {
-    setIsUploadingPdf(true); toast.loading("Extracting text...", { id: "pdf" });
+    setIsUploadingPdf(true); toast.loading("Extracting text...", { id: "upload" });
     try {
       const formData = new FormData(); formData.append("file", file);
       const res = await fetch("/api/parse-pdf", { method: "POST", body: formData });
       const data = await res.json();
-      if (res.ok) { setLessonText((prev) => prev + "\n" + data.text); toast.success("Extracted successfully!", { id: "pdf" }); }
-    } catch { toast.error("Failed to parse.", { id: "pdf" }); } 
-    finally { setIsUploadingPdf(false); }
+      if (res.ok) { 
+        setLessonText((prev) => prev + "\n" + data.text); 
+        toast.success("Extracted successfully!", { id: "upload" }); 
+      } else {
+        throw new Error(data.error);
+      }
+    } catch { 
+      toast.error("Failed to parse document.", { id: "upload" }); 
+    } finally { 
+      setIsUploadingPdf(false); 
+    }
   };
 
   const handleRedeem = async () => {
@@ -178,14 +214,16 @@ export default function Dashboard() {
       const data = await res.json();
       
       if (res.ok) {
-        toast.success(data.message);
-        setSparks(6); 
+        const sparksAdded = data.sparksAdded || 6;
+        toast.success(`Congrats! ${sparksAdded} Sparks have been added.`);
+        setSparks(prev => (prev !== null ? prev + sparksAdded : sparksAdded)); 
         setPromoCode("");
       } else {
-        toast.error(data.error || "Failed to apply promo.");
+        // Enforce exact requested testing team language
+        toast.error("Code isn't valid");
       }
     } catch {
-      toast.error("An error occurred.");
+      toast.error("Code isn't valid");
     } finally {
       setIsRedeeming(false);
     }
@@ -216,6 +254,10 @@ export default function Dashboard() {
       toast.error("Please provide both start and end dates for the assigned timeframe.");
       return;
     }
+    if (!planTitle.trim()) {
+      toast.error("Please provide a Plan Title.");
+      return;
+    }
 
     setIsLoading(true); setGeneratedData(null); setAllExpanded(true);
     abortControllerRef.current = new AbortController();
@@ -238,7 +280,7 @@ export default function Dashboard() {
           studentProfile,
           studentId: selectedStudentId,
           userId: user?.id,
-          weekAssigned: `${startDateAssigned} to ${endDateAssigned}`,
+          weekAssigned: planTitle,
           weekStartDate: startDateAssigned,
           weekEndDate: endDateAssigned
         }),
@@ -329,17 +371,33 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* INPUT GRID & REQUIRED DATE RANGE SELECTOR */}
+          {/* INPUT GRID & REQUIRED FIELDS */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div onClick={() => fileInputRef.current?.click()} className="md:col-span-1 border-2 border-dashed border-slate-300 bg-white hover:bg-slate-50 transition-colors rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer min-h-[125px]">
-              <input type="file" accept=".pdf, .png, .jpg, .docx, .txt" className="hidden" ref={fileInputRef} onChange={(e) => {const f = e.target.files?.[0]; if(f) processPdf(f)}} />
+              <input type="file" accept=".pdf, .png, .jpg, .jpeg" className="hidden" ref={fileInputRef} onChange={handleFileSelect} />
               <Upload className="w-8 h-8 mb-2 text-slate-400" />
-              <p className="font-extrabold text-lg text-slate-700 leading-tight">Upload PDF</p>
+              <p className="font-extrabold text-lg text-slate-700 leading-tight">Upload File</p>
               <p className="text-xs text-slate-500 font-medium">Extract topics instantly</p>
+              <p className="text-[10px] text-slate-400 font-bold mt-2 bg-slate-100 px-2 py-1 rounded">Accepted formats: JPG, PNG, PDF (Max 5MB)</p>
             </div>
 
             <div className="md:col-span-2 flex flex-col bg-white p-4 rounded-2xl border-2 border-slate-200 shadow-sm space-y-4">
               
+              {/* CUSTOM PLAN TITLE */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-black text-slate-500 uppercase flex items-center gap-1">
+                  <Type className="w-3.5 h-3.5 text-teal-600" /> Plan Title
+                </label>
+                <Input 
+                  type="text"
+                  value={planTitle}
+                  onChange={(e) => setPlanTitle(e.target.value)}
+                  placeholder="e.g. Space Week Adventures"
+                  className="font-bold border-slate-200 bg-slate-50 text-slate-800"
+                  required
+                />
+              </div>
+
               {/* ASSIGNED DATE RANGE PICKERS */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
@@ -401,8 +459,8 @@ export default function Dashboard() {
                 <XCircle className="w-6 h-6 mr-2" /> Stop Generation
               </Button>
             ) : (
-              <Button onClick={handleIgnite} disabled={isUnderLimit || isOverLimit || isUploadingPdf} className="w-2/3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-black text-xl md:text-2xl py-8 rounded-2xl border-b-4 border-orange-700 active:border-b-0 active:translate-y-1 overflow-hidden">
-                Ignite Curiosity ✨
+              <Button onClick={handleIgnite} disabled={isUnderLimit || isOverLimit || isUploadingPdf} className="w-2/3 bg-gradient-to-r from-teal-500 to-teal-600 text-white font-black text-xl md:text-2xl py-8 rounded-2xl border-b-4 border-teal-700 active:border-b-0 active:translate-y-1 overflow-hidden">
+                Spark Curiosity ✨
               </Button>
             )}
           </div>
