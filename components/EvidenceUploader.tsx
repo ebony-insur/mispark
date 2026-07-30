@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, forwardRef, useImperativeHandle } from "react";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Upload, Star, Heart, Loader2, CheckCircle2, Image as ImageIcon } from "lucide-react";
 
-export default function EvidenceUploader({ 
+const EvidenceUploader = forwardRef(({ 
   studentId, 
   lessonPlanId, 
   standardText, 
   existingArtifact = null 
-}: any) {
+}: any, ref) => {
   const [masteryRating, setMasteryRating] = useState<number>(0);
   const [enjoymentRating, setEnjoymentRating] = useState<number>(0);
   const [notes, setNotes] = useState("");
@@ -31,6 +31,11 @@ export default function EvidenceUploader({
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = useMemo(() => createClient(), []);
+
+  // Expose the handleSave function to the parent page for the Global Save feature
+  useImperativeHandle(ref, () => ({
+    save: handleSave
+  }));
 
   useEffect(() => {
     if (existingArtifact) {
@@ -97,8 +102,7 @@ export default function EvidenceUploader({
       pendingFiles.length > 0;
 
     if (!hasChanges) {
-      toast.info("No changes to save.");
-      return; 
+      return; // Silently abort if no changes (ideal for global save looping)
     }
 
     setIsUploading(true);
@@ -108,7 +112,6 @@ export default function EvidenceUploader({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Must be logged in to save evidence.");
 
-      // 1. Upload new files if any
       if (pendingFiles.length > 0) {
         const uploadPromises = pendingFiles.map(async (file) => {
           const safeOriginalName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
@@ -132,7 +135,6 @@ export default function EvidenceUploader({
 
       const finalFileUrls = [...existingFiles, ...newUploadedUrls];
 
-      // 2. Query the single table to see if record exists
       let query = (supabase as any)
         .from("portfolio_artifacts")
         .select("id, feedback_history, notes, rating, created_at")
@@ -144,7 +146,6 @@ export default function EvidenceUploader({
 
       const { data: currentRecord } = await query.maybeSingle();
 
-      // 3. Build feedback_history JSON array inside portfolio_artifacts
       let finalHistory = [];
       const textOrRatingChanged = masteryRating !== originalData.rating || currentNotes !== originalNotes;
 
@@ -178,7 +179,6 @@ export default function EvidenceUploader({
         }];
       }
 
-      // Payload strictly matches existing columns (removed updated_at)
       const payload = {
         parent_id: user.id,
         student_id: studentId,
@@ -195,7 +195,6 @@ export default function EvidenceUploader({
 
       let dbError;
 
-      // 4. Update or Insert strictly on portfolio_artifacts
       if (currentRecord) {
         const { error } = await (supabase as any)
           .from("portfolio_artifacts")
@@ -242,24 +241,6 @@ export default function EvidenceUploader({
           <CheckCircle2 className="w-4 h-4 mr-2 flex-shrink-0" /> {successMessage}
         </div>
       )}
-
-      <div 
-        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${includeInPortfolio ? 'bg-teal-50 border-teal-200' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
-        onClick={() => setIncludeInPortfolio(!includeInPortfolio)}
-      >
-        <input 
-          type="checkbox" 
-          checked={includeInPortfolio}
-          readOnly
-          className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 pointer-events-none"
-        />
-        <div>
-          <p className={`text-sm font-bold ${includeInPortfolio ? 'text-teal-900' : 'text-slate-700'}`}>Include in State Portfolio</p>
-          <p className={`text-[10px] font-medium leading-tight ${includeInPortfolio ? 'text-teal-700' : 'text-slate-500'}`}>
-            Display this assessment and its evidence on compliance reports.
-          </p>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
         <div className="bg-rose-50 p-3 rounded-xl border border-rose-100 flex flex-col items-center">
@@ -359,6 +340,18 @@ export default function EvidenceUploader({
           Save Updates
         </Button>
       </div>
+
+      {includeInPortfolio && (
+        <div className="mt-4 p-3 bg-teal-50 border border-teal-200 rounded-xl flex items-center justify-center">
+          <p className="text-sm font-bold text-teal-900 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-teal-600" />
+            This element is included in the learner portfolio.
+          </p>
+        </div>
+      )}
     </div>
   );
-}
+});
+
+EvidenceUploader.displayName = "EvidenceUploader";
+export default EvidenceUploader;
