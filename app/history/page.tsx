@@ -33,7 +33,7 @@ export default function HistoryPage() {
           
         if (profile) setFirstName(profile.first_name);
 
-        // Fetch children profiles to map IDs to Nicknames
+        // Fetch children profiles from children_profiles table to map IDs to Nicknames
         const { data: studentsData } = await (supabase as any)
           .from("children_profiles")
           .select("id, nickname")
@@ -87,8 +87,8 @@ export default function HistoryPage() {
     }
   };
 
-  // Group plans by Student Nickname
-  const groupedPlans = plans.reduce((acc, plan) => {
+  // Group plans by Student Nickname with explicit record typing to satisfy TypeScript
+  const groupedPlans = plans.reduce((acc: Record<string, any[]>, plan) => {
     const studentName = plan.student_id && studentsMap[plan.student_id] 
       ? studentsMap[plan.student_id] 
       : "General / Unassigned";
@@ -96,7 +96,7 @@ export default function HistoryPage() {
     if (!acc[studentName]) acc[studentName] = [];
     acc[studentName].push(plan);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {});
 
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col justify-between">
@@ -135,8 +135,8 @@ export default function HistoryPage() {
               </Button>
             </div>
           ) : (
-          <div className="space-y-12">
-              {Object.entries(groupedPlans).map(([studentName, studentPlans]: [string, any[]]) => (
+            <div className="space-y-12">
+              {Object.entries(groupedPlans).map(([studentName, studentPlans]) => (
                 <div key={studentName} className="space-y-6">
                   <h2 className="text-2xl font-black text-slate-800 border-b-2 border-slate-200 pb-2">
                     {studentName}
