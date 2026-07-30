@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Upload, Star, Heart, Loader2, CheckCircle2, Image as ImageIcon } from "lucide-react";
+import { Upload, Star, Heart, CheckCircle2, Image as ImageIcon, X, FileText } from "lucide-react";
 
 const EvidenceUploader = forwardRef(({ 
   studentId, 
@@ -19,14 +19,14 @@ const EvidenceUploader = forwardRef(({
   const [includeInPortfolio, setIncludeInPortfolio] = useState(false);
   const [existingFiles, setExistingFiles] = useState<string[]>([]);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const [originalData, setOriginalData] = useState({ 
     rating: 0, 
     enjoyment_rating: 0, 
     notes: "",
-    include_in_portfolio: false
+    include_in_portfolio: false,
+    file_urls: [] as string[]
   });
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -39,17 +39,19 @@ const EvidenceUploader = forwardRef(({
 
   useEffect(() => {
     if (existingArtifact) {
+      const initialFiles = existingArtifact.file_urls || (existingArtifact.image_url ? [existingArtifact.image_url] : []);
       setMasteryRating(existingArtifact.rating || 0);
       setEnjoymentRating(existingArtifact.enjoyment_rating || 0);
       setNotes(existingArtifact.notes || "");
       setIncludeInPortfolio(existingArtifact.include_in_portfolio || false);
-      setExistingFiles(existingArtifact.file_urls || (existingArtifact.image_url ? [existingArtifact.image_url] : []));
+      setExistingFiles(initialFiles);
       
       setOriginalData({
         rating: existingArtifact.rating || 0,
         enjoyment_rating: existingArtifact.enjoyment_rating || 0,
         notes: existingArtifact.notes || "",
-        include_in_portfolio: existingArtifact.include_in_portfolio || false
+        include_in_portfolio: existingArtifact.include_in_portfolio || false,
+        file_urls: initialFiles
       });
     } else {
       const fetchExistingData = async () => {
@@ -67,17 +69,19 @@ const EvidenceUploader = forwardRef(({
         const { data } = await query.maybeSingle(); 
         
         if (data) {
+          const initialFiles = data.file_urls || (data.image_url ? [data.image_url] : []);
           setMasteryRating(data.rating || 0);
           setEnjoymentRating(data.enjoyment_rating || 0);
           setNotes(data.notes || "");
           setIncludeInPortfolio(data.include_in_portfolio || false);
-          setExistingFiles(data.file_urls || (data.image_url ? [data.image_url] : []));
+          setExistingFiles(initialFiles);
 
           setOriginalData({
             rating: data.rating || 0,
             enjoyment_rating: data.enjoyment_rating || 0,
             notes: data.notes || "",
-            include_in_portfolio: data.include_in_portfolio || false
+            include_in_portfolio: data.include_in_portfolio || false,
+            file_urls: initialFiles
           });
         }
       };
@@ -85,27 +89,63 @@ const EvidenceUploader = forwardRef(({
     }
   }, [studentId, lessonPlanId, standardText, existingArtifact, supabase]);
 
+  // Determine if there are unsaved changes
+  const hasChanges = 
+    masteryRating !== originalData.rating ||
+    enjoymentRating !== originalData.enjoyment_rating ||
+    notes.trim() !== originalData.notes.trim() ||
+    includeInPortfolio !== originalData.include_in_portfolio ||
+    pendingFiles.length > 0 ||
+    existingFiles.length !== originalData.file_urls.length;
+
+  // Prevent user from leaving the page with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasChanges]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const files = Array.from(e.target.files);
+    const validFiles: File[] = [];
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB limit
+
+    files.forEach(file => {
+      if (file.size > MAX_SIZE) {
+        toast.error(`"${file.name}" failed to load. File exceeds the 5MB limit.`);
+      } else if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+        toast.error(`"${file.name}" failed to load. Only Images and PDFs are supported.`);
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    if (validFiles.length > 0) {
+      setPendingFiles(prev => [...prev, ...validFiles]);
+    }
+    
+    // Reset input so the same file can be selected again if deleted
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handlePreview = (urlOrFile: string | File) => {
+    if (typeof urlOrFile === 'string') {
+      setPreviewUrl(urlOrFile);
+    } else {
+      setPreviewUrl(URL.createObjectURL(urlOrFile));
+    }
+  };
+
   const handleSave = async () => {
-    if (!studentId) {
-      toast.error("Missing learner ID.");
-      return;
-    }
+    if (!studentId) return;
+    if (!hasChanges) return; // Silently abort if no changes
 
-    const currentNotes = notes.trim();
-    const originalNotes = originalData.notes.trim();
-
-    const hasChanges = 
-      masteryRating !== originalData.rating ||
-      enjoymentRating !== originalData.enjoyment_rating ||
-      currentNotes !== originalNotes ||
-      includeInPortfolio !== originalData.include_in_portfolio ||
-      pendingFiles.length > 0;
-
-    if (!hasChanges) {
-      return; // Silently abort if no changes (ideal for global save looping)
-    }
-
-    setIsUploading(true);
     let newUploadedUrls: string[] = [];
 
     try {
@@ -147,7 +187,7 @@ const EvidenceUploader = forwardRef(({
       const { data: currentRecord } = await query.maybeSingle();
 
       let finalHistory = [];
-      const textOrRatingChanged = masteryRating !== originalData.rating || currentNotes !== originalNotes;
+      const textOrRatingChanged = masteryRating !== originalData.rating || notes.trim() !== originalData.notes.trim();
 
       if (currentRecord) {
         let previousHistory = currentRecord.feedback_history || [];
@@ -217,28 +257,37 @@ const EvidenceUploader = forwardRef(({
         rating: masteryRating,
         enjoyment_rating: enjoymentRating,
         notes: notes,
-        include_in_portfolio: includeInPortfolio
+        include_in_portfolio: includeInPortfolio,
+        file_urls: finalFileUrls
       });
-
-      setSuccessMessage("Changes saved successfully!");
-      toast.success("Evidence saved successfully!");
-      
-      setTimeout(() => setSuccessMessage(null), 4000);
       
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || "Failed to save evidence.");
-    } finally {
-      setIsUploading(false);
     }
   };
 
   return (
     <div className="mt-4 pt-4 border-t border-slate-200 print:hidden space-y-4">
       
-      {successMessage && (
-        <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl flex items-center text-teal-700 font-bold text-xs">
-          <CheckCircle2 className="w-4 h-4 mr-2 flex-shrink-0" /> {successMessage}
+      {/* File Preview Modal */}
+      {previewUrl && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 print:hidden" onClick={() => setPreviewUrl(null)}>
+          <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-slate-50">
+              <h3 className="font-bold text-slate-800">File Preview</h3>
+              <button onClick={() => setPreviewUrl(null)} className="p-1.5 rounded-full hover:bg-slate-200 text-slate-500 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto bg-slate-100 flex items-center justify-center p-4">
+               {previewUrl.includes('.pdf') || previewUrl.startsWith('blob:') ? (
+                 <iframe src={previewUrl} className="w-full h-[70vh] rounded-lg shadow-sm border border-slate-200 bg-white" />
+               ) : (
+                 <img src={previewUrl} alt="Preview" className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-sm" />
+               )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -254,9 +303,6 @@ const EvidenceUploader = forwardRef(({
               />
             ))}
           </div>
-          <span className="text-[10px] font-bold text-rose-400 mt-2 uppercase text-center leading-tight">
-            Current: {enjoymentRating > 0 ? `${enjoymentRating}/5` : "Not rated"}
-          </span>
         </div>
 
         <div className="bg-amber-50 p-3 rounded-xl border border-amber-100 flex flex-col items-center">
@@ -270,76 +316,71 @@ const EvidenceUploader = forwardRef(({
               />
             ))}
           </div>
-          <span className="text-[10px] font-bold text-amber-400 mt-2 uppercase text-center leading-tight">
-            Current: {masteryRating > 0 ? `${masteryRating}/5` : "Not rated"}
-          </span>
         </div>
       </div>
 
-      <Textarea 
-        placeholder="Educator Notes (e.g., Learner grasped this concept quickly...)" 
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        className="w-full mb-4 bg-slate-50 border-slate-200 rounded-xl focus-visible:ring-teal-500 resize-none h-20"
-      />
+      <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3">
+        <div className="flex items-center gap-4 mb-3">
+          <input 
+            type="file" 
+            multiple 
+            accept="image/*, application/pdf" 
+            className="hidden" 
+            ref={fileInputRef} 
+            onChange={handleFileSelect} 
+          />
+          <Button 
+            onClick={() => fileInputRef.current?.click()} 
+            variant="outline" 
+            size="sm"
+            className="bg-white border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900 font-bold rounded-lg h-8"
+          >
+            <Upload className="w-3.5 h-3.5 mr-1.5" /> Attach Files
+          </Button>
+          <span className="text-xs font-black text-slate-800 uppercase">Educator Notes</span>
+        </div>
+        
+        <Textarea 
+          placeholder="Learner grasped this concept quickly..." 
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          className="w-full bg-white border-slate-200 rounded-lg focus-visible:ring-teal-500 resize-none h-20 shadow-sm"
+        />
+      </div>
 
       {(existingFiles.length > 0 || pendingFiles.length > 0) && (
-        <div className="mb-4 flex flex-col gap-2">
-          <span className="text-xs font-bold text-slate-500 uppercase">Attached Files</span>
+        <div className="flex flex-col gap-2">
           <div className="flex flex-wrap gap-2">
             {existingFiles.map((url, i) => {
                let fileName = url.split('/').pop()?.split('?')[0] || `File ${i + 1}`;
                fileName = fileName.replace(/^[0-9a-z]+_/, ''); 
+               const isPdf = url.includes('.pdf');
                return (
-                 <div key={`existing-${i}`} className="flex items-center text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200" title={fileName}>
-                   <ImageIcon className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" /> 
-                   <span className="truncate max-w-[180px] font-medium">{fileName}</span>
+                 <div key={`existing-${i}`} className="flex items-center text-xs bg-slate-100 text-slate-700 pl-3 pr-1 py-1 rounded-lg border border-slate-200 group">
+                   <div className="flex items-center cursor-pointer hover:text-teal-600 mr-2" onClick={() => handlePreview(url)} title="Click to view file">
+                     {isPdf ? <FileText className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" /> : <ImageIcon className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />}
+                     <span className="truncate max-w-[150px] font-medium">{fileName}</span>
+                   </div>
+                   <button onClick={() => setExistingFiles(prev => prev.filter((_, idx) => idx !== i))} className="p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-red-500 transition-colors" title="Delete file">
+                     <X className="w-3 h-3" />
+                   </button>
                  </div>
                );
             })}
             {pendingFiles.map((file, i) => (
-               <div key={`pending-${i}`} className="flex items-center text-xs bg-teal-50 text-teal-700 px-3 py-1.5 rounded-lg border border-teal-200" title={file.name}>
-                 <Upload className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" /> 
-                 <span className="truncate max-w-[180px] font-bold">{file.name}</span>
+               <div key={`pending-${i}`} className="flex items-center text-xs bg-teal-50 text-teal-800 pl-3 pr-1 py-1 rounded-lg border border-teal-200 group">
+                 <div className="flex items-center cursor-pointer hover:text-teal-900 mr-2" onClick={() => handlePreview(file)} title="Click to view file">
+                   {file.type === 'application/pdf' ? <FileText className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" /> : <ImageIcon className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />}
+                   <span className="truncate max-w-[150px] font-bold">{file.name}</span>
+                 </div>
+                 <button onClick={() => setPendingFiles(prev => prev.filter((_, idx) => idx !== i))} className="p-1 rounded hover:bg-teal-100 text-teal-600 hover:text-red-500 transition-colors" title="Remove pending file">
+                   <X className="w-3 h-3" />
+                 </button>
                </div>
             ))}
           </div>
         </div>
       )}
-
-      <div className="flex gap-3">
-        <input 
-          type="file" 
-          multiple 
-          accept="image/*, application/pdf" 
-          className="hidden" 
-          ref={fileInputRef} 
-          onChange={(e) => {
-            if(e.target.files && e.target.files.length > 0) {
-              setPendingFiles(Array.from(e.target.files));
-            }
-          }} 
-        />
-        
-        <Button 
-          onClick={() => fileInputRef.current?.click()} 
-          disabled={isUploading}
-          variant="outline" 
-          className="flex-1 bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 font-bold rounded-xl"
-        >
-          {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-          {existingFiles.length > 0 || pendingFiles.length > 0 ? "Select More Files" : "Attach Files"}
-        </Button>
-
-        <Button 
-          onClick={() => handleSave()} 
-          disabled={isUploading}
-          className="flex-1 bg-teal-600/90 hover:bg-teal-700 text-white font-bold rounded-xl shadow-sm"
-        >
-          {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
-          Save Updates
-        </Button>
-      </div>
 
       {includeInPortfolio && (
         <div className="mt-4 p-3 bg-teal-50 border border-teal-200 rounded-xl flex items-center justify-center">
