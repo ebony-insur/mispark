@@ -62,7 +62,7 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
         {isLoaded && hasUser ? (
           <>
             <Link href="/dashboard" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Planner</Link>
-            <Link href="/students" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Learners</Link>
+            <Link href="/dashboard/students" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Learners</Link>
             <Link href="/history" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">History</Link>
             <Link href="/portfolio" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Portfolios</Link>
             <Link href="/help" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Success Guide</Link>
