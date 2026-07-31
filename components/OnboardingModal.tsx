@@ -37,11 +37,14 @@ export default function OnboardingModal({ onSuccess }: { onSuccess?: () => void 
         setUserEmail(user.email || "");
         
         // Grab first name from profiles if available
-        const { data: profile } = await supabase
+        const { data } = await (supabase as any)
           .from("profiles")
           .select("first_name")
           .eq("id", user.id)
           .single();
+          
+        // Explicitly cast to 'any' to bypass TypeScript's 'never' inference
+        const profile = data as any;
           
         if (profile?.first_name) {
           setUserFirstName(profile.first_name);
@@ -60,7 +63,7 @@ export default function OnboardingModal({ onSuccess }: { onSuccess?: () => void 
     setIsSubmitting(true);
 
     try {
-// 1. Save data to Supabase profiles table
+      // 1. Save data to Supabase profiles table using correct schema columns
       const { error: dbError } = await (supabase as any)
         .from("profiles")
         .update({
