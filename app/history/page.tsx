@@ -87,7 +87,7 @@ export default function HistoryPage() {
     }
   };
 
-  // Group plans by Student Nickname with explicit record typing to satisfy TypeScript
+  // Group plans by Student Nickname
   const groupedPlans = plans.reduce((acc: Record<string, any[]>, plan) => {
     const studentName = plan.student_id && studentsMap[plan.student_id] 
       ? studentsMap[plan.student_id] 
@@ -136,7 +136,7 @@ export default function HistoryPage() {
             </div>
           ) : (
             <div className="space-y-12">
-              {Object.entries(groupedPlans).map(([studentName, studentPlans]) => (
+              {(Object.entries(groupedPlans) as [string, any[]][]).map(([studentName, studentPlans]) => (
                 <div key={studentName} className="space-y-6">
                   <h2 className="text-2xl font-black text-slate-800 border-b-2 border-slate-200 pb-2">
                     {studentName}
