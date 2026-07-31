@@ -61,7 +61,7 @@ export default function Home() {
 
         <div className="w-full md:w-[40%] flex justify-center md:justify-end">
           <Image 
-            src="/1785411609723.png" 
+            src="/MiSpark.svg" 
             alt="Mi-Spark Inclusive AI Learning" 
             width={500} 
             height={500} 
