@@ -6,6 +6,7 @@ export default function SiteFooter() {
       <div className="flex flex-wrap justify-center gap-6 mb-6">
         <Link href="/about" className="text-slate-400 hover:text-white font-medium text-sm transition-colors">
           Meet Ebony
+        </Link>
         <Link href="/features" className="text-slate-400 hover:text-white font-medium text-sm transition-colors">
           Features
         </Link>
