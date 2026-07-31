@@ -30,11 +30,12 @@ export default function AboutFounder() {
           </p>
         </div>
 
+        {/* THE KITCHEN COUNTER FOUNDER SECTION */}
         <div className="bg-white rounded-[3rem] p-8 md:p-12 relative overflow-hidden shadow-xl border border-slate-100 flex flex-col md:flex-row items-center gap-12 mb-16">
-            <div className="w-full md:w-1/2 relative aspect-square rounded-3xl overflow-hidden shadow-lg">
+            <div className="w-full md:w-1/2 relative aspect-square rounded-3xl overflow-hidden shadow-lg border-4 border-slate-50">
                  <Image 
-                    src="/1000014005.jpg" 
-                    alt="Ebony coding Mi-Spark" 
+                    src="/screenshots/InsurSuccess-659-Edit.jpg" 
+                    alt="Ebony working on Mi-Spark at her kitchen counter" 
                     fill 
                     className="object-cover"
                   />
@@ -45,10 +46,10 @@ export default function AboutFounder() {
                 </h2>
                 <div className="space-y-4 text-lg text-slate-600 font-medium leading-relaxed">
                     <p>
-                        I'm a tech founder, a software engineer, and a full-time Black homeschool mom navigating K-12 neurodivergence. 
+                        I'm a tech founder, a software engineer, and a full-time Black homeschool mom navigating K-12 neurodivergence right from my kitchen counter. 
                     </p>
                     <p>
-                        Like many of you, I was drowning in curriculum prep. I wanted to use AI to build custom learning supplements tailored to my daughter's exact attention span and learning style. But as a software developer, I knew the risks. I absolutely refused to expose her identity or cognitive profile to open AI learning models just to make my life easier.
+                        Like many of you, I was drowning in curriculum prep. I wanted to use AI to build custom learning supplements tailored to my daughter's exact attention span. But as a software developer, I knew the risks. I absolutely refused to expose her identity or cognitive profile to open AI models just to make my life easier.
                     </p>
                     <p>
                         So, my team and I built a safe fortress to do it ourselves.
@@ -57,6 +58,7 @@ export default function AboutFounder() {
             </div>
         </div>
 
+        {/* THE FAMILY ANCHOR SECTION */}
         <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 order-2 md:order-1">
                 <h2 className="text-3xl font-black text-slate-900 leading-tight">
@@ -75,15 +77,15 @@ export default function AboutFounder() {
                 </div>
                 <Button 
                     onClick={() => router.push("/login?signup=true")} 
-                    className="h-14 px-8 text-lg bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl shadow-lg mt-4"
+                    className="h-14 px-8 text-lg bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl shadow-lg mt-4 transition-all hover:-translate-y-1"
                 >
                     Try Mi-Spark For Free <ChevronRight className="w-5 h-5 ml-2" />
                 </Button>
             </div>
             
-            <div className="w-full order-1 md:order-2 relative aspect-[4/3] rounded-3xl overflow-hidden shadow-lg rotate-2">
+            <div className="w-full order-1 md:order-2 relative aspect-[4/3] rounded-3xl overflow-hidden shadow-lg rotate-2 hover:rotate-0 transition-all duration-300">
                  <Image 
-                    src="/1000014422.jpg" 
+                    src="/screenshots/EbonySykesFamily2025-265-Edit.jpg" 
                     alt="Ebony and her daughter" 
                     fill 
                     className="object-cover"
