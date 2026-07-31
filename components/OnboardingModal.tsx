@@ -60,14 +60,13 @@ export default function OnboardingModal({ onSuccess }: { onSuccess?: () => void 
     setIsSubmitting(true);
 
     try {
-      // 1. Save data to Supabase profiles table
-      const { error: dbError } = await supabase
+// 1. Save data to Supabase profiles table
+      const { error: dbError } = await (supabase as any)
         .from("profiles")
         .update({
           learner_tier: selectedTier,
           primary_focus: selectedFocus,
-          onboarding_completed: true,
-          updated_at: new Date().toISOString(),
+          marketing_opt_in: hasConsented
         })
         .eq("id", userId);
 
