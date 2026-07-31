@@ -61,6 +61,7 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
       <nav className="hidden lg:flex items-center gap-5">
         {isLoaded && hasUser ? (
           <>
+          <button onClick={() => router.push("/about")} className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Meet Ebony</button>
             <Link href="/dashboard" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Planner</Link>
 <button onClick={() => router.push("/dashboard/students")} className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Learners</button>
             <Link href="/history" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">History</Link>

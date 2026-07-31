@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Clock, Target, FileCheck, HeartHandshake, ChevronRight, CheckCircle2, HelpCircle, ShieldCheck } from "lucide-react";
+import { Sparkles, Target, FileCheck, HeartHandshake, ChevronRight, CheckCircle2, ShieldCheck, Lock } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 
@@ -17,35 +17,32 @@ export default function Home() {
         <SiteHeader />
       </div>
 
-      {/* HERO SECTION (70/30 Split) */}
+      {/* HERO SECTION (SaaS & Security Focused) */}
       <section className="w-full max-w-6xl px-6 pt-12 pb-16 flex flex-col md:flex-row items-center justify-between gap-12 animate-in fade-in slide-in-from-bottom-8">
         
-        {/* 70% Text Column */}
-        <div className="w-full md:w-[70%] flex flex-col items-center md:items-start text-center md:text-left">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-100 text-teal-800 font-bold text-sm mb-8 border border-teal-200">
-            <Sparkles className="w-4 h-4" /> The AI Engine for Educators
+        <div className="w-full md:w-[60%] flex flex-col items-center md:items-start text-center md:text-left">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-100 text-teal-900 font-bold text-sm mb-8 border border-teal-200">
+            <Lock className="w-4 h-4" /> 100% Private, Zero-PII AI Engine
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-tight mb-6">
-            You bring the topics. <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-rose-500">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-slate-900 tracking-tight leading-tight mb-6">
+            You bring the curriculum. <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-blue-600">
               We build the plan.
             </span>
           </h1>
           
           <p className="text-xl md:text-2xl text-slate-600 font-medium max-w-2xl mb-10 leading-relaxed">
-            Turn any topic, syllabus, or PDF into a state-aligned, multi-sensory lesson plan in seconds. Built for homeschool parents, microschools, and classroom teachers.
+            The secure AI sidekick engineered for educators and parents to instantly adapt any lesson to a child's unique learning style. 
           </p>
 
-          {/* BUTTON GROUP */}
           <div className="flex flex-col sm:flex-row items-start gap-4 w-full justify-center md:justify-start flex-wrap">
-            
             <div className="flex flex-col items-center gap-2 w-full sm:w-auto">
               <Button 
                 onClick={() => router.push("/login?signup=true")} 
                 className="h-16 px-8 w-full text-xl bg-teal-600 hover:bg-teal-700 text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
               >
-                Start Your Free Trial <ChevronRight className="w-6 h-6 ml-2" />
+                Start Free Trial <ChevronRight className="w-6 h-6 ml-2" />
               </Button>
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
                 No Credit Card Required
@@ -57,32 +54,21 @@ export default function Home() {
               variant="outline"
               className="h-16 px-8 w-full sm:w-auto text-xl border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-100"
             >
-              See All Features
+              Explore Features
             </Button>
-            
-            <Button 
-              onClick={() => router.push("/dashboard")} 
-              variant="outline"
-              className="h-16 px-8 w-full sm:w-auto text-xl border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-100"
-            >
-              View Live Demo
-            </Button>
-
           </div>
         </div>
 
-        {/* 30% Image Column */}
-        <div className="w-full md:w-[30%] flex justify-center md:justify-end">
+        <div className="w-full md:w-[40%] flex justify-center md:justify-end">
           <Image 
-            src="/heroside.svg" 
-            alt="MiSpark Hero" 
-            width={400} 
-            height={400} 
-            className="w-full max-w-[350px] h-auto drop-shadow-xl"
+            src="/1785411609723.png" 
+            alt="Mi-Spark Inclusive AI Learning" 
+            width={500} 
+            height={500} 
+            className="w-full max-w-[450px] h-auto drop-shadow-2xl"
             priority
           />
         </div>
-
       </section>
 
       {/* VALUE PROP DIVIDER */}
@@ -90,9 +76,9 @@ export default function Home() {
         <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {[
             { label: "Hours Saved Weekly", value: "10+" },
-            { label: "State Standards", value: "Aligned" },
+            { label: "Data Exposed", value: "ZERO" },
+            { label: "Learning Styles", value: "Infinite" },
             { label: "Portfolio Creation", value: "Instant" },
-            { label: "Student Engagement", value: "Curated" },
           ].map((stat, i) => (
             <div key={i} className="flex flex-col items-center">
               <span className="text-3xl md:text-4xl font-black text-white mb-2">{stat.value}</span>
@@ -102,27 +88,32 @@ export default function Home() {
         </div>
       </div>
 
-      {/* AUDIENCE SWITCHER */}
-      <section className="w-full bg-white py-20 px-6 border-b border-slate-100">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-8">
-          <div className="bg-slate-50 p-10 rounded-[2rem] border border-slate-200 hover:border-teal-300 transition-colors shadow-sm">
-            <h3 className="text-3xl font-black text-slate-800 mb-4">For Homeschool Parents</h3>
-            <p className="text-lg text-slate-600 font-medium leading-relaxed">
-              Ditch the Sunday planning scramble. Tailor lessons to your child's exact attention span and interests, while generating immediate portfolios for state compliance evaluators.
-            </p>
-          </div>
-          <div className="bg-slate-50 p-10 rounded-[2rem] border border-slate-200 hover:border-orange-300 transition-colors shadow-sm">
-            <h3 className="text-3xl font-black text-slate-800 mb-4">For Classroom Teachers</h3>
-            <p className="text-lg text-slate-600 font-medium leading-relaxed">
-              Differentiate instruction instantly. Generate hands-on activities, centers, and remedial or advanced pathways for diverse neurodivergent classrooms in seconds.
-            </p>
-          </div>
+      {/* 3-STEP ACTIVATION */}
+      <section className="w-full bg-slate-50 py-20 px-6 border-b border-slate-200 text-center">
+        <div className="max-w-5xl mx-auto">
+            <h2 className="text-4xl font-black text-slate-900 mb-16">Intelligent lesson scaling in 3 steps</h2>
+            <div className="grid md:grid-cols-3 gap-8 relative">
+                <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                    <div className="w-12 h-12 bg-slate-900 text-white font-black text-xl flex items-center justify-center rounded-full mx-auto mb-6">1</div>
+                    <h3 className="text-xl font-bold text-slate-800 mb-3">Input the Topic</h3>
+                    <p className="text-slate-600">Type a subject like "Fractions" or securely upload your existing syllabus.</p>
+                </div>
+                <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                    <div className="w-12 h-12 bg-slate-900 text-white font-black text-xl flex items-center justify-center rounded-full mx-auto mb-6">2</div>
+                    <h3 className="text-xl font-bold text-slate-800 mb-3">Select the Profile</h3>
+                    <p className="text-slate-600">Choose the learner's pre-saved sensory needs, neurodivergence, and modality.</p>
+                </div>
+                <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 border-b-4 border-b-teal-500">
+                    <div className="w-12 h-12 bg-teal-500 text-white font-black text-xl flex items-center justify-center rounded-full mx-auto mb-6">3</div>
+                    <h3 className="text-xl font-bold text-slate-800 mb-3">Deploy the Lesson</h3>
+                    <p className="text-slate-600">Instantly generate custom, data-safe resources ready for immediate teaching.</p>
+                </div>
+            </div>
         </div>
       </section>
 
       {/* THE 4 PILLARS OF MEMBERSHIP */}
       <section className="w-full max-w-6xl px-6 py-24 space-y-32">
-
          {/* Pillar 1: Curated by Feedback */}
         <div className="flex flex-col md:flex-row-reverse items-center gap-12">
           <div className="flex-1 space-y-6">
@@ -148,10 +139,6 @@ export default function Home() {
             </div>
             <h2 className="text-4xl font-black text-slate-900 leading-tight">Never guess if you are hitting the standards.</h2>
             <p className="text-xl text-slate-600 font-medium">We map every activity directly to your specific state's educational requirements. Have absolute peace of mind knowing your curriculum is fully compliant.</p>
-            <ul className="space-y-3 text-slate-700 font-bold">
-              <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-blue-500"/> Core foundation mapping</li>
-              <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-blue-500"/> Subject-specific standard breakdowns</li>
-            </ul>
           </div>
           <div className="flex-1 w-full bg-white rounded-3xl p-4 shadow-xl border border-slate-200">
             <div className="aspect-video bg-slate-100 rounded-2xl border border-slate-200 flex items-center justify-center overflow-hidden relative">
@@ -160,55 +147,11 @@ export default function Home() {
             </div>
           </div>
         </div>
-
-        {/* Pillar 3: Learner Aligned */}
-        <div className="flex flex-col md:flex-row-reverse items-center gap-12">
-          <div className="flex-1 space-y-6">
-            <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-orange-600" />
-            </div>
-            <h2 className="text-4xl font-black text-slate-900 leading-tight">Every learner is different. Their plan should be too.</h2>
-            <p className="text-xl text-slate-600 font-medium">Lessons are automatically scaled to your student's specific grade level, attention span, interests, and sensory needs. No more fighting through generic workbooks.</p>
-            <ul className="space-y-3 text-slate-700 font-bold">
-              <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-orange-500"/> Tactile & visual tool recommendations</li>
-              <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-orange-500"/> Video, reading, and hands-on modalities</li>
-            </ul>
-          </div>
-          <div className="flex-1 w-full bg-white rounded-3xl p-4 shadow-xl border border-slate-200">
-            <div className="aspect-video bg-slate-100 rounded-2xl border border-slate-200 flex items-center justify-center overflow-hidden relative">
-              <span className="text-slate-400 font-bold absolute z-0">Screenshot: Learner Profile / Let's Play Section</span>
-              <Image src="/screenshots/learner-aligned.png" alt="Learner Aligned" fill className="object-cover relative z-10" />
-            </div>
-          </div>
-        </div>
-
-        {/* Pillar 4: Portfolios */}
-        <div className="flex flex-col md:flex-row items-center gap-12">
-          <div className="flex-1 space-y-6">
-            <div className="w-16 h-16 bg-teal-100 rounded-2xl flex items-center justify-center">
-              <FileCheck className="w-8 h-8 text-teal-600" />
-            </div>
-            <h2 className="text-4xl font-black text-slate-900 leading-tight">Save time reviewing progress with easy-to-use portfolios.</h2>
-            <p className="text-xl text-slate-600 font-medium">Snap a picture of their work, tap a star rating, and we automatically build a fully compliant, beautifully formatted state report for you to print at the end of the year.</p>
-            <ul className="space-y-3 text-slate-700 font-bold">
-              <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-teal-500"/> Instant printable compliance reports</li>
-              <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-teal-500"/> Secure evidence & image storage</li>
-            </ul>
-          </div>
-          <div className="flex-1 w-full bg-white rounded-3xl p-4 shadow-xl border border-slate-200">
-            <div className="aspect-video bg-slate-100 rounded-2xl border border-slate-200 flex items-center justify-center overflow-hidden relative">
-              <span className="text-slate-400 font-bold absolute z-0">Screenshot: The Print Portfolio Page</span>
-              <Image src="/screenshots/portfolio-view.png" alt="Automated Portfolios" fill className="object-cover relative z-10" />
-            </div>
-          </div>
-        </div>
       </section>
 
-      {/* THE "WHY NOT CHATGPT?" PRIVACY SECTION */}
-      <section className="w-full max-w-5xl px-6 py-24 mx-auto">
+      {/* PRIVACY SECTION */}
+      <section className="w-full max-w-5xl px-6 pb-24 pt-12 mx-auto">
         <div className="bg-slate-900 rounded-[3rem] p-8 md:p-16 relative overflow-hidden shadow-2xl">
-          
-          {/* Background decoration */}
           <div className="absolute top-0 right-0 p-8 opacity-10">
             <ShieldCheck className="w-64 h-64 text-white" />
           </div>
@@ -216,56 +159,44 @@ export default function Home() {
           <div className="relative z-10 space-y-12">
             <div className="text-center max-w-2xl mx-auto">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-teal-400 font-bold text-xs uppercase tracking-wider mb-6">
-                <ShieldCheck className="w-4 h-4" /> Private & Segmented
+                <ShieldCheck className="w-4 h-4" /> Enterprise-Grade Privacy
               </div>
               <h2 className="text-3xl md:text-5xl font-black text-white leading-tight mb-4">
                 Why not just use ChatGPT?
               </h2>
               <p className="text-lg text-slate-400 font-medium">
-                Public AI models aggregate everything you type into the open web. We built MiSpark to keep your family and classroom safe.
+                Public AI models aggregate everything you type into the open web. Mi-Spark was engineered to keep your family and classroom data strictly segmented.
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
-              {/* The "Other Guys" Card */}
               <div className="bg-slate-800/50 border border-slate-700 p-8 rounded-3xl">
-                <h3 className="text-xl font-black text-slate-300 mb-6 flex items-center gap-2">
-                  Public AI Tools
-                </h3>
+                <h3 className="text-xl font-black text-slate-300 mb-6 flex items-center gap-2">Public AI Tools</h3>
                 <ul className="space-y-4">
                   <li className="flex items-start gap-3">
                     <span className="mt-1 text-slate-500">❌</span>
-                    <p className="text-slate-400 font-medium text-sm leading-relaxed">Your student's personal data, struggles, and schedule can be used to train public models.</p>
+                    <p className="text-slate-400 font-medium text-sm leading-relaxed">Your student's data can be used to train public models.</p>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="mt-1 text-slate-500">❌</span>
-                    <p className="text-slate-400 font-medium text-sm leading-relaxed">You have to type out a massive, exhausting prompt every single week.</p>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="mt-1 text-slate-500">❌</span>
-                    <p className="text-slate-400 font-medium text-sm leading-relaxed">It forgets what your learners enjoy and starts from scratch every time.</p>
+                    <p className="text-slate-400 font-medium text-sm leading-relaxed">Requires massive, exhausting prompts every time.</p>
                   </li>
                 </ul>
               </div>
 
-              {/* The MiSpark Card */}
               <div className="bg-teal-900/40 border border-teal-700/50 p-8 rounded-3xl relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-1 bg-teal-500 h-full"></div>
                 <h3 className="text-xl font-black text-teal-300 mb-6 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5" /> The MiSpark Method
+                  <Sparkles className="w-5 h-5" /> The Mi-Spark Architecture
                 </h3>
                 <ul className="space-y-4">
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-teal-500 shrink-0 mt-0.5"/>
-                    <p className="text-teal-50 font-medium text-sm leading-relaxed"><span className="font-bold">Zero Identifying Data:</span> We only ask for nicknames. Your data is enterprise-segmented and never trains public models.</p>
+                    <p className="text-teal-50 font-medium text-sm leading-relaxed"><span className="font-bold">Zero PII:</span> We only ask for nicknames. Data never trains public models.</p>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-teal-500 shrink-0 mt-0.5"/>
-                    <p className="text-teal-50 font-medium text-sm leading-relaxed"><span className="font-bold">One-Click Generation:</span> Profiles save your state standards and sensory needs forever. Just type a topic and hit go.</p>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-teal-500 shrink-0 mt-0.5"/>
-                    <p className="text-teal-50 font-medium text-sm leading-relaxed"><span className="font-bold">Continuous Customization:</span> Our closed-loop rating system learns what your students love over time, entirely securely.</p>
+                    <p className="text-teal-50 font-medium text-sm leading-relaxed"><span className="font-bold">One-Click Scaling:</span> Profiles save sensory needs securely. Just type a topic and hit go.</p>
                   </li>
                 </ul>
               </div>
@@ -277,15 +208,13 @@ export default function Home() {
       {/* BOTTOM CTA */}
       <section className="w-full bg-teal-900 py-24 px-6 text-center">
         <div className="max-w-2xl mx-auto flex flex-col items-center">
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-6">Ready to get your weekends back?</h2>
-          <p className="text-xl text-teal-100 font-medium mb-10">Join the parents and educators using MiSpark to turn hours of curriculum planning into minutes of joyful learning.</p>
-          
+          <h2 className="text-4xl md:text-5xl font-black text-white mb-6">Ready to streamline your lesson planning?</h2>
           <div className="flex flex-col items-center gap-3">
             <Button 
               onClick={() => router.push("/login?signup=true")} 
               className="h-16 px-10 text-xl bg-orange-500 hover:bg-orange-600 text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 w-full sm:w-auto"
             >
-              Start Your Free Trial ✨
+              Set up your secure workspace ✨
             </Button>
             <span className="text-sm font-bold text-teal-200/70 uppercase tracking-wide">
               No Credit Card Required
@@ -293,9 +222,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-
       <SiteFooter />
-
     </main>
   );
 }
