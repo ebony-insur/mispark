@@ -1,21 +1,13 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { Toaster } from "@/components/ui/sonner";
+import { Inter } from "next/font/google"; // Or whatever font you use
+import "./globals.css"; 
 
 const inter = Inter({ subsets: ["latin"] });
 
+// Global Fallback SEO Metadata
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.mi-spark.com"),
-  title: "MiSpark",
-  description: "Homeschool curriculum architect",
-  openGraph: {
-    title: "MiSpark",
-    description: "Transform your homeschool schedule into engaging, neurodivergent-friendly activities.",
-    url: "https://www.mi-spark.com",
-    siteName: "MiSpark",
-    type: "website",
-  },
+  title: "Mi-Spark | Safe AI for Educators",
+  description: "Generate custom learning supplements in seconds without exposing your child's data.",
 };
 
 export default function RootLayout({
@@ -26,8 +18,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
+        {/* If you add a Supabase Auth Provider later, it wraps {children} here */}
         {children}
-        <Toaster position="top-center" richColors />
       </body>
     </html>
   );
