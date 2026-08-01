@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google"; // Or whatever font you use
+import { Inter } from "next/font/google"; 
 import "./globals.css"; 
+import { Toaster } from "sonner"; // <-- 1. Add this import
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,6 +21,9 @@ export default function RootLayout({
       <body className={inter.className}>
         {/* If you add a Supabase Auth Provider later, it wraps {children} here */}
         {children}
+        
+        {/* 2. Add the Toaster component right below children */}
+        <Toaster richColors position="top-center" expand={true} />
       </body>
     </html>
   );
