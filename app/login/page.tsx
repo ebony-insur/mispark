@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,18 @@ function AuthForm() {
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
 
   const supabase = createClient();
+
+  // If the user is already logged in, redirect them immediately to the dashboard
+  useEffect(() => {
+    const checkActiveSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        toast.info("You are already logged in!");
+        router.push("/dashboard");
+      }
+    };
+    checkActiveSession();
+  }, [supabase, router]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,8 +82,9 @@ function AuthForm() {
         if (error) throw error;
 
         // SUPABASE EXISTING USER CHECK: 
-        // If identities array is empty, the email is already registered.
-        if (data?.user && data.user.identities && data.user.identities.length === 0) {
+        // A brand new user will ALWAYS have at least one identity.
+        // By checking if identities is missing entirely OR empty, we catch all duplicate scenarios.
+        if (data?.user && (!data.user.identities || data.user.identities.length === 0)) {
           toast.error("An account with this email already exists. Please log in.");
           setIsLoading(false);
           return; 
