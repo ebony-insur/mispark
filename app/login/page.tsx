@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense, useEffect } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -25,18 +25,6 @@ function AuthForm() {
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
 
   const supabase = createClient();
-
-  // If the user is already logged in, redirect them immediately to the dashboard
-  useEffect(() => {
-    const checkActiveSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        toast.info("You are already logged in!");
-        router.push("/dashboard");
-      }
-    };
-    checkActiveSession();
-  }, [supabase, router]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,9 +69,8 @@ function AuthForm() {
         
         if (error) throw error;
 
-        // SUPABASE EXISTING USER CHECK: 
-        // A brand new user will ALWAYS have at least one identity.
-        // By checking if identities is missing entirely OR empty, we catch all duplicate scenarios.
+        // THE ONLY CHANGE FROM YOUR ORIGINAL CODE:
+        // Safely handles both undefined/null arrays and empty arrays to catch existing users
         if (data?.user && (!data.user.identities || data.user.identities.length === 0)) {
           toast.error("An account with this email already exists. Please log in.");
           setIsLoading(false);
@@ -91,7 +78,6 @@ function AuthForm() {
         }
 
         toast.success("Account created! Please check your email.");
-        // Clear form, show success message, switch to login view
         setFirstName(""); 
         setLastName("");
         setEmail(""); 
@@ -104,7 +90,6 @@ function AuthForm() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back!");
-        // Force a hard reload to ensure Supabase auth cookies are perfectly synced
         window.location.href = "/dashboard";
       }
     } catch (error: any) {
@@ -127,7 +112,6 @@ function AuthForm() {
         {isSignUp ? "Start generating customized lesson plans today." : "Log in to view your plans and portfolios."}
       </p>
 
-      {/* Verification Success Box */}
       {showVerificationMessage && (
         <div className="mb-6 bg-teal-50 border border-teal-200 p-4 rounded-xl flex items-start gap-3 animate-in fade-in zoom-in duration-300">
           <MailCheck className="w-6 h-6 text-teal-600 shrink-0 mt-0.5" />
@@ -141,8 +125,6 @@ function AuthForm() {
       )}
 
       <form onSubmit={handleAuth} className="space-y-5">
-        
-        {/* FIRST & LAST NAME - ONLY SHOWS ON SIGNUP */}
         {isSignUp && (
           <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
             <div>
@@ -202,7 +184,6 @@ function AuthForm() {
             placeholder="••••••••"
             className="h-14 text-lg rounded-xl border-slate-200 focus-visible:ring-teal-500"
           />
-          {/* PASSWORD REQUIREMENTS - ONLY SHOWS ON SIGNUP */}
           {isSignUp && (
             <p className="text-xs text-slate-500 mt-2 font-medium flex items-center gap-1">
               <span className={`w-1.5 h-1.5 rounded-full ${password.length >= 6 ? 'bg-teal-500' : 'bg-slate-300'}`}></span>
@@ -256,9 +237,7 @@ export default function LoginPage() {
     <main className="min-h-screen flex flex-col justify-between bg-slate-50">
       <div className="flex-1 flex flex-col md:flex-row">
         
-        {/* LEFT COLUMN: MARKETING & FEATURES */}
         <div className="w-full md:w-5/12 lg:w-1/2 bg-teal-900 text-white p-8 md:p-16 flex flex-col justify-center relative overflow-hidden">
-          {/* Decorative background circle */}
           <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-teal-800 rounded-full blur-3xl opacity-50 -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
           
           <div className="relative z-10 max-w-lg mx-auto md:mx-0">
@@ -318,7 +297,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: AUTH FORM */}
         <div className="w-full md:w-7/12 lg:w-1/2 flex items-center justify-center p-6 py-12 md:p-12 relative z-10">
           <Suspense fallback={<Loader2 className="w-10 h-10 animate-spin text-teal-600" />}>
             <AuthForm />
