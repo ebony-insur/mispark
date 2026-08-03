@@ -140,13 +140,38 @@ export default function StudentsPage() {
   };
 
   const openFormForNew = () => {
-    if (subscriptionTier === "Solo Scholar" && students.length >= 1) {
-      toast.error("Solo Scholar limit reached", {
-        description: "Your plan includes 1 student profile. Upgrade to Family Unlimited to add more kids!"
+    // 1. Free Trial & Solo Scholar Limit (Max 1 Student)
+    if (
+      (subscriptionTier === "Solo Scholar" || subscriptionTier === "Free Trial" || subscriptionTier === "Free" || subscriptionTier === "free") && 
+      students.length >= 1
+    ) {
+      toast.error("Learner Limit Reached", {
+        description: "Your plan includes 1 learner profile. Upgrade to Family Unlimited to add more kids!"
       });
-      router.push("/dashboard");
+      router.push("/billing");
       return;
     }
+
+    // 2. Family Plan Limit (Max 5 Students)
+    if (
+      (subscriptionTier === "Family Plan" || subscriptionTier === "Family Unlimited") && 
+      students.length >= 5
+    ) {
+      toast.error("Family Limit Reached", {
+        description: "Family plans include up to 5 learner profiles. Upgrade to Classroom for up to 30 learners!"
+      });
+      router.push("/billing");
+      return;
+    }
+
+    // 3. Classroom Plan Limit (Max 30 Students)
+    if (subscriptionTier === "Classroom" && students.length >= 30) {
+      toast.error("Classroom Limit Reached", {
+        description: "Classroom accounts allow a maximum of 30 learner profiles."
+      });
+      return;
+    }
+
     setEditingId(null);
     setNickname(""); setGrade(""); setFocusDuration(""); setZipCode("");
     setMathMastery("On Grade"); setReadingMastery("On Grade"); setScienceMastery("On Grade");
@@ -266,8 +291,13 @@ export default function StudentsPage() {
                   <Users className="text-blue-600 w-6 h-6" /> My Students
                 </h2>
                 
-                {subscriptionTier === "Solo Scholar" && students.length >= 1 ? (
-                  <Button onClick={() => router.push("/dashboard")} className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-md hover:opacity-90">
+                {/* Dynamically checking all plan limits for the button render */}
+                {
+                  ((subscriptionTier === "Solo Scholar" || subscriptionTier === "Free Trial" || subscriptionTier === "Free" || subscriptionTier === "free") && students.length >= 1) ||
+                  ((subscriptionTier === "Family Plan" || subscriptionTier === "Family Unlimited") && students.length >= 5) ||
+                  (subscriptionTier === "Classroom" && students.length >= 30)
+                ? (
+                  <Button onClick={() => router.push("/billing")} className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-md hover:opacity-90">
                     <Lock className="w-4 h-4 mr-2" /> Upgrade to Add Kids
                   </Button>
                 ) : (

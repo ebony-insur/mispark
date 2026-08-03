@@ -50,25 +50,25 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
   };
 
   return (
-    <header className="w-full max-w-6xl flex items-center justify-between bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-200 mb-6 print:hidden">
+    // UPGRADE: Added flex-wrap and gap-4 to the main header container so elements can stack on mobile
+    <header className="w-full max-w-6xl flex flex-wrap items-center justify-between gap-4 bg-white px-6 py-4 rounded-2xl shadow-sm border border-slate-200 mb-6 print:hidden">
       
-      {/* LOGO - Now strictly routes to home page */}
       <Link href="/" className="flex items-center gap-2 shrink-0">
         <Image src="/MiSpark.svg" alt="MiSpark Logo" width={120} height={35} priority />
       </Link>
 
-      {/* DYNAMIC NAVIGATION LINKS (Hidden on Mobile) */}
-      <nav className="hidden lg:flex items-center gap-5">
+      {/* UPGRADE: Removed "hidden lg:flex". Forced the nav to wrap, center, and drop below the logo on mobile (order-last w-full lg:w-auto lg:order-none) */}
+      <nav className="flex flex-wrap items-center justify-center gap-3 md:gap-5 order-last w-full lg:w-auto lg:order-none">
         {isLoaded && hasUser ? (
           <>
-          <button onClick={() => router.push("/about")} className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Meet Ebony</button>
+            <button onClick={() => router.push("/about")} className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Meet Ebony</button>
             <Link href="/dashboard" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Planner</Link>
-<button onClick={() => router.push("/dashboard/students")} className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Learners</button>
+            <button onClick={() => router.push("/dashboard/students")} className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Learners</button>
             <Link href="/history" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">History</Link>
             <Link href="/portfolio" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Portfolios</Link>
             <Link href="/help" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">Success Guide</Link>
             <Link href="/faq" className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">FAQ</Link>
-<button onClick={() => router.push("/billing")} className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">My Account</button>
+            <button onClick={() => router.push("/billing")} className="text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors">My Account</button>
           </>
         ) : isLoaded ? (
           <>
@@ -80,7 +80,6 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
         ) : null}
       </nav>
 
-      {/* AUTH BUTTONS */}
       <div className="flex items-center gap-4 shrink-0">
         {isLoaded && hasUser ? (
           <div className="flex items-center gap-3">

@@ -2,76 +2,106 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-06-20",
-});
-
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
-
 export async function POST(req: Request) {
-  // 1. Get the raw body and signature to verify the event came from Stripe
+  const apiKey = process.env.STRIPE_SECRET_KEY;
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!apiKey || !endpointSecret) {
+    return NextResponse.json({ error: "Server missing Stripe environment variables" }, { status: 500 });
+  }
+
+  const stripe = new Stripe(apiKey, {
+    apiVersion: "2024-06-20" as any,
+  });
+
   const payload = await req.text();
   const signature = req.headers.get("stripe-signature");
 
-  if (!signature || !endpointSecret) {
-    return NextResponse.json({ error: "Missing stripe signature or endpoint secret" }, { status: 400 });
+  if (!signature) {
+    return NextResponse.json({ error: "Missing stripe signature header" }, { status: 400 });
   }
 
   let event: Stripe.Event;
 
   try {
-    // 2. Verify the webhook signature
     event = stripe.webhooks.constructEvent(payload, signature, endpointSecret);
   } catch (err: any) {
-    console.error("Webhook signature verification failed.", err.message);
+    console.error("Webhook signature verification failed:", err.message);
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
 
-  // 3. Initialize Supabase using the SERVICE_ROLE key (Bypasses RLS to forcefully update the database)
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY! 
-  );
+  // Sanitize Vercel Supabase URL
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const cleanUrl = rawUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
+  
+  // Service Role Client bypasses RLS for administrative updates
+  const supabaseAdmin = createClient(cleanUrl, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
   try {
-    // 4. Handle the specific Stripe events
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        
-        // This is the userId we passed in the metadata during the checkout step!
         const userId = session.metadata?.userId;
         const customerId = session.customer as string;
 
-        if (userId) {
-          // UPGRADE THE USER!
-          const { error } = await supabaseAdmin
-            .from("profiles")
-            .update({ 
-              is_subscribed: true, 
-              stripe_customer_id: customerId // Save this so we can downgrade them if they cancel
-            })
-            .eq("id", userId);
+        if (!userId) break;
 
-          if (error) throw error;
-          console.log(`Successfully upgraded user: ${userId}`);
+        const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+        const isSparkPack = lineItems.data.some(item => item.price?.product === 'prod_UxMoASRnl4acGz');
+        const isClassroom = lineItems.data.some(item => item.price?.product === 'prod_UxMsst5r7iZfnl');
+
+        if (isSparkPack) {
+            // Handle Top-Up Pack purchase (Add 4 Sparks without granting a subscription)
+            const { data: profile } = await supabaseAdmin
+                .from("profiles")
+                .select("sparks_remaining")
+                .eq("id", userId)
+                .single();
+            
+            const currentSparks = profile?.sparks_remaining || 0;
+            const maxCap = 24; 
+            const newTotal = Math.min(currentSparks + 4, maxCap);
+
+            await (supabaseAdmin.from("profiles") as any).update({ 
+                sparks_remaining: newTotal,
+                stripe_customer_id: customerId 
+            }).eq("id", userId);
+
+            console.log(`Added Spark Pack for user ${userId}. New balance: ${newTotal}`);
+
+        } else {
+            // Handle Subscription Plan Upgrades
+            const planType = session.metadata?.planType || (isClassroom ? "classroom" : "family");
+            const tierName = planType === "single" ? "Solo Scholar" : planType === "classroom" ? "Classroom" : "Family Unlimited";
+
+            const { error } = await (supabaseAdmin.from("profiles") as any)
+              .update({
+                is_subscribed: true,
+                subscription_tier: tierName,
+                stripe_customer_id: customerId,
+              })
+              .eq("id", userId);
+
+            if (error) throw error;
+            console.log(`Successfully upgraded user ${userId} to ${tierName}`);
         }
         break;
       }
-      
+
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        // DOWNGRADE THE USER (If they cancel their subscription)
-        const { error } = await supabaseAdmin
-          .from("profiles")
-          .update({ is_subscribed: false })
+        // Reset account on subscription cancellation
+        const { error } = await (supabaseAdmin.from("profiles") as any)
+          .update({ 
+            is_subscribed: false,
+            subscription_tier: "Free"
+          })
           .eq("stripe_customer_id", customerId);
 
         if (error) throw error;
-        console.log(`Successfully downgraded customer: ${customerId}`);
+        console.log(`Downgraded customer ${customerId} to free`);
         break;
       }
 
@@ -79,11 +109,9 @@ export async function POST(req: Request) {
         console.log(`Unhandled event type: ${event.type}`);
     }
 
-    // Tell Stripe we received the message successfully
     return NextResponse.json({ received: true }, { status: 200 });
-
   } catch (error: any) {
-    console.error("Error processing webhook:", error);
+    console.error("Webhook processing error:", error);
     return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 });
   }
 }

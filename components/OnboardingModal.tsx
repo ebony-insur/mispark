@@ -69,7 +69,8 @@ export default function OnboardingModal({ onSuccess }: { onSuccess?: () => void 
         .update({
           learner_tier: selectedTier,
           primary_focus: selectedFocus,
-          marketing_opt_in: hasConsented
+          marketing_opt_in: hasConsented,
+          onboarding_completed: true // <-- ADD THIS EXACT LINE
         })
         .eq("id", userId);
 

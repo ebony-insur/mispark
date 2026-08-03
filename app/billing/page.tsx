@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2, ShieldAlert, Zap, UserCheck, Mail, Award } from "lucide-react";
+import { CheckCircle2, ShieldAlert, Zap, UserCheck, Mail, Award, CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import SiteHeader from "@/components/SiteHeader";
 
@@ -16,7 +16,9 @@ export default function BillingPage() {
   
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isPortalLoading, setIsPortalLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
   
   // Profile Form States
   const [firstName, setFirstName] = useState("");
@@ -28,19 +30,18 @@ export default function BillingPage() {
     const fetchUserAndProfile = async () => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
-      // Strict Auth Gate: Redirect to login if not authenticated
       if (authError || !user) {
         router.push("/login");
         return;
       }
       
       setUserId(user.id);
-      setEmail(user.email || ""); // Set email from auth session
+      setEmail(user.email || ""); 
 
-      // Fetch the full profile details including the subscription tier
+      // Fetch the full profile details including the subscription tier and stripe ID
       const { data } = await supabase
         .from("profiles")
-        .select("first_name, last_name, subscription_tier")
+        .select("first_name, last_name, subscription_tier, stripe_customer_id")
         .eq("id", user.id)
         .single();
 
@@ -50,6 +51,7 @@ export default function BillingPage() {
         setFirstName(profile.first_name || "");
         setLastName(profile.last_name || "");
         setSubscriptionTier(profile.subscription_tier || "Free");
+        setStripeCustomerId(profile.stripe_customer_id || null);
       }
     };
     fetchUserAndProfile();
@@ -74,6 +76,7 @@ export default function BillingPage() {
     }
   };
 
+  // Upgrades and Spark Purchases
   const handleCheckout = async (priceId: string, mode: string) => {
     if (!userId) {
       toast.error("Please wait, securing your session...");
@@ -102,6 +105,34 @@ export default function BillingPage() {
     }
   };
 
+  // Manage Active Subscriptions (Portal)
+  const handleManageBilling = async () => {
+    if (!stripeCustomerId) {
+      toast.error("You don't have an active billing profile yet.");
+      return;
+    }
+
+    setIsPortalLoading(true);
+    try {
+      const res = await fetch("/api/stripe/portal", { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId: stripeCustomerId }), 
+      });
+      const data = await res.json();
+      
+      if (res.ok && data.url) {
+        window.location.href = data.url; 
+      } else {
+        toast.error(data.error || "Could not open billing portal.");
+      }
+    } catch (err) {
+      toast.error("Failed to connect to billing portal.");
+    } finally {
+      setIsPortalLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col items-center pb-20">
       <div className="w-full px-6 pt-6 flex justify-center">
@@ -119,10 +150,25 @@ export default function BillingPage() {
 
         {/* PROFILE SETTINGS CARD */}
         <Card className="border-2 border-slate-200 bg-white shadow-sm">
-          <CardHeader className="border-b border-slate-100 pb-4">
+          <CardHeader className="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
               <UserCheck className="w-5 h-5 text-teal-600" /> Account Holder Details
             </CardTitle>
+            
+            {/* NEW PORTAL BUTTON */}
+            {stripeCustomerId && (
+               <Button 
+                onClick={handleManageBilling} 
+                disabled={isPortalLoading}
+                className="bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-sm"
+              >
+                {isPortalLoading ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Connecting...</>
+                ) : (
+                    <><CreditCard className="w-4 h-4 mr-2" /> Manage Subscription</>
+                )}
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="p-6">
             <form onSubmit={handleUpdateProfile} className="space-y-6">
@@ -150,7 +196,6 @@ export default function BillingPage() {
                 </div>
               </div>
 
-              {/* RESTORED: Email and Subscription Display */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
                 <div>
                   <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-1">

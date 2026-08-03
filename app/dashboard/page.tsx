@@ -96,21 +96,43 @@ export default function Dashboard() {
   const isOverLimit = currentWordCount > 750;
 
   useEffect(() => {
-    const fetchUserAndData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setIsGuest(!user);
-      if (user) {
-        const { data: profile } = await (supabase as any)
-          .from("profiles")
-          .select("sparks_remaining, is_subscribed")
-          .eq("id", user.id)
-          .single();
-          
-        if (profile) {
-          setSparks((profile as any).sparks_remaining);
-          setIsSubscribed((profile as any).is_subscribed);
-        }
+const fetchUserAndData = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  setUser(user);
+  setIsGuest(!user);
+  if (user) {
+    const { data: profile } = await (supabase as any)
+      .from("profiles")
+      .select("sparks_remaining, is_subscribed, onboarding_completed")
+      .eq("id", user.id)
+      .single();
+      
+    if (profile) {
+      setSparks((profile as any).sparks_remaining);
+      setIsSubscribed((profile as any).is_subscribed);
+      
+      // 1. Marketing Onboarding Check
+      if ((profile as any).onboarding_completed === false) {
+         window.location.href = "/onboarding";
+         return; 
+      }
+    }
+
+    const { data: studentData } = await (supabase as any)
+      .from("children_profiles")
+      .select("*")
+      .eq("parent_id", user.id)
+      .order("created_at", { ascending: false });
+      
+    if (studentData && studentData.length > 0) {
+      setStudents(studentData);
+      setSelectedStudentId((studentData[0] as any).id);
+    } else {
+      // 2. No Learners Check (Sends directly to creator, NOT onboarding)
+      window.location.href = "/dashboard/students";
+    }
+  }
+};
 
         const { data: studentData } = await (supabase as any)
           .from("children_profiles")
