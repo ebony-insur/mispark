@@ -319,7 +319,7 @@ export default function Dashboard() {
   return (
     <main className="flex min-h-screen flex-col justify-between bg-slate-50 print:bg-white print:py-0 print:px-0">
       <div className="w-full flex flex-col items-center py-12 px-6 space-y-8">
-        <SiteHeader />
+     
 
         <div className="w-full max-w-5xl space-y-6 print:hidden">
           
