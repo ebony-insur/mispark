@@ -38,7 +38,7 @@ export async function POST(req: Request) {
           quantity: 1,
         },
       ],
-      mode: mode as Stripe.Checkout.Session.CreateParams.Mode,
+      mode: mode as "subscription" | "payment",
       success_url: `${baseUrl}/dashboard?success=true`,
       cancel_url: `${baseUrl}/billing`,
       metadata: {
