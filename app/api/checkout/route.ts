@@ -14,17 +14,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required parameters." }, { status: 400 });
     }
 
-    // 1. Sanitize Base URL to prevent Stripe "url_invalid" errors
-    let rawBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.mi-spark.com";
+    // 1. Sanitize Base URL (Strips accidental spaces and ensures https://)
+    let rawBaseUrl = (process.env.NEXT_PUBLIC_BASE_URL || "https://www.mi-spark.com").trim();
     if (!rawBaseUrl.startsWith("http://") && !rawBaseUrl.startsWith("https://")) {
       rawBaseUrl = `https://${rawBaseUrl}`;
     }
     const baseUrl = rawBaseUrl.replace(/\/$/, "");
 
-    // 2. Initialize Supabase Admin
-    const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    // 2. Initialize Supabase Admin (Strips accidental spaces)
+    const rawSupabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
     const cleanSupabaseUrl = rawSupabaseUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
-    const supabaseAdmin = createClient(cleanSupabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+    const supabaseAdmin = createClient(cleanSupabaseUrl, (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim());
 
     // 3. Fetch user profile to check for existing Stripe Customer ID
     const { data: profile, error } = await (supabaseAdmin.from("profiles") as any)
