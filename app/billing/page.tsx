@@ -20,7 +20,6 @@ export default function BillingPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
   
-  // Profile Form States
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -38,20 +37,16 @@ export default function BillingPage() {
       setUserId(user.id);
       setEmail(user.email || ""); 
 
-      // Fetch the full profile details including the subscription tier and stripe ID
-      const { data } = await supabase
-        .from("profiles")
+      const { data } = await (supabase.from("profiles") as any)
         .select("first_name, last_name, subscription_tier, stripe_customer_id")
         .eq("id", user.id)
         .single();
 
-      const profile = data as any;
-
-      if (profile) {
-        setFirstName(profile.first_name || "");
-        setLastName(profile.last_name || "");
-        setSubscriptionTier(profile.subscription_tier || "Free");
-        setStripeCustomerId(profile.stripe_customer_id || null);
+      if (data) {
+        setFirstName(data.first_name || "");
+        setLastName(data.last_name || "");
+        setSubscriptionTier(data.subscription_tier || "Free");
+        setStripeCustomerId(data.stripe_customer_id || null);
       }
     };
     fetchUserAndProfile();
@@ -76,7 +71,6 @@ export default function BillingPage() {
     }
   };
 
-  // Upgrades and Spark Purchases
   const handleCheckout = async (priceId: string, mode: string) => {
     if (!userId) {
       toast.error("Please wait, securing your session...");
@@ -98,14 +92,13 @@ export default function BillingPage() {
       } else {
         toast.error(data.error || "Failed to start checkout.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Checkout service unavailable.");
     } finally {
       setIsLoading(null);
     }
   };
 
-  // Manage Active Subscriptions (Portal)
   const handleManageBilling = async () => {
     if (!stripeCustomerId) {
       toast.error("You don't have an active billing profile yet.");
@@ -126,15 +119,12 @@ export default function BillingPage() {
       } else {
         toast.error(data.error || "Could not open billing portal.");
       }
-    } catch (err) {
+    } catch {
       toast.error("Failed to connect to billing portal.");
     } finally {
       setIsPortalLoading(false);
     }
   };
-
-  // === NEW ADDITION: Check if the user is on a free tier ===
-  const isFreeTier = subscriptionTier.toLowerCase() === "free" || subscriptionTier.toLowerCase() === "free trial";
 
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col items-center pb-20">
@@ -158,7 +148,6 @@ export default function BillingPage() {
               <UserCheck className="w-5 h-5 text-teal-600" /> Account Holder Details
             </CardTitle>
             
-            {/* NEW PORTAL BUTTON */}
             {stripeCustomerId && (
                <Button 
                 onClick={handleManageBilling} 
@@ -175,27 +164,14 @@ export default function BillingPage() {
           </CardHeader>
           <CardContent className="p-6">
             <form onSubmit={handleUpdateProfile} className="space-y-6">
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="text-sm font-bold text-slate-700">First Name</label>
-                  <Input 
-                    type="text" 
-                    value={firstName} 
-                    onChange={(e) => setFirstName(e.target.value)} 
-                    required 
-                    className="mt-1 font-medium bg-white"
-                  />
+                  <Input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="mt-1 font-medium bg-white" />
                 </div>
                 <div>
                   <label className="text-sm font-bold text-slate-700">Last Name</label>
-                  <Input 
-                    type="text" 
-                    value={lastName} 
-                    onChange={(e) => setLastName(e.target.value)} 
-                    required 
-                    className="mt-1 font-medium bg-white"
-                  />
+                  <Input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="mt-1 font-medium bg-white" />
                 </div>
               </div>
 
@@ -204,12 +180,7 @@ export default function BillingPage() {
                   <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-1">
                     <Mail className="w-4 h-4 text-slate-400"/> Email Address
                   </label>
-                  <Input 
-                    type="email" 
-                    value={email} 
-                    disabled 
-                    className="font-medium bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed"
-                  />
+                  <Input type="email" value={email} disabled className="font-medium bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed" />
                   <p className="text-xs text-slate-400 mt-1">Email cannot be changed.</p>
                 </div>
                 <div>
@@ -223,11 +194,7 @@ export default function BillingPage() {
               </div>
 
               <div className="pt-4 flex justify-end">
-                <Button 
-                  type="submit" 
-                  disabled={isSavingProfile}
-                  className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 h-12 rounded-xl"
-                >
+                <Button type="submit" disabled={isSavingProfile} className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 h-12 rounded-xl">
                   {isSavingProfile ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
@@ -236,12 +203,12 @@ export default function BillingPage() {
         </Card>
 
         {/* PLANS GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-10">
           
-          {/* SOLO PLAN */}
+          {/* GOLD PLAN */}
           <Card className="border-2 border-slate-200 relative shadow-sm flex flex-col">
             <CardHeader className="text-center pb-4 border-b border-slate-100">
-              <CardTitle className="text-2xl font-bold text-slate-800">Solo Scholar</CardTitle>
+              <CardTitle className="text-2xl font-bold text-slate-800">Gold</CardTitle>
               <div className="mt-4 text-3xl font-black text-slate-900">$9.99<span className="text-sm font-medium text-slate-500">/mo</span></div>
             </CardHeader>
             <CardContent className="p-6 flex-1 flex flex-col gap-6">
@@ -256,33 +223,33 @@ export default function BillingPage() {
                 disabled={!!isLoading}
                 className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold h-12"
               >
-                {isLoading === "price_1Tx7p1F035PE8L5xqpQM4t3N" ? "Processing..." : "Select Solo"}
+                {isLoading === "price_1Tx7p1F035PE8L5xqpQM4t3N" ? "Processing..." : "Select Gold"}
               </Button>
             </CardContent>
           </Card>
 
-          {/* FAMILY PLAN */}
+          {/* PLATINUM PLAN */}
           <Card className="border-2 border-teal-500 relative shadow-xl flex flex-col transform md:-translate-y-4">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-teal-500 text-white text-xs font-extrabold px-4 py-1 rounded-full uppercase tracking-wider">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-teal-500 text-white text-xs font-extrabold px-4 py-1 rounded-full uppercase tracking-wider whitespace-nowrap z-10 shadow-sm">
               Most Popular
             </div>
             <CardHeader className="text-center pb-4 border-b border-slate-100 bg-teal-50/30">
-              <CardTitle className="text-2xl font-bold text-slate-800">Family Plan</CardTitle>
-              <div className="mt-4 text-3xl font-black text-slate-900">$19.99<span className="text-sm font-medium text-slate-500">/mo</span></div>
+              <CardTitle className="text-2xl font-bold text-slate-800">Platinum</CardTitle>
+              <div className="mt-4 text-3xl font-black text-slate-900">$15.99<span className="text-sm font-medium text-slate-500">/mo</span></div>
             </CardHeader>
             <CardContent className="p-6 flex-1 flex flex-col gap-6">
               <ul className="space-y-3 text-sm text-slate-700 font-medium flex-1">
                 <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 text-teal-500 shrink-0"/> Up to 5 Learner Profiles</li>
-                <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 text-teal-500 shrink-0"/> 8 Sparks per student per month</li>
+                <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 text-teal-500 shrink-0"/> 40 Sparks per month</li>
                 <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 text-teal-500 shrink-0"/> Sparks accumulate up to 3 months</li>
-                <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 text-teal-500 shrink-0"/> Sparks reload on your subscription renewal day</li>
+                <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 text-teal-500 shrink-0"/> Sparks reload on renewal day</li>
               </ul>
               <Button 
                 onClick={() => handleCheckout("price_1Tx7p6F035PE8L5x6tZ4zLYx", "subscription")}
                 disabled={!!isLoading}
                 className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold h-12"
               >
-                {isLoading === "price_1Tx7p6F035PE8L5x6tZ4zLYx" ? "Processing..." : "Select Family"}
+                {isLoading === "price_1Tx7p6F035PE8L5x6tZ4zLYx" ? "Processing..." : "Select Platinum"}
               </Button>
             </CardContent>
           </Card>
@@ -291,12 +258,12 @@ export default function BillingPage() {
           <Card className="border-2 border-slate-200 relative shadow-sm flex flex-col">
             <CardHeader className="text-center pb-4 border-b border-slate-100">
               <CardTitle className="text-2xl font-bold text-slate-800">Classroom</CardTitle>
-              <div className="mt-4 text-3xl font-black text-slate-900">$49.99<span className="text-sm font-medium text-slate-500">/mo</span></div>
+              <div className="mt-4 text-3xl font-black text-slate-900">$29.99<span className="text-sm font-medium text-slate-500">/mo</span></div>
             </CardHeader>
             <CardContent className="p-6 flex-1 flex flex-col gap-6">
               <ul className="space-y-3 text-sm text-slate-700 font-medium flex-1">
                 <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 text-purple-500 shrink-0"/> Up to 30 Learner Profiles</li>
-                <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 text-purple-500 shrink-0"/> Pooled Spark logic</li>
+                <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 text-purple-500 shrink-0"/> 240 Pooled Sparks per month</li>
                 <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 text-purple-500 shrink-0"/> Sparks accumulate up to 3 months</li>
                 <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 text-purple-500 shrink-0"/> No individual Fair Use limits</li>
               </ul>
@@ -314,37 +281,32 @@ export default function BillingPage() {
 
         {/* ONE-OFF PURCHASES & POLICY */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
-          
-          {/* === NEW ADDITION: Only render Spark Pack if the user is NOT on a free tier === */}
-          {!isFreeTier && (
-            <Card className="border border-orange-200 bg-orange-50/50 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-orange-500" /> Need More Sparks Now?
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-slate-600 mb-4">
-                  Running low before your monthly reset? Buy a top-up pack to keep planning.
-                </p>
-                <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200">
-                  <div>
-                    <h4 className="font-bold text-slate-800">4 Spark Pack</h4>
-                    <p className="text-xs text-slate-500">$4.99</p>
-                  </div>
-                  <Button 
-                    onClick={() => handleCheckout("price_1TxS58F035PE8L5xlVgjHpst", "payment")}
-                    className="bg-orange-500 hover:bg-orange-600 text-white font-bold"
-                  >
-                    Buy Now
-                  </Button>
+          <Card className="border border-orange-200 bg-orange-50/50 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <Zap className="w-5 h-5 text-orange-500" /> Need More Sparks Now?
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-600 mb-4">
+                Running low before your monthly reset? Buy a top-up pack to keep planning.
+              </p>
+              <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200">
+                <div>
+                  <h4 className="font-bold text-slate-800">4 Spark Pack</h4>
+                  <p className="text-xs text-slate-500">$4.99</p>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+                <Button 
+                  onClick={() => handleCheckout("price_1TxS58F035PE8L5xlVgjHpst", "payment")}
+                  className="bg-orange-500 hover:bg-orange-600 text-white font-bold"
+                >
+                  Buy Now
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* === NEW ADDITION: Expand this card if the Spark Pack is hidden === */}
-          <Card className={`border border-slate-200 bg-white shadow-sm ${isFreeTier ? 'md:col-span-2' : ''}`}>
+          <Card className="border border-slate-200 bg-white shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
                 <ShieldAlert className="w-5 h-5 text-slate-500" /> Acceptable Use Policy
@@ -352,14 +314,14 @@ export default function BillingPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-slate-600 leading-relaxed">
-                To ensure high quality and prevent abuse of the AI generation engine, MiSpark applies a standard Fair Use Limit for Solo and Family plans. Generative requests are capped at a maximum of <strong>5 plans per student, per week</strong>. 
+                To ensure high quality and prevent abuse of the AI generation engine, MiSpark applies a standard Fair Use Limit for Gold and Platinum plans. Generative requests are capped at a maximum of <strong>5 plans per student, per week</strong>. 
                 <br/><br/>
-                <em>Note: Classroom and Platinum tier accounts pool their sparks and are exempt from individual Fair Use limits.</em>
+                <em>Note: Classroom tier accounts pool their sparks and are exempt from individual Fair Use limits.</em>
               </p>
             </CardContent>
           </Card>
-
         </div>
+
       </div>
     </main>
   );

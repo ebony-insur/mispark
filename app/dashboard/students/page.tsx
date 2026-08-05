@@ -140,25 +140,25 @@ export default function StudentsPage() {
   };
 
   const openFormForNew = () => {
-    // 1. Free Trial & Solo Scholar Limit (Max 1 Student)
+    // 1. Gold / Solo Limit (Max 1 Student)
     if (
-      (subscriptionTier === "Solo Scholar" || subscriptionTier === "Free Trial" || subscriptionTier === "Free" || subscriptionTier === "free") && 
+      ["Gold", "Solo Scholar", "Free Trial", "Free", "free"].includes(subscriptionTier) && 
       students.length >= 1
     ) {
       toast.error("Learner Limit Reached", {
-        description: "Your plan includes 1 learner profile. Upgrade to Family Unlimited to add more kids!"
+        description: "Your plan includes 1 learner profile. Upgrade to Platinum for up to 5 learners!"
       });
       router.push("/billing");
       return;
     }
 
-    // 2. Family Plan Limit (Max 5 Students)
+    // 2. Platinum / Family Limit (Max 5 Students)
     if (
-      (subscriptionTier === "Family Plan" || subscriptionTier === "Family Unlimited") && 
+      ["Platinum", "Family Plan", "Family Unlimited"].includes(subscriptionTier) && 
       students.length >= 5
     ) {
-      toast.error("Family Limit Reached", {
-        description: "Family plans include up to 5 learner profiles. Upgrade to Classroom for up to 30 learners!"
+      toast.error("Profile Limit Reached", {
+        description: "Platinum plans include up to 5 learner profiles. Upgrade to Classroom for up to 30 learners!"
       });
       router.push("/billing");
       return;
@@ -291,14 +291,14 @@ export default function StudentsPage() {
                   <Users className="text-blue-600 w-6 h-6" /> My Students
                 </h2>
                 
-                {/* Dynamically checking all plan limits for the button render */}
+                {/* Dynamically checking all inclusive plan limits for the button render */}
                 {
-                  ((subscriptionTier === "Solo Scholar" || subscriptionTier === "Free Trial" || subscriptionTier === "Free" || subscriptionTier === "free") && students.length >= 1) ||
-                  ((subscriptionTier === "Family Plan" || subscriptionTier === "Family Unlimited") && students.length >= 5) ||
+                  (["Gold", "Solo Scholar", "Free Trial", "Free", "free"].includes(subscriptionTier) && students.length >= 1) ||
+                  (["Platinum", "Family Plan", "Family Unlimited"].includes(subscriptionTier) && students.length >= 5) ||
                   (subscriptionTier === "Classroom" && students.length >= 30)
                 ? (
                   <Button onClick={() => router.push("/billing")} className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold shadow-md hover:opacity-90">
-                    <Lock className="w-4 h-4 mr-2" /> Upgrade to Add Kids
+                    <Lock className="w-4 h-4 mr-2" /> Upgrade to Add Profiles
                   </Button>
                 ) : (
                   <Button onClick={openFormForNew} className="bg-slate-900 hover:bg-slate-800 text-white font-bold">
@@ -319,7 +319,7 @@ export default function StudentsPage() {
                       <Button onClick={() => openFormForEdit(student)} variant="outline" className="flex-1 font-bold border-slate-200 hover:bg-slate-50">
                         <Edit className="w-4 h-4 mr-2" /> Edit Profile
                       </Button>
-                      <Button onClick={() => router.push("/history")} variant="secondary" className="flex-1 font-bold bg-amber-50 text-amber-700 hover:bg-amber-100">
+                      <Button onClick={() => router.push(`/history?student=${student.id}`)} variant="secondary" className="flex-1 font-bold bg-amber-50 text-amber-700 hover:bg-amber-100">
                         <Zap className="w-4 h-4 mr-2 fill-amber-500 text-amber-500" /> History
                       </Button>
                     </div>

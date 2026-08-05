@@ -2,17 +2,34 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
-export async function POST(req: Request) {
-  const apiKey = process.env.STRIPE_SECRET_KEY;
-  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+const apiKey = process.env.STRIPE_SECRET_KEY!;
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
+const stripe = new Stripe(apiKey, {
+  apiVersion: "2025-03-31.basil" as any,
+});
+
+// Helper to calculate tier rules (Monthly Sparks & Max Cap = Monthly x 3)
+function getTierLimits(tierName: string) {
+  switch (tierName) {
+    case "Gold":
+    case "Solo Scholar":
+      return { monthlySparks: 8, maxCap: 24 };
+    case "Platinum":
+    case "Family Plan":
+    case "Family Unlimited":
+      return { monthlySparks: 40, maxCap: 120 };
+    case "Classroom":
+      return { monthlySparks: 240, maxCap: 720 };
+    default:
+      return { monthlySparks: 8, maxCap: 24 };
+  }
+}
+
+export async function POST(req: Request) {
   if (!apiKey || !endpointSecret) {
     return NextResponse.json({ error: "Server missing Stripe environment variables" }, { status: 500 });
   }
-
-  const stripe = new Stripe(apiKey, {
-    apiVersion: "2024-06-20" as any,
-  });
 
   const payload = await req.text();
   const signature = req.headers.get("stripe-signature");
@@ -30,78 +47,121 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
 
-  // Sanitize Vercel Supabase URL
-  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  // Initialize Supabase Admin
+  const rawUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/^["']|["']$/g, "");
   const cleanUrl = rawUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
-  
-  // Service Role Client bypasses RLS for administrative updates
-  const supabaseAdmin = createClient(cleanUrl, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const rawKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim().replace(/^["']|["']$/g, "");
+  const supabaseAdmin = createClient(cleanUrl, rawKey);
 
   try {
     switch (event.type) {
+      
+      // -------------------------------------------------------------
+      // 1. INITIAL CHECKOUT (First Time Purchase or Spark Pack Top-up)
+      // -------------------------------------------------------------
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
         const customerId = session.customer as string;
+        const mode = session.mode;
 
         if (!userId) break;
 
-        const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
-        const isSparkPack = lineItems.data.some(item => item.price?.product === 'prod_UxMoASRnl4acGz');
-        const isClassroom = lineItems.data.some(item => item.price?.product === 'prod_UxMsst5r7iZfnl');
+        // Fetch user profile
+        const { data: profile } = await (supabaseAdmin.from("profiles") as any)
+          .select("sparks_remaining, subscription_tier")
+          .eq("id", userId)
+          .single();
 
-        if (isSparkPack) {
-            // Handle Top-Up Pack purchase (Add 4 Sparks without granting a subscription)
-            const { data: profile } = await supabaseAdmin
-                .from("profiles")
-                .select("sparks_remaining")
-                .eq("id", userId)
-                .single();
-            
-            const currentSparks = profile?.sparks_remaining || 0;
-            const maxCap = 24; 
-            const newTotal = Math.min(currentSparks + 4, maxCap);
+        const currentSparks = profile?.sparks_remaining || 0;
 
-            await (supabaseAdmin.from("profiles") as any).update({ 
-                sparks_remaining: newTotal,
-                stripe_customer_id: customerId 
-            }).eq("id", userId);
+        if (mode === "payment") {
+          // ONE-TIME SPARK PACK (+4 Sparks up to Tier Max Cap)
+          const currentTier = profile?.subscription_tier || "Gold";
+          const { maxCap } = getTierLimits(currentTier);
+          const newTotal = Math.min(currentSparks + 4, maxCap);
 
-            console.log(`Added Spark Pack for user ${userId}. New balance: ${newTotal}`);
+          await (supabaseAdmin.from("profiles") as any)
+            .update({ 
+              sparks_remaining: newTotal,
+              stripe_customer_id: customerId 
+            })
+            .eq("id", userId);
+
+          console.log(`Added Spark Pack for user ${userId}. New balance: ${newTotal}`);
 
         } else {
-            // Handle Subscription Plan Upgrades
-            const planType = session.metadata?.planType || (isClassroom ? "classroom" : "family");
-            const tierName = planType === "single" ? "Solo Scholar" : planType === "classroom" ? "Classroom" : "Family Unlimited";
+          // NEW SUBSCRIPTION PURCHASE / UPGRADE
+          const planType = session.metadata?.planType;
+          const tierName = 
+            planType === "single" ? "Gold" : 
+            planType === "classroom" ? "Classroom" : 
+            "Platinum";
 
-            const { error } = await (supabaseAdmin.from("profiles") as any)
-              .update({
-                is_subscribed: true,
-                subscription_tier: tierName,
-                stripe_customer_id: customerId,
-              })
-              .eq("id", userId);
+          const { monthlySparks, maxCap } = getTierLimits(tierName);
+          const newTotal = Math.min(currentSparks + monthlySparks, maxCap);
 
-            if (error) throw error;
-            console.log(`Successfully upgraded user ${userId} to ${tierName}`);
+          await (supabaseAdmin.from("profiles") as any)
+            .update({
+              is_subscribed: true,
+              subscription_tier: tierName,
+              sparks_remaining: newTotal,
+              stripe_customer_id: customerId,
+            })
+            .eq("id", userId);
+
+          console.log(`Upgraded user ${userId} to ${tierName}. Added ${monthlySparks} Sparks. New total: ${newTotal}`);
         }
         break;
       }
 
+      // -------------------------------------------------------------
+      // 2. AUTOMATIC MONTHLY RECURRING CHARGE (Stripe Auto-Renewal)
+      // -------------------------------------------------------------
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object as Stripe.Invoice;
+        
+        // Only trigger on automated monthly subscription renewals
+        if (invoice.billing_reason === "subscription_cycle") {
+          const customerId = invoice.customer as string;
+
+          const { data: profile } = await (supabaseAdmin.from("profiles") as any)
+            .select("id, sparks_remaining, subscription_tier")
+            .eq("stripe_customer_id", customerId)
+            .single();
+
+          if (profile) {
+            const currentSparks = profile.sparks_remaining || 0;
+            const tierName = profile.subscription_tier || "Gold";
+            const { monthlySparks, maxCap } = getTierLimits(tierName);
+
+            const newTotal = Math.min(currentSparks + monthlySparks, maxCap);
+
+            await (supabaseAdmin.from("profiles") as any)
+              .update({ sparks_remaining: newTotal })
+              .eq("id", profile.id);
+
+            console.log(`Auto-renewal succeeded for ${profile.id}. Added ${monthlySparks} Sparks. New balance: ${newTotal}`);
+          }
+        }
+        break;
+      }
+
+      // -------------------------------------------------------------
+      // 3. SUBSCRIPTION CANCELLATION
+      // -------------------------------------------------------------
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        // Reset account on subscription cancellation
-        const { error } = await (supabaseAdmin.from("profiles") as any)
+        await (supabaseAdmin.from("profiles") as any)
           .update({ 
             is_subscribed: false,
             subscription_tier: "Free"
           })
           .eq("stripe_customer_id", customerId);
 
-        if (error) throw error;
-        console.log(`Downgraded customer ${customerId} to free`);
+        console.log(`Downgraded customer ${customerId} to free tier.`);
         break;
       }
 
