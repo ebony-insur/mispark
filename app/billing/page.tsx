@@ -133,6 +133,9 @@ export default function BillingPage() {
     }
   };
 
+  // === NEW ADDITION: Check if the user is on a free tier ===
+  const isFreeTier = subscriptionTier.toLowerCase() === "free" || subscriptionTier.toLowerCase() === "free trial";
+
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col items-center pb-20">
       <div className="w-full px-6 pt-6 flex justify-center">
@@ -312,32 +315,36 @@ export default function BillingPage() {
         {/* ONE-OFF PURCHASES & POLICY */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
           
-          <Card className="border border-orange-200 bg-orange-50/50 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                <Zap className="w-5 h-5 text-orange-500" /> Need More Sparks Now?
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-600 mb-4">
-                Running low before your monthly reset? Buy a top-up pack to keep planning.
-              </p>
-              <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200">
-                <div>
-                  <h4 className="font-bold text-slate-800">4 Spark Pack</h4>
-                  <p className="text-xs text-slate-500">$4.99</p>
+          {/* === NEW ADDITION: Only render Spark Pack if the user is NOT on a free tier === */}
+          {!isFreeTier && (
+            <Card className="border border-orange-200 bg-orange-50/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-orange-500" /> Need More Sparks Now?
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-slate-600 mb-4">
+                  Running low before your monthly reset? Buy a top-up pack to keep planning.
+                </p>
+                <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200">
+                  <div>
+                    <h4 className="font-bold text-slate-800">4 Spark Pack</h4>
+                    <p className="text-xs text-slate-500">$4.99</p>
+                  </div>
+                  <Button 
+                    onClick={() => handleCheckout("price_1TxS58F035PE8L5xlVgjHpst", "payment")}
+                    className="bg-orange-500 hover:bg-orange-600 text-white font-bold"
+                  >
+                    Buy Now
+                  </Button>
                 </div>
-                <Button 
-                  onClick={() => handleCheckout("price_1TxS58F035PE8L5xlVgjHpst", "payment")}
-                  className="bg-orange-500 hover:bg-orange-600 text-white font-bold"
-                >
-                  Buy Now
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
-          <Card className="border border-slate-200 bg-white shadow-sm">
+          {/* === NEW ADDITION: Expand this card if the Spark Pack is hidden === */}
+          <Card className={`border border-slate-200 bg-white shadow-sm ${isFreeTier ? 'md:col-span-2' : ''}`}>
             <CardHeader className="pb-3">
               <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
                 <ShieldAlert className="w-5 h-5 text-slate-500" /> Acceptable Use Policy
