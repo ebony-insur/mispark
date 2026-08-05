@@ -24,17 +24,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // ==========================================
-    // 3. DEFINE YOUR ACTIVE PROMO CODES HERE
-    // Format: "CODE_NAME": Number_of_Sparks
-    // ==========================================
+    // 3. Define active promo codes
     const validCodes: Record<string, number> = {
-      "LAUNCH100": 6,
-      "MISPARK10": 10,
-      "EBONYVIP": 20,
+      "LAUNCH100": 6, // Gives 6 Sparks
     };
 
-    // Normalize the code (removes spaces, makes uppercase)
     const normalizedCode = code.trim().toUpperCase();
     const sparksToAdd = validCodes[normalizedCode];
 
@@ -52,16 +46,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
-    // 5. Prevent double-redemptions
+    // 5. STRICT RULE: Check if they have ever used ANY promo code
     const previouslyRedeemed = profile.redeemed_codes || [];
-    if (previouslyRedeemed.includes(normalizedCode)) {
-      return NextResponse.json({ error: "You have already used this code!" }, { status: 400 });
+    if (previouslyRedeemed.length > 0) {
+      return NextResponse.json({ error: "You have already used a promo code. Limit one per account." }, { status: 400 });
     }
 
     // 6. Calculate new totals
     const currentSparks = profile.sparks_remaining || 0;
     const newSparkTotal = currentSparks + sparksToAdd;
-    const updatedRedeemedList = [...previouslyRedeemed, normalizedCode];
+    
+    // Add the code they just used to the array so it is no longer empty
+    const updatedRedeemedList = [normalizedCode]; 
 
     // 7. Update the database
     const { error: updateError } = await (supabaseAdmin.from("profiles") as any)
@@ -78,6 +74,6 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error("Promo Code Error:", error);
-    return NextResponse.json({ error: "Code isn't valid" }, { status: 500 });
+    return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
   }
 }

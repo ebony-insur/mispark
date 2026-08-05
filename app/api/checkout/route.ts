@@ -1,62 +1,57 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { createClient } from "@supabase/supabase-js";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-06-24.dahlia" as any,
-});
-
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const { userId, priceId, mode } = await request.json();
+    const apiKey = process.env.STRIPE_SECRET_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: "Missing Stripe secret key on server." }, { status: 500 });
+    }
+
+    const stripe = new Stripe(apiKey, {
+      apiVersion: "2024-06-20" as any,
+    });
+
+    const { userId, priceId, mode = "subscription" } = await req.json();
 
     if (!userId || !priceId) {
-      return NextResponse.json({ error: "Missing required parameters." }, { status: 400 });
+      return NextResponse.json({ error: "Missing required parameters (userId or priceId)." }, { status: 400 });
     }
 
-    // Vercel URL Sledgehammer
-    const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-    const cleanUrl = rawUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
+    // 1. Determine base URL with fallback to production domain
+    let rawBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.mi-spark.com";
 
-    const supabaseAdmin = createClient(cleanUrl, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-
-    const { data: profile, error } = await (supabaseAdmin.from("profiles") as any)
-      .select("stripe_customer_id")
-      .eq("id", userId)
-      .maybeSingle();
-
-    if (error) {
-      console.error("Profile fetch error:", error);
-      return NextResponse.json({ error: "Database error while verifying profile." }, { status: 500 });
+    // 2. Ensure URL has a valid protocol (https:// or http://)
+    if (!rawBaseUrl.startsWith("http://") && !rawBaseUrl.startsWith("https://")) {
+      rawBaseUrl = `https://${rawBaseUrl}`;
     }
 
-    const planType = 
-      priceId === "price_1Tx7p1F035PE8L5xqpQM4t3N" ? "single" : 
-      priceId === "price_1TxS8KF035PE8L5xuMDlFLVc" ? "classroom" : 
-      "family";
+    // 3. Remove trailing slash if present
+    const baseUrl = rawBaseUrl.replace(/\/$/, "");
 
-    const sessionMode = mode || "subscription";
+    // 4. Construct Stripe Checkout Session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      mode: mode as Stripe.Checkout.Session.CreateParams.Mode,
+      success_url: `${baseUrl}/dashboard?success=true`,
+      cancel_url: `${baseUrl}/billing`,
+      metadata: {
+        userId: userId,
+      },
+    });
 
-    const sessionParams: Stripe.Checkout.SessionCreateParams = {
-      line_items: [{ price: priceId, quantity: 1 }],
-      mode: sessionMode, 
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/billing?canceled=true`,
-      metadata: { userId, planType },
-    };
-
-    if (profile?.stripe_customer_id) {
-      sessionParams.customer = profile.stripe_customer_id;
-    } else if (sessionMode === "payment") {
-      // customer_creation is strictly restricted to payment mode
-      sessionParams.customer_creation = "always";
-    }
-
-    const session = await stripe.checkout.sessions.create(sessionParams);
-
-    return NextResponse.json({ url: session.url }, { status: 200 });
+    return NextResponse.json({ url: session.url });
   } catch (error: any) {
     console.error("Stripe Checkout Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Failed to create Stripe checkout session." },
+      { status: 500 }
+    );
   }
 }
