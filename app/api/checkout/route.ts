@@ -14,19 +14,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required parameters." }, { status: 400 });
     }
 
-    // 1. Sanitize Base URL (Strips accidental spaces and ensures https://)
+    // 1. Sanitize Base URL (Strips spaces AND accidental quotation marks)
     let rawBaseUrl = (process.env.NEXT_PUBLIC_BASE_URL || "https://www.mi-spark.com").trim();
+    rawBaseUrl = rawBaseUrl.replace(/^["']|["']$/g, ""); // Destroys quotes
+    
     if (!rawBaseUrl.startsWith("http://") && !rawBaseUrl.startsWith("https://")) {
       rawBaseUrl = `https://${rawBaseUrl}`;
     }
     const baseUrl = rawBaseUrl.replace(/\/$/, "");
 
-    // 2. Initialize Supabase Admin (Strips accidental spaces)
-    const rawSupabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
-    const cleanSupabaseUrl = rawSupabaseUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
-    const supabaseAdmin = createClient(cleanSupabaseUrl, (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim());
+    // Let's log exactly what we are sending so we can see it in Vercel!
+    const successUrlToStripe = `${baseUrl}/dashboard?success=true`;
+    console.log("🚀 SENDING SUCCESS URL TO STRIPE:", successUrlToStripe);
 
-    // 3. Fetch user profile to check for existing Stripe Customer ID
+    // 2. Initialize Supabase Admin
+    let rawSupabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
+    rawSupabaseUrl = rawSupabaseUrl.replace(/^["']|["']$/g, ""); 
+    const cleanSupabaseUrl = rawSupabaseUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
+    
+    let rawSupabaseKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+    rawSupabaseKey = rawSupabaseKey.replace(/^["']|["']$/g, "");
+    
+    const supabaseAdmin = createClient(cleanSupabaseUrl, rawSupabaseKey);
+
+    // 3. Fetch user profile
     const { data: profile, error } = await (supabaseAdmin.from("profiles") as any)
       .select("stripe_customer_id")
       .eq("id", userId)
@@ -37,7 +48,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Database error while verifying profile." }, { status: 500 });
     }
 
-    // 4. Map plan types for webhook processing
+    // 4. Map plan types
     const planType = 
       priceId === "price_1Tx7p1F035PE8L5xqpQM4t3N" ? "single" : 
       priceId === "price_1TxS8KF035PE8L5xuMDlFLVc" ? "classroom" : 
@@ -45,11 +56,11 @@ export async function POST(request: Request) {
 
     const sessionMode = mode || "subscription";
 
-    // 5. Build Stripe Checkout Session Parameters
+    // 5. Build Stripe Checkout Session
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       line_items: [{ price: priceId, quantity: 1 }],
       mode: sessionMode, 
-      success_url: `${baseUrl}/dashboard?success=true`,
+      success_url: successUrlToStripe,
       cancel_url: `${baseUrl}/billing?canceled=true`,
       metadata: { userId, planType },
     };
