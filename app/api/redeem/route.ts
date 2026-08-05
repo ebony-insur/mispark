@@ -4,46 +4,80 @@ import { createClient } from "@supabase/supabase-js";
 export async function POST(req: Request) {
   try {
     const { code } = await req.json();
-    const authHeader = req.headers.get("authorization");
+    const authHeader = req.headers.get("Authorization");
 
-    if (!authHeader) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    // Initialize Supabase with the user's auth token
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!, 
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, 
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    // Check if the code is correct
-    if (code.toUpperCase() === "LAUNCH100") {
-      
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('sparks_remaining, is_subscribed')
-        .eq('id', user.id)
-        .single();
-
-      if (profile?.is_subscribed) {
-        return NextResponse.json({ error: "You are already a premium member!" }, { status: 400 });
-      }
-
-      if (profile?.sparks_remaining >= 6) {
-        return NextResponse.json({ error: "Promo already applied!" }, { status: 400 });
-      }
-
-      // Update their sparks to 6
-      await supabase.from('profiles').update({ sparks_remaining: 6 }).eq('id', user.id);
-      
-      return NextResponse.json({ success: true, message: "Promo applied! You now have 6 Sparks." });
+    if (!authHeader) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    return NextResponse.json({ error: "Invalid promo code." }, { status: 400 });
-  } catch (error) {
-    console.error("Promo Error:", error);
-    return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
+    const token = authHeader.replace("Bearer ", "");
+
+    // 1. Initialize Supabase Admin to bypass RLS securely
+    const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    const cleanUrl = rawUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
+    const supabaseAdmin = createClient(cleanUrl, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+
+    // 2. Verify the user is real
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // ==========================================
+    // 3. DEFINE YOUR ACTIVE PROMO CODES HERE
+    // Format: "CODE_NAME": Number_of_Sparks
+    // ==========================================
+    const validCodes: Record<string, number> = {
+      "LAUNCH100": 6,
+      "MISPARK10": 10,
+      "EBONYVIP": 20,
+    };
+
+    // Normalize the code (removes spaces, makes uppercase)
+    const normalizedCode = code.trim().toUpperCase();
+    const sparksToAdd = validCodes[normalizedCode];
+
+    if (!sparksToAdd) {
+      return NextResponse.json({ error: "Code isn't valid" }, { status: 400 });
+    }
+
+    // 4. Fetch the user's current profile data
+    const { data: profile, error: profileError } = await (supabaseAdmin.from("profiles") as any)
+      .select("sparks_remaining, redeemed_codes")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    }
+
+    // 5. Prevent double-redemptions
+    const previouslyRedeemed = profile.redeemed_codes || [];
+    if (previouslyRedeemed.includes(normalizedCode)) {
+      return NextResponse.json({ error: "You have already used this code!" }, { status: 400 });
+    }
+
+    // 6. Calculate new totals
+    const currentSparks = profile.sparks_remaining || 0;
+    const newSparkTotal = currentSparks + sparksToAdd;
+    const updatedRedeemedList = [...previouslyRedeemed, normalizedCode];
+
+    // 7. Update the database
+    const { error: updateError } = await (supabaseAdmin.from("profiles") as any)
+      .update({ 
+        sparks_remaining: newSparkTotal,
+        redeemed_codes: updatedRedeemedList
+      })
+      .eq("id", user.id);
+
+    if (updateError) throw updateError;
+
+    // 8. Return success to the frontend
+    return NextResponse.json({ sparksAdded: sparksToAdd }, { status: 200 });
+
+  } catch (error: any) {
+    console.error("Promo Code Error:", error);
+    return NextResponse.json({ error: "Code isn't valid" }, { status: 500 });
   }
 }
