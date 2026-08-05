@@ -65,13 +65,22 @@ export async function POST(req: Request) {
         const customerId = session.customer as string;
         const mode = session.mode;
 
-        if (!userId) break;
+        if (!userId) {
+          console.error("❌ SILENT FAILURE: No userId found in Stripe session metadata.");
+          break;
+        }
+
+        console.log(`Webhook triggered for User ID: [${userId}]`);
 
         // Fetch user profile
-        const { data: profile } = await (supabaseAdmin.from("profiles") as any)
+        const { data: profile, error: fetchError } = await (supabaseAdmin.from("profiles") as any)
           .select("sparks_remaining, subscription_tier")
           .eq("id", userId)
           .single();
+
+        if (fetchError) {
+           console.error(`❌ ERROR FETCHING PROFILE BEFORE UPDATE:`, fetchError);
+        }
 
         const currentSparks = profile?.sparks_remaining || 0;
 
@@ -81,14 +90,21 @@ export async function POST(req: Request) {
           const { maxCap } = getTierLimits(currentTier);
           const newTotal = Math.min(currentSparks + 4, maxCap);
 
-          await (supabaseAdmin.from("profiles") as any)
+          const { data, error } = await (supabaseAdmin.from("profiles") as any)
             .update({ 
               sparks_remaining: newTotal,
               stripe_customer_id: customerId 
             })
-            .eq("id", userId);
+            .eq("id", userId)
+            .select();
 
-          console.log(`Added Spark Pack for user ${userId}. New balance: ${newTotal}`);
+          if (error) {
+            console.error("❌ SUPABASE UPDATE ERROR (Spark Pack):", error);
+          } else if (!data || data.length === 0) {
+            console.error(`❌ SILENT FAILURE: Attempted Spark Pack update, but no profile matched ID: ${userId}`);
+          } else {
+            console.log(`✅ Added Spark Pack for user ${userId}. New balance: ${newTotal}`);
+          }
 
         } else {
           // NEW SUBSCRIPTION PURCHASE / UPGRADE
@@ -101,16 +117,23 @@ export async function POST(req: Request) {
           const { monthlySparks, maxCap } = getTierLimits(tierName);
           const newTotal = Math.min(currentSparks + monthlySparks, maxCap);
 
-          await (supabaseAdmin.from("profiles") as any)
+          const { data, error } = await (supabaseAdmin.from("profiles") as any)
             .update({
               is_subscribed: true,
               subscription_tier: tierName,
               sparks_remaining: newTotal,
               stripe_customer_id: customerId,
             })
-            .eq("id", userId);
+            .eq("id", userId)
+            .select();
 
-          console.log(`Upgraded user ${userId} to ${tierName}. Added ${monthlySparks} Sparks. New total: ${newTotal}`);
+          if (error) {
+            console.error("❌ SUPABASE UPDATE ERROR (Subscription):", error);
+          } else if (!data || data.length === 0) {
+            console.error(`❌ SILENT FAILURE: Attempted Upgrade, but no profile matched ID: ${userId}`);
+          } else {
+            console.log(`✅ Upgraded user ${userId} to ${tierName}. Added ${monthlySparks} Sparks. New total: ${newTotal}`);
+          }
         }
         break;
       }
@@ -121,7 +144,6 @@ export async function POST(req: Request) {
       case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice;
         
-        // Only trigger on automated monthly subscription renewals
         if (invoice.billing_reason === "subscription_cycle") {
           const customerId = invoice.customer as string;
 
@@ -134,14 +156,20 @@ export async function POST(req: Request) {
             const currentSparks = profile.sparks_remaining || 0;
             const tierName = profile.subscription_tier || "Gold";
             const { monthlySparks, maxCap } = getTierLimits(tierName);
-
             const newTotal = Math.min(currentSparks + monthlySparks, maxCap);
 
-            await (supabaseAdmin.from("profiles") as any)
+            const { data, error } = await (supabaseAdmin.from("profiles") as any)
               .update({ sparks_remaining: newTotal })
-              .eq("id", profile.id);
-
-            console.log(`Auto-renewal succeeded for ${profile.id}. Added ${monthlySparks} Sparks. New balance: ${newTotal}`);
+              .eq("id", profile.id)
+              .select();
+              
+            if (error) {
+               console.error("❌ SUPABASE UPDATE ERROR (Renewal):", error);
+            } else if (!data || data.length === 0) {
+               console.error(`❌ SILENT FAILURE: Attempted Renewal Update, but no profile matched ID: ${profile.id}`);
+            } else {
+               console.log(`✅ Auto-renewal succeeded for ${profile.id}. Added ${monthlySparks} Sparks. New balance: ${newTotal}`);
+            }
           }
         }
         break;
@@ -154,14 +182,21 @@ export async function POST(req: Request) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        await (supabaseAdmin.from("profiles") as any)
+        const { data, error } = await (supabaseAdmin.from("profiles") as any)
           .update({ 
             is_subscribed: false,
             subscription_tier: "Free"
           })
-          .eq("stripe_customer_id", customerId);
+          .eq("stripe_customer_id", customerId)
+          .select();
 
-        console.log(`Downgraded customer ${customerId} to free tier.`);
+        if (error) {
+            console.error("❌ SUPABASE UPDATE ERROR (Cancellation):", error);
+        } else if (!data || data.length === 0) {
+            console.error(`❌ SILENT FAILURE: Attempted Cancellation, but no profile matched Stripe Customer ID: ${customerId}`);
+        } else {
+            console.log(`✅ Downgraded customer ${customerId} to free tier.`);
+        }
         break;
       }
 
