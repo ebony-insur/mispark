@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2, ShieldAlert, Zap, UserCheck, Mail, Award, CreditCard, Loader2 } from "lucide-react";
+import { CheckCircle2, ShieldAlert, Zap, CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import SiteHeader from "@/components/SiteHeader";
 
@@ -24,6 +24,7 @@ export default function BillingPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [subscriptionTier, setSubscriptionTier] = useState("Free");
+  const [sparksRemaining, setSparksRemaining] = useState<number>(0);
 
   useEffect(() => {
     const fetchUserAndProfile = async () => {
@@ -37,8 +38,9 @@ export default function BillingPage() {
       setUserId(user.id);
       setEmail(user.email || ""); 
 
+      // Added sparks_remaining to the fetch query
       const { data } = await (supabase.from("profiles") as any)
-        .select("first_name, last_name, subscription_tier, stripe_customer_id")
+        .select("first_name, last_name, subscription_tier, stripe_customer_id, sparks_remaining")
         .eq("id", user.id)
         .single();
 
@@ -47,6 +49,7 @@ export default function BillingPage() {
         setLastName(data.last_name || "");
         setSubscriptionTier(data.subscription_tier || "Free");
         setStripeCustomerId(data.stripe_customer_id || null);
+        setSparksRemaining(data.sparks_remaining || 0);
       }
     };
     fetchUserAndProfile();
@@ -134,27 +137,36 @@ export default function BillingPage() {
         <SiteHeader firstName={firstName} /> 
       </div>
 
-      <div className="w-full max-w-5xl px-6 pt-12 space-y-8 animate-in fade-in slide-in-from-bottom-4">
+      <div className="w-full max-w-5xl px-6 pt-8 space-y-8 animate-in fade-in slide-in-from-bottom-4">
         
-        <div className="text-center space-y-3">
-          <h1 className="text-4xl font-extrabold text-slate-900">Manage Your Account</h1>
-          <p className="text-slate-600 text-lg max-w-2xl mx-auto">
-            Update your personal details or upgrade your plan to unlock more capabilities.
-          </p>
+        {/* Updated Marketing Title (Subtitle Removed for space) */}
+        <div className="text-center">
+          <h1 className="text-3xl font-extrabold text-slate-900">Power Up Your Planning</h1>
         </div>
 
-        {/* PROFILE SETTINGS CARD */}
+        {/* COMPACT PROFILE SETTINGS CARD */}
         <Card className="border-2 border-slate-200 bg-white shadow-sm">
-          <CardHeader className="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-teal-600" /> Account Holder Details
-            </CardTitle>
+          {/* Top Row: Plan, Sparks, and Manage Button */}
+          <CardHeader className="border-b border-slate-100 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-6">
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Current Plan</p>
+                <div className="inline-flex h-8 px-3 rounded-md bg-amber-50 border border-amber-200 items-center font-black text-amber-800 text-sm">
+                  {subscriptionTier}
+                </div>
+              </div>
+              
+              <div className="pl-6 border-l border-slate-200">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Spark Balance</p>
+                <p className="text-xl font-black text-amber-500 leading-none">⚡ {sparksRemaining}</p>
+              </div>
+            </div>
             
             {stripeCustomerId && (
                <Button 
                 onClick={handleManageBilling} 
                 disabled={isPortalLoading}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-sm"
+                className="bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg shadow-sm w-full md:w-auto"
               >
                 {isPortalLoading ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Connecting...</>
@@ -164,39 +176,28 @@ export default function BillingPage() {
               </Button>
             )}
           </CardHeader>
+          
+          {/* Bottom Row: Inline Form Elements */}
           <CardContent className="p-6">
-            <form onSubmit={handleUpdateProfile} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={handleUpdateProfile}>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
-                  <label className="text-sm font-bold text-slate-700">First Name</label>
-                  <Input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="mt-1 font-medium bg-white" />
+                  <label className="text-xs font-bold text-slate-700 mb-1 block">First Name</label>
+                  <Input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="font-medium bg-white" />
                 </div>
                 <div>
-                  <label className="text-sm font-bold text-slate-700">Last Name</label>
-                  <Input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="mt-1 font-medium bg-white" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
-                <div>
-                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-1">
-                    <Mail className="w-4 h-4 text-slate-400"/> Email Address
-                  </label>
-                  <Input type="email" value={email} disabled className="font-medium bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed" />
-                  <p className="text-xs text-slate-400 mt-1">Email cannot be changed.</p>
+                  <label className="text-xs font-bold text-slate-700 mb-1 block">Last Name</label>
+                  <Input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="font-medium bg-white" />
                 </div>
                 <div>
-                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-1">
-                    <Award className="w-4 h-4 text-amber-500"/> Current Plan
-                  </label>
-                  <div className="h-10 px-4 rounded-lg border-2 border-amber-200 bg-amber-50 flex items-center font-black text-amber-800">
-                    {subscriptionTier}
-                  </div>
+                  <label className="text-xs font-bold text-slate-700 mb-1 block">Email Address (Read-Only)</label>
+                  <Input type="email" value={email} disabled className="font-medium bg-slate-50 text-slate-500 border-slate-200 cursor-not-allowed" />
                 </div>
               </div>
 
-              <div className="pt-4 flex justify-end">
-                <Button type="submit" disabled={isSavingProfile} className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 h-12 rounded-xl">
+              {/* Save Button tucked in the bottom right */}
+              <div className="flex justify-end pt-2">
+                <Button type="submit" disabled={isSavingProfile} className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 rounded-lg">
                   {isSavingProfile ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
@@ -205,7 +206,7 @@ export default function BillingPage() {
         </Card>
 
         {/* PLANS GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4">
           
           {/* GOLD PLAN */}
           <Card className="border-2 border-slate-200 relative shadow-sm flex flex-col">
