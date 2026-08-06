@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 
+// FIX: Updated to match the Stripe SDK's expected TypeScript version
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16",
+  apiVersion: "2026-06-24.dahlia", 
 });
 
 export async function DELETE(req: Request) {
