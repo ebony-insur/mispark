@@ -321,10 +321,15 @@ export async function POST(req: Request) {
       throw new Error("Failed to save the generated plan.");
     }
 
-    // 6. Deduct exactly 1 Spark
-    await (supabaseAdmin.from('profiles') as any)
-      .update({ sparks_remaining: profile.sparks_remaining - 1 })
-      .eq('id', user.id);
+    // 6. Deduct exactly 1 Spark securely via RPC to prevent race conditions
+    const { error: deductionError } = await supabaseAdmin.rpc('decrement_sparks', {
+      user_id: user.id
+    });
+
+    if (deductionError) {
+      console.error("Spark deduction failed:", deductionError);
+      throw new Error("Failed to deduct spark. Please try again.");
+    }
 
     return NextResponse.json({ data: parsedData, planId: savedPlan.id }, { status: 200 });
     
