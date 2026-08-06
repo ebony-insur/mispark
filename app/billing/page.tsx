@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2, ShieldAlert, Zap, CreditCard, Loader2 } from "lucide-react";
+import { CheckCircle2, ShieldAlert, Zap, CreditCard, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import SiteHeader from "@/components/SiteHeader";
 
@@ -17,6 +17,7 @@ export default function BillingPage() {
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
   
@@ -38,7 +39,6 @@ export default function BillingPage() {
       setUserId(user.id);
       setEmail(user.email || ""); 
 
-      // Added sparks_remaining to the fetch query
       const { data } = await (supabase.from("profiles") as any)
         .select("first_name, last_name, subscription_tier, stripe_customer_id, sparks_remaining")
         .eq("id", user.id)
@@ -129,6 +129,37 @@ export default function BillingPage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      "Are you absolutely sure you want to delete your account? This action cannot be undone, and all your learner profiles, generated plans, and remaining Sparks will be permanently erased."
+    );
+    
+    if (!confirmed) return;
+    setIsDeleting(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No session found");
+
+      const res = await fetch("/api/account/delete", {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!res.ok) throw new Error("Failed to delete account");
+
+      toast.success("Your account has been successfully deleted.");
+      await supabase.auth.signOut();
+      router.push("/");
+    } catch (error) {
+      console.error(error);
+      toast.error("Could not delete account. Please contact support.");
+      setIsDeleting(false);
+    }
+  };
+
   const isFreeTier = subscriptionTier === "Free" || subscriptionTier === "Free Trial" || subscriptionTier === "free";
 
   return (
@@ -139,14 +170,12 @@ export default function BillingPage() {
 
       <div className="w-full max-w-5xl px-6 pt-8 space-y-8 animate-in fade-in slide-in-from-bottom-4">
         
-        {/* Updated Marketing Title (Subtitle Removed for space) */}
         <div className="text-center">
           <h1 className="text-3xl font-extrabold text-slate-900">Power Up Your Planning</h1>
         </div>
 
         {/* COMPACT PROFILE SETTINGS CARD */}
         <Card className="border-2 border-slate-200 bg-white shadow-sm">
-          {/* Top Row: Plan, Sparks, and Manage Button */}
           <CardHeader className="border-b border-slate-100 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-6">
               <div>
@@ -177,7 +206,6 @@ export default function BillingPage() {
             )}
           </CardHeader>
           
-          {/* Bottom Row: Inline Form Elements */}
           <CardContent className="p-6">
             <form onSubmit={handleUpdateProfile}>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -195,7 +223,6 @@ export default function BillingPage() {
                 </div>
               </div>
 
-              {/* Save Button tucked in the bottom right */}
               <div className="flex justify-end pt-2">
                 <Button type="submit" disabled={isSavingProfile} className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 rounded-lg">
                   {isSavingProfile ? "Saving..." : "Save Changes"}
@@ -208,7 +235,6 @@ export default function BillingPage() {
         {/* PLANS GRID */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4">
           
-          {/* GOLD PLAN */}
           <Card className="border-2 border-slate-200 relative shadow-sm flex flex-col">
             <CardHeader className="text-center pb-4 border-b border-slate-100">
               <CardTitle className="text-2xl font-bold text-slate-800">Gold</CardTitle>
@@ -231,7 +257,6 @@ export default function BillingPage() {
             </CardContent>
           </Card>
 
-          {/* PLATINUM PLAN */}
           <Card className="border-2 border-teal-500 relative shadow-xl flex flex-col transform md:-translate-y-4">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-teal-500 text-white text-xs font-extrabold px-4 py-1 rounded-full uppercase tracking-wider whitespace-nowrap z-10 shadow-sm">
               Most Popular
@@ -257,7 +282,6 @@ export default function BillingPage() {
             </CardContent>
           </Card>
 
-          {/* CLASSROOM PLAN */}
           <Card className="border-2 border-slate-200 relative shadow-sm flex flex-col">
             <CardHeader className="text-center pb-4 border-b border-slate-100">
               <CardTitle className="text-2xl font-bold text-slate-800">Classroom</CardTitle>
@@ -282,10 +306,7 @@ export default function BillingPage() {
 
         </div>
 
-        {/* ONE-OFF PURCHASES & POLICY */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
-          
-          {/* Top-Up Spark Packs only visible to paid subscribers */}
           {!isFreeTier ? (
             <Card className="border border-orange-200 bg-orange-50/50 shadow-sm">
               <CardHeader className="pb-3">
@@ -327,6 +348,30 @@ export default function BillingPage() {
                 <br/><br/>
                 <em>Note: Classroom tier accounts pool their sparks and are exempt from individual Fair Use limits.</em>
               </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* DANGER ZONE - Account Deletion */}
+        <div className="pt-8">
+          <Card className="border border-rose-200 bg-rose-50 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl font-bold text-rose-800 flex items-center gap-2">
+                <Trash2 className="w-5 h-5 text-rose-600" /> Danger Zone
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <p className="text-sm text-rose-700 leading-relaxed">
+                Permanently delete your account and wipe all generated content. This action cannot be undone. Active subscriptions should be cancelled via the billing portal before deletion.
+              </p>
+              <Button 
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                variant="destructive"
+                className="bg-rose-600 hover:bg-rose-700 font-bold whitespace-nowrap"
+              >
+                {isDeleting ? "Deleting..." : "Delete Account"}
+              </Button>
             </CardContent>
           </Card>
         </div>
