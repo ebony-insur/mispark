@@ -10,6 +10,16 @@ const stripe = new Stripe(apiKey, {
   apiVersion: "2026-07-29.dahlia" as any,
 });
 
+// Robust plan name normalizer to prevent mis-assignment
+function normalizeTierName(planType?: string): string {
+  if (!planType) return "Gold";
+  const lower = planType.toLowerCase();
+  if (lower.includes("class")) return "Classroom";
+  if (lower.includes("plat") || lower.includes("fam")) return "Platinum";
+  if (lower.includes("gold") || lower.includes("sing")) return "Gold";
+  return "Gold";
+}
+
 // Helper to calculate tier rules (Monthly Sparks & Max Cap = Monthly x 3)
 function getTierLimits(tierName: string) {
   switch (tierName) {
@@ -109,11 +119,8 @@ export async function POST(req: Request) {
 
         } else {
           // NEW SUBSCRIPTION PURCHASE / UPGRADE
-          const planType = session.metadata?.planType;
-          const tierName = 
-            planType === "single" ? "Gold" : 
-            planType === "classroom" ? "Classroom" : 
-            "Platinum";
+          const rawPlanType = session.metadata?.planType;
+          const tierName = normalizeTierName(rawPlanType);
 
           const { monthlySparks, maxCap } = getTierLimits(tierName);
           const newTotal = Math.min(currentSparks + monthlySparks, maxCap);
@@ -174,7 +181,20 @@ export async function POST(req: Request) {
       }
 
       // -------------------------------------------------------------
-      // 3. SUBSCRIPTION CANCELLATION
+      // 3. SUBSCRIPTION UPDATES (Upgrades/Downgrades via Stripe Portal)
+      // -------------------------------------------------------------
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as Stripe.Subscription;
+        const customerId = subscription.customer as string;
+
+        if (subscription.cancel_at_period_end) {
+          console.log(`ℹ️ Customer ${customerId} scheduled a cancellation at period end.`);
+        }
+        break;
+      }
+
+      // -------------------------------------------------------------
+      // 4. SUBSCRIPTION CANCELLATION
       // -------------------------------------------------------------
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;

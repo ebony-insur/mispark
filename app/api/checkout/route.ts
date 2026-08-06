@@ -15,14 +15,14 @@ export async function POST(req: Request) {
 
     // Determine plan type from Price ID
     let planType = "single";
-    if (priceId === "price_1Tx7p6F035PE8L5x6tZ4zLYx") planType = "family";
-    if (priceId === "price_1TxS8KF035PE8L5xuMDlFLVc") planType = "classroom";
-    if (priceId === "price_1Tx7p1F035PE8L5xqpQM4t3N") planType = "single";
+    if (priceId === "price_1Tx7p6F035PE8L5x6tZ4zLYx") planType = "Platinum";
+    if (priceId === "price_1TxS8KF035PE8L5xuMDlFLVc") planType = "Classroom";
+    if (priceId === "price_1Tx7p1F035PE8L5xqpQM4t3N") planType = "Gold";
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.mi-spark.com";
 
+    // payment_method_types removed below to support Stripe Managed Payments
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: mode === "payment" ? "payment" : "subscription",
       success_url: `${siteUrl}/dashboard?success=true`,
