@@ -211,7 +211,7 @@ export default function BillingPage() {
           <Card className="border-2 border-slate-200 relative shadow-sm flex flex-col">
             <CardHeader className="text-center pb-4 border-b border-slate-100">
               <CardTitle className="text-2xl font-bold text-slate-800">Gold</CardTitle>
-              <div className="mt-4 text-3xl font-black text-slate-900">$9.99<span className="text-sm font-medium text-slate-500">/mo</span></div>
+              <div className="mt-4 text-3xl font-black text-slate-900">$10.99<span className="text-sm font-medium text-slate-500">/mo</span></div>
             </CardHeader>
             <CardContent className="p-6 flex-1 flex flex-col gap-6">
               <ul className="space-y-3 text-sm text-slate-700 font-medium flex-1">
