@@ -1,14 +1,13 @@
 "use client";
 
 import SiteHeader from "@/components/SiteHeader";
-import SiteFooter from "@/components/SiteFooter"; // NEW: Imported the global site footer
-import { Scale, AlertTriangle, FileText } from "lucide-react";
+import SiteFooter from "@/components/SiteFooter";
+import { Scale, AlertTriangle } from "lucide-react";
 
 export default function TermsPage() {
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col justify-between">
       
-      {/* INNER CONTENT WRAPPER */}
       <div className="w-full flex-1 flex flex-col items-center py-12 px-6 space-y-8 mb-24">
         <SiteHeader />
 
@@ -39,8 +38,16 @@ export default function TermsPage() {
               </p>
             </section>
 
+            {/* SECURITY PATCH: Added Acceptable Use Policy */}
             <section className="space-y-3">
-              <h2 className="text-2xl font-black text-slate-900">2. Affiliate Links & Monetization</h2>
+              <h2 className="text-2xl font-black text-slate-900">2. Acceptable Use Policy (AUP)</h2>
+              <p>
+                You agree not to use MiSpark to generate, store, or transmit content that is illegal, sexually explicit, highly provocative, promotes self-harm, or is otherwise dangerous. We reserve the right to immediately suspend or terminate accounts that attempt to bypass AI safety guardrails or violate this Acceptable Use Policy without refund.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h2 className="text-2xl font-black text-slate-900">3. Affiliate Links & Monetization</h2>
               <p>
                 To help support the platform, MiSpark dynamically generates affiliate links to third-party retailers (such as Amazon) for recommended books, games, and tactile tools. 
               </p>
@@ -52,7 +59,7 @@ export default function TermsPage() {
             </section>
 
             <section className="space-y-3">
-              <h2 className="text-2xl font-black text-slate-900">3. Subscriptions, Sparks, and Refunds</h2>
+              <h2 className="text-2xl font-black text-slate-900">4. Subscriptions, Sparks, and Refunds</h2>
               <p>
                 MiSpark operates on a combination of recurring subscriptions and generation credits ("Sparks"). 
               </p>
@@ -64,7 +71,7 @@ export default function TermsPage() {
             </section>
 
             <section className="space-y-3">
-              <h2 className="text-2xl font-black text-slate-900">4. Limitation of Liability</h2>
+              <h2 className="text-2xl font-black text-slate-900">5. Limitation of Liability</h2>
               <p>
                 In no event shall MiSpark, its developers, or its affiliates be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the service.
               </p>

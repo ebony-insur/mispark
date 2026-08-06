@@ -99,7 +99,8 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
           </div>
         ) : isLoaded ? (
           <div className="flex items-center gap-3">
-            <Link href="/login" className="hidden sm:block">
+            {/* FIX: Removed className="hidden sm:block" so Log In is always visible */}
+            <Link href="/login">
               <Button variant="ghost" className="font-bold text-slate-600 hover:text-slate-900">
                 Log In
               </Button>

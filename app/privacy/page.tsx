@@ -1,14 +1,13 @@
 "use client";
 
 import SiteHeader from "@/components/SiteHeader";
-import SiteFooter from "@/components/SiteFooter"; // NEW: Imported the global site footer
-import { ShieldCheck, Lock, Server, EyeOff, Trash2 } from "lucide-react";
+import SiteFooter from "@/components/SiteFooter";
+import { ShieldCheck, Lock, EyeOff, Trash2 } from "lucide-react";
 
 export default function PrivacyPage() {
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col justify-between">
       
-      {/* INNER CONTENT WRAPPER */}
       <div className="w-full flex-1 flex flex-col items-center py-12 px-6 space-y-8 mb-24">
         <SiteHeader />
 
@@ -68,12 +67,13 @@ export default function PrivacyPage() {
               </ul>
             </section>
 
+            {/* SECURITY PATCH: Added explicit data retention standards */}
             <section className="space-y-3 bg-rose-50 border border-rose-100 p-6 rounded-2xl mt-8">
               <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                <Trash2 className="w-5 h-5 text-rose-600" /> Your Right to Delete
+                <Trash2 className="w-5 h-5 text-rose-600" /> Your Right to Delete & Data Retention
               </h2>
               <p className="text-slate-700 text-sm">
-                You own your data. At any time, you can request a complete deletion of your account, all associated learner profiles, and generated portfolios by contacting support. Once deleted, this data cannot be recovered.
+                You own your data. At any time, you can request a complete deletion of your account, all associated learner profiles, and generated portfolios by contacting support or via your account dashboard. Upon verification of your request, your personal data will be hard-deleted from our active databases within 30 days. Once deleted, this data cannot be recovered. 
               </p>
             </section>
           </div>

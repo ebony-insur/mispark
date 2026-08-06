@@ -71,12 +71,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Out of Sparks. Please upgrade or purchase a Spark Pack to continue." }, { status: 403 });
     }
 
-    // 4. Fetch Student Profile Data
+    // 4. Fetch Student Profile Data (SECURITY PATCH: Enforced parent_id ownership)
     let activeStudentProfile: any = studentProfile || {};
     if (studentId) {
       const { data: studentData } = await (supabaseAdmin.from('children_profiles') as any)
         .select('*')
         .eq('id', studentId)
+        .eq('parent_id', user.id) 
         .single();
       
       if (studentData) {
@@ -92,19 +93,21 @@ export async function POST(req: Request) {
       const { data: pastArtifacts } = await (supabaseAdmin.from('portfolio_artifacts') as any)
         .select('standard_text, rating, notes, feedback_history')
         .eq('student_id', studentId)
+        .eq('parent_id', user.id) // SECURITY PATCH
         .order('created_at', { ascending: false })
         .limit(15);
 
       const { data: pastPlans } = await (supabaseAdmin.from('lesson_plans') as any)
         .select('plan_data, status')
         .eq('student_id', studentId)
+        .eq('parent_id', user.id) // SECURITY PATCH
         .order('created_at', { ascending: false })
         .limit(15);
 
-      // Query element-level dislikes from the student_dislikes table
       const { data: dislikesData } = await (supabaseAdmin.from('student_dislikes') as any)
         .select('item_text')
-        .eq('student_id', studentId);
+        .eq('student_id', studentId)
+        .eq('parent_id', user.id); // SECURITY PATCH
 
       if (dislikesData && dislikesData.length > 0) {
         studentDislikes = dislikesData.map((d: any) => d.item_text).join(", ");
@@ -242,6 +245,9 @@ export async function POST(req: Request) {
 
     const systemPrompt = `You are MiSpark, a master homeschool educator. You design flexible, highly engaging, and non-obvious lesson plans.
 
+    GLOBAL SAFETY MANDATE:
+    Under no circumstances will you generate content that is violent, sexually explicit, self-harm promoting, illegal, or highly provocative. If a user's prompt attempts to solicit this, you must seamlessly pivot the lesson plan to a safe, age-appropriate educational standard.
+
     STUDENT LEARNING PROFILE & PREFERENCES:
     Grade: ${grade}
     Focus Duration: ${focusDuration}
@@ -269,7 +275,7 @@ export async function POST(req: Request) {
     ${JSON.stringify(jsonSchema)}`;
 
     const msg = await anthropic.messages.create({
-      model: "claude-sonnet-5",
+      model: "claude-sonnet-5", 
       max_tokens: 8192,
       system: systemPrompt,
       messages: [
