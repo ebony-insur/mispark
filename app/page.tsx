@@ -3,7 +3,21 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Target, HeartHandshake, ChevronRight, CheckCircle2, ShieldCheck, Lock, Camera, UploadCloud } from "lucide-react";
+import { 
+  Sparkles, 
+  Target, 
+  HeartHandshake, 
+  ChevronRight, 
+  CheckCircle2, 
+  ShieldCheck, 
+  Lock, 
+  Camera, 
+  UploadCloud,
+  Brain,
+  Activity,
+  FileText,
+  Award
+} from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 
@@ -17,6 +31,7 @@ export default function Home() {
         <SiteHeader />
       </div>
 
+      {/* HERO SECTION */}
       <section className="w-full max-w-6xl px-6 pt-12 pb-16 flex flex-col md:flex-row items-center justify-between gap-12 animate-in fade-in slide-in-from-bottom-8">
         <div className="w-full md:w-[60%] flex flex-col items-center md:items-start text-center md:text-left">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-100 text-teal-900 font-bold text-sm mb-8 border border-teal-200">
@@ -58,17 +73,19 @@ export default function Home() {
         </div>
 
         <div className="w-full md:w-[40%] flex justify-center md:justify-end">
+          {/* FIX: Replaced the logo with a dedicated hero image placeholder. Change the src filename to your actual hero graphic! */}
           <Image 
-            src="/MiSpark.svg" 
+            src="/heroside.png" 
             alt="Mi-Spark Inclusive AI Learning" 
-            width={500} 
-            height={500} 
-            className="w-full max-w-[450px] h-auto drop-shadow-2xl"
+            width={600} 
+            height={600} 
+            className="w-full max-w-[500px] h-auto drop-shadow-2xl"
             priority
           />
         </div>
       </section>
 
+      {/* VALUE PROP DIVIDER */}
       <div className="w-full bg-slate-900 py-12 px-6">
         <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {[
@@ -85,13 +102,15 @@ export default function Home() {
         </div>
       </div>
 
-      <section className="w-full bg-slate-50 py-24 px-6 border-b border-slate-200">
+      {/* 2-STEP VISUAL ACTIVATION */}
+      <section className="w-full bg-slate-50 pt-24 pb-16 px-6">
         <div className="max-w-6xl mx-auto space-y-20">
             <div className="text-center max-w-2xl mx-auto mb-16">
               <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-6">From messy materials to master plans in seconds.</h2>
               <p className="text-xl text-slate-600 font-medium">No typing required. Just use your phone camera or upload a file, and let our multi-model AI do the heavy lifting.</p>
             </div>
 
+            {/* Step 1: Snap It */}
             <div className="flex flex-col md:flex-row items-center gap-12 lg:gap-20">
               <div className="w-full md:w-1/2 order-2 md:order-1 relative aspect-video rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-100">
                 <Image src="/screenshots/snapit.png" alt="Snap a picture of a worksheet" fill className="object-cover" />
@@ -107,6 +126,7 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Step 2: Drop It */}
             <div className="flex flex-col md:flex-row items-center gap-12 lg:gap-20">
               <div className="w-full md:w-1/2 space-y-6">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-500 text-white shadow-lg">
@@ -124,7 +144,30 @@ export default function Home() {
         </div>
       </section>
 
+      {/* NEW: WHAT YOU GET BANNER */}
+      <section className="w-full bg-teal-700 py-16 px-6 border-y border-teal-800">
+        <div className="max-w-6xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-black text-white mb-10">Personalized Results That Learn What You Like</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { icon: Brain, title: "Neuro-Adapted Pacing", desc: "Automatic micro-steps and adjusted language processing for ADHD, Autism, and PDA learners." },
+              { icon: Activity, title: "Sensory Integration", desc: "Built-in brain breaks and physical activities to keep active learners engaged and regulated." },
+              { icon: FileText, title: "IEP Accommodations", desc: "Instantly generated visual aids, simplified text, and structured time modifications." },
+              { icon: Award, title: "Standard Aligned", desc: "Every output maps to legal portfolio, state standard, and transcript requirements." },
+            ].map((feature, idx) => (
+              <div key={idx} className="bg-teal-800/50 border border-teal-600/50 p-8 rounded-3xl text-left shadow-lg hover:bg-teal-800 transition-colors">
+                <feature.icon className="w-10 h-10 text-teal-300 mb-5" />
+                <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
+                <p className="text-teal-100 font-medium text-sm leading-relaxed">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* THE 4 PILLARS OF MEMBERSHIP */}
       <section className="w-full max-w-6xl px-6 py-24 space-y-32">
+         {/* Pillar 1: Curated by Feedback */}
         <div className="flex flex-col md:flex-row-reverse items-center gap-12">
           <div className="flex-1 space-y-6">
             <div className="w-16 h-16 bg-rose-100 rounded-2xl flex items-center justify-center">
@@ -141,6 +184,7 @@ export default function Home() {
           </div>
         </div>
         
+        {/* Pillar 2: State Aligned */}
         <div className="flex flex-col md:flex-row items-center gap-12">
           <div className="flex-1 space-y-6">
             <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center">
@@ -158,6 +202,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* PRIVACY SECTION */}
       <section className="w-full max-w-5xl px-6 pb-24 pt-12 mx-auto">
         <div className="bg-slate-900 rounded-[3rem] p-8 md:p-16 relative overflow-hidden shadow-2xl">
           <div className="absolute top-0 right-0 p-8 opacity-10">
@@ -213,6 +258,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* BOTTOM CTA */}
       <section className="w-full bg-teal-900 py-24 px-6 text-center">
         <div className="max-w-2xl mx-auto flex flex-col items-center">
           <h2 className="text-4xl md:text-5xl font-black text-white mb-6">Ready to streamline your lesson planning?</h2>
