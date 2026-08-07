@@ -89,16 +89,17 @@ export async function POST(req: Request) {
           .eq("id", userId)
           .single();
 
-        if (fetchError) {
-          console.error(`❌ ERROR FETCHING PROFILE BEFORE UPDATE:`, fetchError);
-          return NextResponse.json({ error: "Profile fetch failed" }, { status: 500 });
+        // FIX: If profile is missing or deleted, return 200 OK so Stripe stops retrying
+        if (fetchError || !profile) {
+          console.log(`User ${userId} not found. They may have deleted their account. Ignoring webhook.`);
+          return NextResponse.json({ received: true, note: "User not found" }, { status: 200 });
         }
 
-        const currentSparks = profile?.sparks_remaining || 0;
+        const currentSparks = profile.sparks_remaining || 0;
 
         if (mode === "payment") {
           // ONE-TIME SPARK PACK (+4 Sparks up to Tier Max Cap)
-          const currentTier = profile?.subscription_tier || "Gold";
+          const currentTier = profile.subscription_tier || "Gold";
           const { maxCap } = getTierLimits(currentTier);
           const newTotal = Math.min(currentSparks + 4, maxCap);
 
@@ -208,10 +209,12 @@ export async function POST(req: Request) {
           .eq("stripe_customer_id", customerId)
           .select();
 
+        // FIX: If profile is missing or deleted, return 200 OK so Stripe stops retrying
         if (error || !data || data.length === 0) {
-          console.error("❌ SUPABASE UPDATE ERROR (Cancellation):", error);
-          return NextResponse.json({ error: "Database update failed" }, { status: 500 });
+          console.log(`Customer ${customerId} not found (likely deleted). Ignoring cancellation.`);
+          return NextResponse.json({ received: true, note: "User not found" }, { status: 200 });
         }
+        
         console.log(`✅ Downgraded customer ${customerId} to free tier.`);
         break;
       }
@@ -226,4 +229,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 });
   }
 }
-//Testing Route Rename to .ts
