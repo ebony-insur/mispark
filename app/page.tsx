@@ -75,7 +75,7 @@ export default function Home() {
         <div className="w-full md:w-[40%] flex justify-center md:justify-end">
           {/* FIX: Replaced the logo with a dedicated hero image placeholder. Change the src filename to your actual hero graphic! */}
           <Image 
-            src="/heroside.png" 
+            src="public/heroside.png" 
             alt="Mi-Spark Inclusive AI Learning" 
             width={600} 
             height={600} 
