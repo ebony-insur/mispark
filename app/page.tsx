@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Target, FileCheck, HeartHandshake, ChevronRight, CheckCircle2, ShieldCheck, Lock } from "lucide-react";
+import { Sparkles, Target, HeartHandshake, ChevronRight, CheckCircle2, ShieldCheck, Lock, Camera, UploadCloud } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 
@@ -17,9 +17,7 @@ export default function Home() {
         <SiteHeader />
       </div>
 
-      {/* HERO SECTION (SaaS & Security Focused) */}
       <section className="w-full max-w-6xl px-6 pt-12 pb-16 flex flex-col md:flex-row items-center justify-between gap-12 animate-in fade-in slide-in-from-bottom-8">
-        
         <div className="w-full md:w-[60%] flex flex-col items-center md:items-start text-center md:text-left">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-100 text-teal-900 font-bold text-sm mb-8 border border-teal-200">
             <Lock className="w-4 h-4" /> 100% Private, Zero-PII AI Engine
@@ -50,11 +48,11 @@ export default function Home() {
             </div>
             
             <Button 
-              onClick={() => router.push("/features")} 
+              onClick={() => router.push("/why-spark")} 
               variant="outline"
               className="h-16 px-8 w-full sm:w-auto text-xl border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-100"
             >
-              Explore Features
+              See How It Works
             </Button>
           </div>
         </div>
@@ -71,7 +69,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* VALUE PROP DIVIDER */}
       <div className="w-full bg-slate-900 py-12 px-6">
         <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {[
@@ -88,33 +85,46 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 3-STEP ACTIVATION */}
-      <section className="w-full bg-slate-50 py-20 px-6 border-b border-slate-200 text-center">
-        <div className="max-w-5xl mx-auto">
-            <h2 className="text-4xl font-black text-slate-900 mb-16">Intelligent lesson scaling in 3 steps</h2>
-            <div className="grid md:grid-cols-3 gap-8 relative">
-                <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-                    <div className="w-12 h-12 bg-slate-900 text-white font-black text-xl flex items-center justify-center rounded-full mx-auto mb-6">1</div>
-                    <h3 className="text-xl font-bold text-slate-800 mb-3">Input the Topic</h3>
-                    <p className="text-slate-600">Type a subject like "Fractions" or securely upload your existing syllabus.</p>
+      <section className="w-full bg-slate-50 py-24 px-6 border-b border-slate-200">
+        <div className="max-w-6xl mx-auto space-y-20">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-6">From messy materials to master plans in seconds.</h2>
+              <p className="text-xl text-slate-600 font-medium">No typing required. Just use your phone camera or upload a file, and let our multi-model AI do the heavy lifting.</p>
+            </div>
+
+            <div className="flex flex-col md:flex-row items-center gap-12 lg:gap-20">
+              <div className="w-full md:w-1/2 order-2 md:order-1 relative aspect-video rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-100">
+                <Image src="/screenshots/snapit.png" alt="Snap a picture of a worksheet" fill className="object-cover" />
+              </div>
+              <div className="w-full md:w-1/2 order-1 md:order-2 space-y-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-900 text-white shadow-lg">
+                  <Camera className="w-8 h-8" />
                 </div>
-                <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-                    <div className="w-12 h-12 bg-slate-900 text-white font-black text-xl flex items-center justify-center rounded-full mx-auto mb-6">2</div>
-                    <h3 className="text-xl font-bold text-slate-800 mb-3">Select the Profile</h3>
-                    <p className="text-slate-600">Choose the learner's pre-saved sensory needs, neurodivergence, and modality.</p>
+                <h3 className="text-3xl font-black text-slate-900">1. Snap It.</h3>
+                <p className="text-lg text-slate-600 font-medium leading-relaxed">
+                  Take a picture of any dry textbook page, handwritten notes, or standard worksheet. Our enterprise vision models can instantly read and extract the core concepts from almost any image.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row items-center gap-12 lg:gap-20">
+              <div className="w-full md:w-1/2 space-y-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-500 text-white shadow-lg">
+                  <UploadCloud className="w-8 h-8" />
                 </div>
-                <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 border-b-4 border-b-teal-500">
-                    <div className="w-12 h-12 bg-teal-500 text-white font-black text-xl flex items-center justify-center rounded-full mx-auto mb-6">3</div>
-                    <h3 className="text-xl font-bold text-slate-800 mb-3">Deploy the Lesson</h3>
-                    <p className="text-slate-600">Instantly generate custom, data-safe resources ready for immediate teaching.</p>
-                </div>
+                <h3 className="text-3xl font-black text-slate-900">2. Drop It.</h3>
+                <p className="text-lg text-slate-600 font-medium leading-relaxed">
+                  Drop it into the Mi-Spark engine and select your learner. We instantly translate the dry material into a custom-tailored, highly engaging lesson plan based on their specific neurodivergence and interests.
+                </p>
+              </div>
+              <div className="w-full md:w-1/2 relative aspect-video rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-100">
+                <Image src="/screenshots/DropIt.png" alt="Drop it into the Mi-Spark interface" fill className="object-cover" />
+              </div>
             </div>
         </div>
       </section>
 
-      {/* THE 4 PILLARS OF MEMBERSHIP */}
       <section className="w-full max-w-6xl px-6 py-24 space-y-32">
-         {/* Pillar 1: Curated by Feedback */}
         <div className="flex flex-col md:flex-row-reverse items-center gap-12">
           <div className="flex-1 space-y-6">
             <div className="w-16 h-16 bg-rose-100 rounded-2xl flex items-center justify-center">
@@ -131,7 +141,6 @@ export default function Home() {
           </div>
         </div>
         
-        {/* Pillar 2: State Aligned */}
         <div className="flex flex-col md:flex-row items-center gap-12">
           <div className="flex-1 space-y-6">
             <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center">
@@ -149,7 +158,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PRIVACY SECTION */}
       <section className="w-full max-w-5xl px-6 pb-24 pt-12 mx-auto">
         <div className="bg-slate-900 rounded-[3rem] p-8 md:p-16 relative overflow-hidden shadow-2xl">
           <div className="absolute top-0 right-0 p-8 opacity-10">
@@ -205,7 +213,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* BOTTOM CTA */}
       <section className="w-full bg-teal-900 py-24 px-6 text-center">
         <div className="max-w-2xl mx-auto flex flex-col items-center">
           <h2 className="text-4xl md:text-5xl font-black text-white mb-6">Ready to streamline your lesson planning?</h2>

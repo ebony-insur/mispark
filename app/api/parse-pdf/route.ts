@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
-// Initialize the OpenAI client
+// VERCEL NODE FIX: Polyfill DOMMatrix if executing in a serverless environment
+if (typeof global.DOMMatrix === "undefined") {
+  (global as any).DOMMatrix = class DOMMatrix {
+    matrix: number[];
+    constructor(init?: any) {
+      this.matrix = init || [1, 0, 0, 1, 0, 0];
+    }
+  };
+}
+
+// Initialize the OpenAI client for Vision OCR
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY, 
 });
@@ -22,7 +32,7 @@ export async function POST(request: Request) {
 
     // --- 1. PDF EXTRACTION ---
     if (file.type === "application/pdf") {
-      // THE BYPASS: Require the library directly at runtime to skip strict build checks
+      // Require at runtime to bypass bundler/build checks
       const pdfParse = require("pdf-parse");
       const pdfData = await pdfParse(buffer);
       extractedText = pdfData.text;
@@ -83,4 +93,3 @@ export async function POST(request: Request) {
     );
   }
 }
-// FORCING VERCEL TO REBUILD THE APP

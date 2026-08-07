@@ -6,7 +6,6 @@ import { ChevronRight } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 
-// SEO Metadata Configuration
 export const metadata: Metadata = {
   title: "Meet Ebony | The Story Behind Mi-Spark",
   description: "Learn how a tech CEO and homeschool mom built Mi-Spark to generate custom, AI-driven learning supplements while keeping student data 100% private.",
@@ -37,7 +36,6 @@ export default function AboutFounder() {
       </div>
 
       <article className="w-full max-w-5xl px-6 pt-20 pb-16 mx-auto">
-        {/* HEADER SECTION */}
         <header className="text-center mb-16">
           <h1 className="text-5xl md:text-6xl font-black text-slate-900 tracking-tight leading-tight mb-4">
             Built by a Mom. <br/>
@@ -50,7 +48,6 @@ export default function AboutFounder() {
           </p>
         </header>
 
-        {/* THE KITCHEN COUNTER FOUNDER SECTION */}
         <section className="bg-white rounded-[3rem] p-8 md:p-12 relative overflow-hidden shadow-xl border border-slate-100 flex flex-col md:flex-row items-center gap-12 mb-16">
             <div className="w-full md:w-1/2 relative aspect-square rounded-3xl overflow-hidden shadow-lg border-4 border-slate-50">
                  <Image 
@@ -70,16 +67,15 @@ export default function AboutFounder() {
                         I'm a tech founder, a software engineer, and a full-time Black homeschool mom navigating K-12 neurodivergence right from my kitchen counter. 
                     </p>
                     <p>
-                        Like many of you, I was drowning in curriculum prep. I wanted to use AI to build custom learning supplements tailored to my daughter's exact attention span. But as a software developer, I knew the risks. I absolutely refused to expose her identity or cognitive profile to open AI models just to make my life easier.
+                        Like many of you, I was drowning in curriculum prep. I wanted to use AI to build custom learning supplements tailored to my daughter's exact attention span. But as a software developer, I knew the risks. I absolutely refused to expose her identity or cognitive profile to public AI models just to make my life easier.
                     </p>
                     <p>
-                        So, my team and I built a safe fortress to do it ourselves.
+                        So, my team and I built a safe fortress to do it ourselves. We keep your kids' data private in isolated databases so the tool can learn your child's preferences over time, without ever feeding that data to global AI models.
                     </p>
                 </div>
             </div>
         </section>
 
-        {/* THE FAMILY ANCHOR SECTION */}
         <section className="grid md:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 order-2 md:order-1">
                 <h2 className="text-3xl font-black text-slate-900 leading-tight">
@@ -97,7 +93,6 @@ export default function AboutFounder() {
                     </p>
                 </div>
                 
-                {/* SEO Friendly Link Button */}
                 <div className="mt-4">
                   <Button asChild className="h-14 px-8 text-lg bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl shadow-lg transition-all hover:-translate-y-1">
                       <Link href="/login?signup=true">

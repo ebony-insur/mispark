@@ -7,6 +7,9 @@ export default function SiteFooter() {
         <Link href="/about" className="text-slate-400 hover:text-white font-medium text-sm transition-colors">
           Meet Ebony
         </Link>
+        <Link href="/why-spark" className="text-slate-400 hover:text-white font-medium text-sm transition-colors">
+          Why Spark
+        </Link>
         <Link href="/features" className="text-slate-400 hover:text-white font-medium text-sm transition-colors">
           Features
         </Link>
