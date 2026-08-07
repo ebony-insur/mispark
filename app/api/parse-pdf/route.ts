@@ -11,7 +11,7 @@ if (typeof global.DOMMatrix === "undefined") {
   };
 }
 
-// Initialize the OpenAI client for Vision OCR
+// Initialize the OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY, 
 });
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
     // --- 1. PDF EXTRACTION ---
     if (file.type === "application/pdf") {
-      // Require at runtime to bypass bundler/build checks
+      // THE BYPASS: Require the library directly at runtime to skip strict build checks
       const pdfParse = require("pdf-parse");
       const pdfData = await pdfParse(buffer);
       extractedText = pdfData.text;
