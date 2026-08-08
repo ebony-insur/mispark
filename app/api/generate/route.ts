@@ -36,101 +36,103 @@ export async function POST(req: Request) {
     const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
     const cleanUrl = rawUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
 
-    // 1. Authenticate the user safely
+    // 1. Authenticate the user & determine if we are in DEMO MODE
     const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Unauthorized: Missing token." }, { status: 401 });
+    let user = null;
+    let isDemoMode = true;
+
+    if (authHeader) {
+      const supabaseAuth = createClient(
+        cleanUrl, 
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, 
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const { data: authData, error: authError } = await supabaseAuth.auth.getUser();
+      
+      if (authData?.user && !authError) {
+        user = authData.user;
+        isDemoMode = false;
+      }
     }
 
-    const supabaseAuth = createClient(
-      cleanUrl, 
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, 
-      { global: { headers: { Authorization: authHeader } } }
-    );
-    const { data: authData, error: authError } = await supabaseAuth.auth.getUser();
-    const user = authData?.user;
-
-    if (!user || authError) {
-      console.error("Backend Auth Error:", authError);
-      return NextResponse.json({ error: "Unauthorized: Invalid session." }, { status: 401 });
-    }
-
-    // 2. Initialize Admin Client to bypass RLS
+    // Initialize Admin Client to bypass RLS (only used if NOT in demo mode)
     const supabaseAdmin = createClient(
       cleanUrl,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 3. Check Sparks Remaining
-    const { data: profile } = await (supabaseAdmin.from('profiles') as any)
-      .select('sparks_remaining, subscription_tier')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile || profile.sparks_remaining <= 0) {
-      return NextResponse.json({ error: "Out of Sparks. Please upgrade or purchase a Spark Pack to continue." }, { status: 403 });
-    }
-
-    // 4. Fetch Student Profile Data (SECURITY PATCH: Enforced parent_id ownership)
     let activeStudentProfile: any = studentProfile || {};
-    if (studentId) {
-      const { data: studentData } = await (supabaseAdmin.from('children_profiles') as any)
-        .select('*')
-        .eq('id', studentId)
-        .eq('parent_id', user.id) 
-        .single();
-      
-      if (studentData) {
-        activeStudentProfile = studentData;
-      }
-    }
-
-    // --- STUDENT MEMORY & ELEMENT-LEVEL DISLIKES INJECTION ---
     let studentMemoryContext = "";
     let studentDislikes = "None specified";
 
-    if (studentId) {
-      const { data: pastArtifacts } = await (supabaseAdmin.from('portfolio_artifacts') as any)
-        .select('standard_text, rating, notes, feedback_history')
-        .eq('student_id', studentId)
-        .eq('parent_id', user.id) // SECURITY PATCH
-        .order('created_at', { ascending: false })
-        .limit(15);
+    // 2. Only run Database & Spark checks if this is a real, authenticated user
+    if (!isDemoMode && user) {
+      // Check Sparks Remaining
+      const { data: profile } = await (supabaseAdmin.from('profiles') as any)
+        .select('sparks_remaining, subscription_tier')
+        .eq('id', user.id)
+        .single();
 
-      const { data: pastPlans } = await (supabaseAdmin.from('lesson_plans') as any)
-        .select('plan_data, status')
-        .eq('student_id', studentId)
-        .eq('parent_id', user.id) // SECURITY PATCH
-        .order('created_at', { ascending: false })
-        .limit(15);
-
-      const { data: dislikesData } = await (supabaseAdmin.from('student_dislikes') as any)
-        .select('item_text')
-        .eq('student_id', studentId)
-        .eq('parent_id', user.id); // SECURITY PATCH
-
-      if (dislikesData && dislikesData.length > 0) {
-        studentDislikes = dislikesData.map((d: any) => d.item_text).join(", ");
+      if (!profile || profile.sparks_remaining <= 0) {
+        return NextResponse.json({ error: "Out of Sparks. Please upgrade or purchase a Spark Pack to continue." }, { status: 403 });
       }
 
-      if (pastArtifacts && pastArtifacts.length > 0) {
-        studentMemoryContext += "\n\nPAST STUDENT PERFORMANCE & EDUCATOR FEEDBACK HISTORY:\n";
-        pastArtifacts.forEach((art: any) => {
-          studentMemoryContext += `- Standard/Topic: "${art.standard_text}" | Mastery Rating (1-5): ${art.rating || 'N/A'} | Notes/Feedback: "${art.notes || 'None'}"\n`;
-        });
-      }
+      // Fetch Student Profile Data (SECURITY PATCH: Enforced parent_id ownership)
+      if (studentId) {
+        const { data: studentData } = await (supabaseAdmin.from('children_profiles') as any)
+          .select('*')
+          .eq('id', studentId)
+          .eq('parent_id', user.id) 
+          .single();
+        
+        if (studentData) {
+          activeStudentProfile = studentData;
+        }
 
-      if (pastPlans && pastPlans.length > 0) {
-        const skippedPlans = pastPlans.filter((p: any) => p.status === 'skipped');
-        if (skippedPlans.length > 0) {
-          studentMemoryContext += "\nSKIPPED / DID NOT ATTEMPT PLANS (Avoid over-indexing on these topics):\n";
-          skippedPlans.forEach((p: any) => {
-            studentMemoryContext += `- Skipped Topic/Theme: "${p.plan_data?.weekAssigned || p.plan_data?.weekTheme || 'General Plan'}"\n`;
+        // Fetch Student Memory & Dislikes
+        const { data: pastArtifacts } = await (supabaseAdmin.from('portfolio_artifacts') as any)
+          .select('standard_text, rating, notes, feedback_history')
+          .eq('student_id', studentId)
+          .eq('parent_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(15);
+
+        const { data: pastPlans } = await (supabaseAdmin.from('lesson_plans') as any)
+          .select('plan_data, status')
+          .eq('student_id', studentId)
+          .eq('parent_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(15);
+
+        const { data: dislikesData } = await (supabaseAdmin.from('student_dislikes') as any)
+          .select('item_text')
+          .eq('student_id', studentId)
+          .eq('parent_id', user.id);
+
+        if (dislikesData && dislikesData.length > 0) {
+          studentDislikes = dislikesData.map((d: any) => d.item_text).join(", ");
+        }
+
+        if (pastArtifacts && pastArtifacts.length > 0) {
+          studentMemoryContext += "\n\nPAST STUDENT PERFORMANCE & EDUCATOR FEEDBACK HISTORY:\n";
+          pastArtifacts.forEach((art: any) => {
+            studentMemoryContext += `- Standard/Topic: "${art.standard_text}" | Mastery Rating (1-5): ${art.rating || 'N/A'} | Notes/Feedback: "${art.notes || 'None'}"\n`;
           });
+        }
+
+        if (pastPlans && pastPlans.length > 0) {
+          const skippedPlans = pastPlans.filter((p: any) => p.status === 'skipped');
+          if (skippedPlans.length > 0) {
+            studentMemoryContext += "\nSKIPPED / DID NOT ATTEMPT PLANS (Avoid over-indexing on these topics):\n";
+            skippedPlans.forEach((p: any) => {
+              studentMemoryContext += `- Skipped Topic/Theme: "${p.plan_data?.weekAssigned || p.plan_data?.weekTheme || 'General Plan'}"\n`;
+            });
+          }
         }
       }
     }
 
+    // Set fallback defaults if no profile is found (or if in demo mode)
     const focusDuration = activeStudentProfile?.focus_duration || "20 mins";
     const stateResidence = activeStudentProfile?.state_residence || "General US";
     const zipCode = activeStudentProfile?.zip_code || "None provided";
@@ -274,6 +276,7 @@ export async function POST(req: Request) {
     You MUST output ONLY valid JSON matching this exact schema:
     ${JSON.stringify(jsonSchema)}`;
 
+    // RESTORED: Original model exactly as requested
     const msg = await anthropic.messages.create({
       model: "claude-sonnet-5", 
       max_tokens: 8192,
@@ -305,7 +308,13 @@ export async function POST(req: Request) {
     parsedData.weekStartDate = weekStartDate || new Date().toISOString().split('T')[0];
     parsedData.weekEndDate = weekEndDate || new Date().toISOString().split('T')[0];
     
-    // 5. Save to lesson_plans
+    // 3. Handle Demo vs Authenticated Saving
+    if (isDemoMode || !user) {
+      // Demo Mode: Skip saving to database and deducting sparks, just return the data!
+      return NextResponse.json({ data: parsedData, planId: "demo-plan-id" }, { status: 200 });
+    }
+
+    // Authenticated Mode: Save to lesson_plans
     const { data: savedPlan, error: insertError } = await (supabaseAdmin.from('lesson_plans') as any)
       .insert({
         parent_id: user.id,
@@ -321,7 +330,7 @@ export async function POST(req: Request) {
       throw new Error("Failed to save the generated plan.");
     }
 
-    // 6. Deduct exactly 1 Spark securely via RPC to prevent race conditions
+    // Deduct exactly 1 Spark securely via RPC
     const { error: deductionError } = await supabaseAdmin.rpc('decrement_sparks', {
       user_id: user.id
     });
