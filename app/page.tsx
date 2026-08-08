@@ -14,9 +14,11 @@ import {
   Camera, 
   UploadCloud,
   Brain,
-  Activity,
-  FileText,
-  Award
+  Gamepad2,
+  BookOpen,
+  Pencil,
+  ClipboardCheck,
+  FolderOpen
 } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
@@ -39,14 +41,14 @@ export default function Home() {
           </div>
           
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-slate-900 tracking-tight leading-tight mb-6">
-            You bring the curriculum. <br/>
+            More than a lesson plan. <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-blue-600">
-              We build the plan.
+              A complete ecosystem.
             </span>
           </h1>
           
           <p className="text-xl md:text-2xl text-slate-600 font-medium max-w-2xl mb-10 leading-relaxed">
-            The secure AI sidekick engineered for educators and parents to instantly adapt any lesson to a child's unique learning style. 
+            Stop spending countless hours and 10+ complex prompts trying to force general AI to act like a special educator. Get hands-on activities, reading lists, and inclusive, neuro-adapted tools in a single click.
           </p>
 
           {/* 3-BUTTON LAYOUT */}
@@ -156,16 +158,22 @@ export default function Home() {
         </div>
       </section>
 
-      {/* WHAT YOU GET BANNER */}
-      <section className="w-full bg-teal-700 py-16 px-6 border-y border-teal-800">
+      {/* COMPREHENSIVE ECOSYSTEM BANNER */}
+      <section className="w-full bg-teal-700 py-20 px-6 border-y border-teal-800">
         <div className="max-w-6xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-10">What You Get In Return</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <h2 className="text-3xl md:text-5xl font-black text-white mb-6">Everything you need. Zero prompts required.</h2>
+          <p className="text-xl text-teal-100 font-medium max-w-3xl mx-auto mb-16">
+            When you generate a lesson, Mi-Spark doesn't just give you a schedule. We automatically provision a complete, inclusive educational toolkit designed to capture attention and ensure mastery.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { icon: Brain, title: "Neuro-Adapted Pacing", desc: "Automatic micro-steps and adjusted language processing for ADHD, Autism, and PDA learners." },
-              { icon: Activity, title: "Sensory Integration", desc: "Built-in brain breaks and physical activities to keep active learners engaged and regulated." },
-              { icon: FileText, title: "IEP Accommodations", desc: "Instantly generated visual aids, simplified text, and structured time modifications." },
-              { icon: Award, title: "Standard Aligned", desc: "Every output maps to legal portfolio, state standard, and transcript requirements." },
+              { icon: Gamepad2, title: "Interactive Games & Labs", desc: "Swap dry worksheets for tactile, hands-on learning and custom educational games." },
+              { icon: BookOpen, title: "Curated Reading Lists", desc: "Targeted literature, media, and video recommendations tailored to your child's exact reading level." },
+              { icon: Pencil, title: "Writing & Discussion Prompts", desc: "Thought-provoking questions and creative writing hooks designed to inspire, not overwhelm." },
+              { icon: ClipboardCheck, title: "End-of-Week Reviews", desc: "Automatically generated assessments to measure mastery and celebrate wins without the stress of formal testing." },
+              { icon: FolderOpen, title: "Portfolio Management", desc: "Every output maps to legal portfolio requirements, state standards, and transcript formatting." },
+              { icon: Brain, title: "Neuro-Adapted Pacing", desc: "Built-in sensory breaks and micro-steps adjusted for ADHD, Autism, and PDA learners." },
             ].map((feature, idx) => (
               <div key={idx} className="bg-teal-800/50 border border-teal-600/50 p-8 rounded-3xl text-left shadow-lg hover:bg-teal-800 transition-colors">
                 <feature.icon className="w-10 h-10 text-teal-300 mb-5" />
