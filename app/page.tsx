@@ -49,8 +49,11 @@ export default function Home() {
             The secure AI sidekick engineered for educators and parents to instantly adapt any lesson to a child's unique learning style. 
           </p>
 
-          <div className="flex flex-col sm:flex-row items-start gap-4 w-full justify-center md:justify-start flex-wrap">
-            <div className="flex flex-col items-center gap-2 w-full sm:w-auto">
+          {/* 3-BUTTON LAYOUT */}
+          <div className="flex flex-col xl:flex-row items-center xl:items-start gap-4 w-full justify-center md:justify-start flex-wrap">
+            
+            {/* Primary Button */}
+            <div className="flex flex-col items-center gap-2 w-full xl:w-auto">
               <Button 
                 onClick={() => router.push("/login?signup=true")} 
                 className="h-16 px-8 w-full text-xl bg-teal-600 hover:bg-teal-700 text-white font-black rounded-2xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
@@ -62,14 +65,23 @@ export default function Home() {
               </span>
             </div>
             
-            {/* UPDATED: Live Demo Button */}
-            <Button 
-              onClick={() => router.push("/dashboard")} 
-              variant="outline"
-              className="h-16 px-8 w-full sm:w-auto text-xl border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-100"
-            >
-              Live Demo
-            </Button>
+            {/* Secondary Buttons (Side-by-Side) */}
+            <div className="flex flex-row gap-3 w-full xl:w-auto justify-center md:justify-start">
+              <Button 
+                onClick={() => router.push("/dashboard")} 
+                className="h-16 px-4 md:px-6 flex-1 xl:flex-none text-base md:text-lg bg-teal-50 hover:bg-teal-100 text-teal-800 border-2 border-teal-200 font-bold rounded-2xl transition-all"
+              >
+                Live Spark
+              </Button>
+              <Button 
+                onClick={() => router.push("/dashboard")} 
+                variant="outline"
+                className="h-16 px-4 md:px-6 flex-1 xl:flex-none text-base md:text-lg border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-100 transition-all"
+              >
+                Live Demo
+              </Button>
+            </div>
+
           </div>
         </div>
 
