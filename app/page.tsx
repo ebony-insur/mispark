@@ -69,12 +69,14 @@ export default function Home() {
             
             {/* Secondary Buttons (Side-by-Side) */}
             <div className="flex flex-row gap-3 w-full xl:w-auto justify-center md:justify-start">
+              {/* FIX: Routes to the Why Spark marketing page */}
               <Button 
-                onClick={() => router.push("/dashboard")} 
+                onClick={() => router.push("/why-spark")} 
                 className="h-16 px-4 md:px-6 flex-1 xl:flex-none text-base md:text-lg bg-teal-50 hover:bg-teal-100 text-teal-800 border-2 border-teal-200 font-bold rounded-2xl transition-all"
               >
-                Live Spark
+                Why Spark
               </Button>
+              {/* FIX: Routes to the Live Demo (Dashboard) */}
               <Button 
                 onClick={() => router.push("/dashboard")} 
                 variant="outline"
