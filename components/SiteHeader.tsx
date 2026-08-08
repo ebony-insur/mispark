@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,10 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
   const [dbFirstName, setDbFirstName] = useState<string>(firstName || "");
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasUser, setHasUser] = useState(false);
+  
+  // State for the click-to-open dropdown
+  const [whySparkOpen, setWhySparkOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -42,6 +46,21 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
     checkUser();
   }, [supabase, firstName]);
 
+  // Close dropdown if user clicks or taps outside of it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setWhySparkOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, []);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast.success("Logged out successfully");
@@ -50,25 +69,43 @@ export default function SiteHeader({ firstName }: SiteHeaderProps) {
   };
 
   const WhySparkDropdown = () => (
-    <div className="relative group z-50">
-      <button className="flex items-center gap-1 text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors py-2">
-        Why Spark <ChevronDown className="w-4 h-4 transition-transform group-hover:rotate-180" />
+    <div className="relative z-50" ref={dropdownRef}>
+      {/* Strict onClick toggle - no hover conflicts */}
+      <button 
+        type="button"
+        onClick={() => setWhySparkOpen(!whySparkOpen)}
+        className="flex items-center gap-1 text-sm font-bold text-slate-500 hover:text-teal-600 transition-colors py-2"
+      >
+        Why Spark <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${whySparkOpen ? "rotate-180" : ""}`} />
       </button>
-      <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 bg-white border border-slate-200 shadow-xl rounded-xl p-2 flex flex-col gap-1">
-        <Link href="/about" className="px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-teal-600 rounded-lg transition-colors">
+      
+      {/* Dropdown Menu Box */}
+      <div className={`absolute left-0 sm:left-1/2 sm:-translate-x-1/2 top-full mt-1 w-56 sm:w-64 bg-white border border-slate-200 shadow-xl rounded-xl p-2 flex flex-col gap-1 transition-all duration-200 origin-top-left sm:origin-top ${whySparkOpen ? "opacity-100 visible scale-100" : "opacity-0 invisible scale-95"}`}>
+        
+        {/* NEW: Prominent link to the main Overview page */}
+        <Link 
+          onClick={() => setWhySparkOpen(false)} 
+          href="/why-spark" 
+          className="px-3 py-2.5 text-sm font-black bg-teal-50 text-teal-700 hover:bg-teal-100 rounded-lg transition-colors"
+        >
+          Why Spark Overview
+        </Link>
+        
+        <div className="h-px bg-slate-100 my-1 mx-2"></div>
+        
+        <Link onClick={() => setWhySparkOpen(false)} href="/about" className="px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-teal-600 rounded-lg transition-colors">
           Meet Ebony (Founder Story)
         </Link>
-        <div className="h-px bg-slate-100 my-1 mx-2"></div>
-        <Link href="/why-spark/homeschool" className="px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-teal-600 rounded-lg transition-colors">
+        <Link onClick={() => setWhySparkOpen(false)} href="/why-spark/homeschool" className="px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-teal-600 rounded-lg transition-colors">
           For Homeschoolers
         </Link>
-        <Link href="/why-spark/teachers" className="px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-teal-600 rounded-lg transition-colors">
+        <Link onClick={() => setWhySparkOpen(false)} href="/why-spark/teachers" className="px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-teal-600 rounded-lg transition-colors">
           For Teachers & IEPs
         </Link>
-        <Link href="/why-spark/coops" className="px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-teal-600 rounded-lg transition-colors">
+        <Link onClick={() => setWhySparkOpen(false)} href="/why-spark/coops" className="px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-teal-600 rounded-lg transition-colors">
           For Co-op Leaders
         </Link>
-        <Link href="/why-spark/parents" className="px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-teal-600 rounded-lg transition-colors">
+        <Link onClick={() => setWhySparkOpen(false)} href="/why-spark/parents" className="px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-teal-600 rounded-lg transition-colors">
           For Traditional Parents
         </Link>
       </div>
