@@ -23,7 +23,9 @@ export default function OnboardingModal({ onSuccess }: { onSuccess?: () => void 
   // Form State
   const [selectedTier, setSelectedTier] = useState("");
   const [selectedFocus, setSelectedFocus] = useState("");
-  const [hasConsented, setHasConsented] = useState(false);
+  
+  // FIX: Default to true (Opt-out model instead of Opt-in)
+  const [hasConsented, setHasConsented] = useState(true);
 
   // Options
   const tierOptions = ["Solo", "Modern Family", "Classroom", "Prefer not to say"];
@@ -55,8 +57,9 @@ export default function OnboardingModal({ onSuccess }: { onSuccess?: () => void 
   }, [supabase]);
 
   const handleComplete = async () => {
-    if (!selectedFocus || !hasConsented) {
-      toast.error("Please select a focus and agree to the terms.");
+    // FIX: Removed the hasConsented block so users aren't forced, making it a true soft opt-out
+    if (!selectedFocus) {
+      toast.error("Please select a learning focus to continue.");
       return;
     }
 
@@ -70,7 +73,7 @@ export default function OnboardingModal({ onSuccess }: { onSuccess?: () => void 
           learner_tier: selectedTier,
           primary_focus: selectedFocus,
           marketing_opt_in: hasConsented,
-          onboarding_completed: true // <-- ADD THIS EXACT LINE
+          onboarding_completed: true 
         })
         .eq("id", userId);
 
@@ -86,6 +89,8 @@ export default function OnboardingModal({ onSuccess }: { onSuccess?: () => void 
             firstName: userFirstName,
             learnerTier: selectedTier,
             primaryFocus: selectedFocus,
+            // You can pass the consent state to your API if your MailerLite logic needs to segment them
+            optedIn: hasConsented 
           }),
         });
         console.log("Marketing sync triggered!");
@@ -187,7 +192,8 @@ export default function OnboardingModal({ onSuccess }: { onSuccess?: () => void 
                   className="mt-1 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
                 />
                 <label htmlFor="consent" className="text-sm font-medium text-slate-600 cursor-pointer">
-                  I consent to receiving educational resources and product updates from MiSpark. I understand I can opt out at any time.
+                  {/* FIX: Value-driven copy instead of "marketing" copy */}
+                  Send me personalized prompt ideas, weekly insights, and tips to get the most out of Mi-Spark. (We never sell your data or spam your inbox).
                 </label>
               </div>
 
@@ -199,9 +205,11 @@ export default function OnboardingModal({ onSuccess }: { onSuccess?: () => void 
                 >
                   Back
                 </Button>
+                
+                {/* FIX: Removed hasConsented from disabled state so they can proceed even if unchecked */}
                 <Button 
                   onClick={handleComplete} 
-                  disabled={!selectedFocus || !hasConsented || isSubmitting}
+                  disabled={!selectedFocus || isSubmitting}
                   className="flex-[2] bg-teal-600 hover:bg-teal-700 text-white font-bold h-12 rounded-xl"
                 >
                   {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Complete Setup"}
