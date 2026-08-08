@@ -7,7 +7,7 @@ const TARGET_MARKETS = [
   {
     id: "homeschool",
     title: "Homeschool & Unschooling Parents",
-    image: "bg-[url('/screenshots/Homeschool\\ Tiny.png')]", 
+    image: "bg-[url('/screenshots/Homeschool.png')]", 
     link: "/why-spark/homeschool",
     issues: [
       "The Sunday Night Planning Scramble",
@@ -31,7 +31,7 @@ const TARGET_MARKETS = [
   {
     id: "coops",
     title: "Homeschool Co-op Leaders",
-    image: "bg-[url('/screenshots/Coop\\ Image3\\ Tiny.png')]", 
+    image: "bg-[url('/screenshots/Coop.png')]", 
     link: "/why-spark/coops",
     issues: [
       "Bridging the Volunteer Skill Gap",
