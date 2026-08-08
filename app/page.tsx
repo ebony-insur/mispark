@@ -62,20 +62,20 @@ export default function Home() {
               </span>
             </div>
             
+            {/* UPDATED: Live Demo Button */}
             <Button 
-              onClick={() => router.push("/why-spark")} 
+              onClick={() => router.push("/dashboard")} 
               variant="outline"
               className="h-16 px-8 w-full sm:w-auto text-xl border-2 border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-100"
             >
-              See How It Works
+              Live Demo
             </Button>
           </div>
         </div>
 
         <div className="w-full md:w-[40%] flex justify-center md:justify-end">
-          {/* FIX: Replaced the logo with a dedicated hero image placeholder. Change the src filename to your actual hero graphic! */}
           <Image 
-            src="/heroside.svg"
+            src="/heroside.svg" 
             alt="Mi-Spark Inclusive AI Learning" 
             width={600} 
             height={600} 
@@ -144,10 +144,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* NEW: WHAT YOU GET BANNER */}
+      {/* WHAT YOU GET BANNER */}
       <section className="w-full bg-teal-700 py-16 px-6 border-y border-teal-800">
         <div className="max-w-6xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-10">Personalized Results That Learn What You Like</h2>
+          <h2 className="text-3xl md:text-4xl font-black text-white mb-10">What You Get In Return</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { icon: Brain, title: "Neuro-Adapted Pacing", desc: "Automatic micro-steps and adjusted language processing for ADHD, Autism, and PDA learners." },
